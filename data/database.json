@@ -1,0 +1,3463 @@
+{
+  "settings": {
+    "namaRt": "RT 011 / RW 028",
+    "namaKomplek": "Cluster Cleopatra",
+    "alamat": "Kel. Sukamaju, Kec. Cilodong",
+    "namaBank": "BCA",
+    "nomorRekening": "6831361830",
+    "atasNama": "KAS RT 011 CLEOPATRA",
+    "qrisUrl": "",
+    "nomorWaAdmin": "081297209266",
+    "pesanPengumuman": "Pembayaran iuran bulanan dibuka sampai tanggal 10 setiap bulannya. Mohon upload bukti transfer agar diverifikasi oleh bendahara.",
+    "adminPin": "admin123",
+    "saldoAwal": 11745000,
+    "linkFolderUtamaDrive": "https://drive.google.com/drive/folders/1nFboWcdPdbncsrub31vzd3jgLRZOaZo_",
+    "linkPenyimpananBuktiDrive": "https://drive.google.com/drive/folders/1nFboWcdPdbncsrub31vzd3jgLRZOaZo_",
+    "googleDriveWebhookUrl": "",
+    "periodeAktif": "2026-11"
+  },
+  "residents": [
+    {
+      "id": "7a19f79f-45e8-4184-be86-f985e6f4cf03",
+      "nama": "Purnomo",
+      "blok": "E-1/26-28",
+      "hp": "081317360934",
+      "tarif": 365000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "3edea67e-0f8e-42b1-b664-50d0a04ea2fc",
+      "nama": "Abdul Wahab",
+      "blok": "E-1/29",
+      "hp": "085286620835",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "86b44943-d551-4f9b-8d66-f20b94235136",
+      "nama": "Komarudin",
+      "blok": "E-1/30",
+      "hp": "081314103805",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "678e2443-3f65-415e-a0fe-0d76d3f05f52",
+      "nama": "Hamdallah Perdana Putra",
+      "blok": "E-1/31",
+      "hp": "082297911062",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
+      "nama": "Eri Raihanul Firdaus",
+      "blok": "E-1/32",
+      "hp": "081297209266",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "15e374ce-2718-4357-82c4-b841561eb4bf",
+      "nama": "Iwan Rio",
+      "blok": "E-1/33",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "2e411921-fe08-400b-ba20-5d038f75e1ab",
+      "nama": "Darojat Hernawan",
+      "blok": "E-1/34",
+      "hp": "081344082436",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "c2220d98-5f97-47d3-91d1-8ec676ee18a3",
+      "nama": "Wijanarko",
+      "blok": "E-1/35",
+      "hp": "085286620835",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "c849b3f5-1f47-4140-8d89-e6a36664e67d",
+      "nama": "Dian Purnama Sari",
+      "blok": "E-1/36",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "ea7531bd-d9c9-4f06-9eb4-58bb1474c317",
+      "nama": "Rika Supiandari Windarsih",
+      "blok": "E-1/37",
+      "hp": "082310277423",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "5d89a1ad-2b9a-471e-9a25-bc1909b06bcd",
+      "nama": "Komar",
+      "blok": "H-1/11-12",
+      "hp": "085781859440",
+      "tarif": 360000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "d480cbfa-393b-483b-aec6-3ec52e8cd821",
+      "nama": "Amen-1",
+      "blok": "H-1/15",
+      "hp": "082260943230",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "8b2757d6-b7ba-4881-9f22-1d7fefef036f",
+      "nama": "Dwi Warno",
+      "blok": "H-1/16",
+      "hp": "08179940775",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "b1f90e1d-9141-49dc-9889-33d4ad6056f7",
+      "nama": "Suparman",
+      "blok": "H-1/17",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "6723da50-3451-4100-8b96-f48bd1f20f55",
+      "nama": "Marjuni",
+      "blok": "H-1/18",
+      "hp": "085888162970",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "d6828807-4439-4d03-823d-24bbcb83f429",
+      "nama": "Tak Hiang",
+      "blok": "H-1/19",
+      "hp": "081290011998",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "49f2cce4-081e-4d4a-a13a-4dce0edb37bc",
+      "nama": "M Sulaiman",
+      "blok": "H-1/20",
+      "hp": "082311855204",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "edf32752-d771-40f1-b183-6584f02e0ba0",
+      "nama": "Amen-2",
+      "blok": "H-1/21",
+      "hp": "082260943230",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "7a1030cc-2f3a-4059-a13b-6329114d889b",
+      "nama": "Sunarwan",
+      "blok": "H-1/22",
+      "hp": "012345678910",
+      "tarif": 100000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "72925e14-410b-4dac-82e0-7abbf5f2fbbd",
+      "nama": "Irfan Pratomo Putra",
+      "blok": "H-1/23",
+      "hp": "085779662100",
+      "tarif": 100000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "bfc86dd3-0d3e-47dc-a20d-f6d1b0b60f18",
+      "nama": "Samsuar",
+      "blok": "H-1/25",
+      "hp": "0811832799",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "9f1a1a44-bb5f-4309-941e-90c33a87ac1c",
+      "nama": "Fais Haryadi",
+      "blok": "H-1/26",
+      "hp": "081310995765",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "607d5290-64c6-437e-a6ec-242fdbdcfa81",
+      "nama": "Aris Setiawan",
+      "blok": "H-1/27",
+      "hp": "081213502529",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "fec8b249-d644-4a8d-b398-00e7f2bf319c",
+      "nama": "Ebeneser Kemit",
+      "blok": "H-1/28",
+      "hp": "081316456741",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "d92223dc-eb9a-4b0b-a83c-2a3e097b5999",
+      "nama": "Bakhrudin Affandi",
+      "blok": "H-1/29",
+      "hp": "087738089155",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "17573526-4858-440b-bfcf-53e57d49af8b",
+      "nama": "Yusuf Bangun/Dhanil",
+      "blok": "H-1/30",
+      "hp": "081297313584",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "b08d589f-2834-4a35-a88a-91e76020eafa",
+      "nama": "Marliansyah",
+      "blok": "H-12/1",
+      "hp": "081310375864",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "448b0ba5-a3d2-479b-8433-7bd50bf3bf16",
+      "nama": "Dito Aristhyawan",
+      "blok": "H-12/2",
+      "hp": "08118082298",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "439b130c-f694-4bbc-acba-aee2c0a509d9",
+      "nama": "Yusrizal",
+      "blok": "H-12/3",
+      "hp": "085358983777",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "1939e0f5-9403-45cf-9f14-f2dac4b957e7",
+      "nama": "Winda",
+      "blok": "H-12/4",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "0624b5b6-de08-414b-a988-fa21e4a1a0bd",
+      "nama": "Masrina",
+      "blok": "H-12/5",
+      "hp": "087785370987",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "036582f6-f593-4caf-967c-7640cb0bfd50",
+      "nama": "Ade Unang",
+      "blok": "H-12/6",
+      "hp": "082122268491",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f70c7329-15c5-4779-86a1-16a8aa5da26b",
+      "nama": "Nursofi",
+      "blok": "H-12/8",
+      "hp": "08111471473",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "58789148-4dda-475b-89f7-9dd10427e342",
+      "nama": "Wisnu/Panji",
+      "blok": "H-12/9",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "b3357d63-5b3f-426b-8d40-cdda503ed321",
+      "nama": "Yunus",
+      "blok": "H-12/10",
+      "hp": "08987530300",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "dde9ece1-3752-49e0-afc6-26fdadb14337",
+      "nama": "Firmansyah",
+      "blok": "H-12/12-14",
+      "hp": "08158840426",
+      "tarif": 212500,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "8db2d517-e98d-4542-a9fc-4ebe42b99a32",
+      "nama": "Eko Fajar Nugroho",
+      "blok": "H-12/14",
+      "hp": "081287542174",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "024bad17-a2e4-473b-93e0-59d22fe97d0b",
+      "nama": "Lyla/Ahmad",
+      "blok": "H-12/15",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f05656b9-f7e9-4909-a11a-3dad46374e80",
+      "nama": "Ria",
+      "blok": "H-12/16",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "534a48da-9a48-434c-8301-47b9dfc380eb",
+      "nama": "Dodi/Erwin",
+      "blok": "H-13-11",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "6d911497-3fc5-40a3-b307-a9bced312677",
+      "nama": "Wawan Hermawan",
+      "blok": "H-13/1",
+      "hp": "087720904053",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "a071c9b9-456f-487a-a6bd-65e6981beffe",
+      "nama": "Satria Niko",
+      "blok": "H-13/2",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f1b4ae6a-021d-4dce-babd-b5116fd1a1c0",
+      "nama": "Asep Herdi",
+      "blok": "H-13/3",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "485d5d4f-9a1a-4c20-87b0-7a222af59ab1",
+      "nama": "Pandan",
+      "blok": "H-13/04",
+      "hp": "085641577171",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "4d213a75-b609-40f3-a25e-0cd3f5936e1b",
+      "nama": "Dian Alm Helmi",
+      "blok": "H-13/5",
+      "hp": "087741107671",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "c3361345-0ea8-442d-a928-de06e539e579",
+      "nama": "Muhroni",
+      "blok": "H-13/6",
+      "hp": "085231724959",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "c89054d0-4d28-44fb-b24b-992e6e924bee",
+      "nama": "PT Perlita Mess (Ai)",
+      "blok": "H-13/7",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "ab3f4f8b-0644-4173-88ad-8f314fd9108b",
+      "nama": "Muhamad Farouq",
+      "blok": "H-13/8",
+      "hp": "087870070291",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f3727e51-9fe1-4907-ad23-f8279035e729",
+      "nama": "Agung",
+      "blok": "H-13/9",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "afc9b840-10b0-4092-b1a6-40a6d8f1495b",
+      "nama": "Arneti",
+      "blok": "H-13/10",
+      "hp": "089506105936",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "5b0de881-6e14-4f1d-81af-15144c0091c8",
+      "nama": "Hermawan Dodi",
+      "blok": "H-13/12",
+      "hp": "08159802974",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "677f69f9-e5d1-4aca-a878-eccaad14c665",
+      "nama": "Muhzaeni",
+      "blok": "H-13/14",
+      "hp": "08129252832",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "5d638001-3b5b-4c87-820f-c4b54e81d094",
+      "nama": "Heru  Mardjono",
+      "blok": "H-13/15",
+      "hp": "085122441244",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "6f408fca-84df-4366-987f-541ef200ada3",
+      "nama": "Rohman",
+      "blok": "H-13/16",
+      "hp": "081400343544",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "9f489120-8b46-416c-bbc5-7180bd5a0909",
+      "nama": "Maji Prayitna/Wahyu Rustam",
+      "blok": "H-13/17",
+      "hp": "081310079479",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "c3890588-7694-431e-9338-7e75bfab7598",
+      "nama": "Hendri",
+      "blok": "H-14/35",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "5b773219-ac63-473a-a7a1-0a95b34bab58",
+      "nama": "Sarwoko",
+      "blok": "H-14/36-38",
+      "hp": "0817897910",
+      "tarif": 360000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f935d11c-da09-4cd7-8e4b-854637389f20",
+      "nama": "Mahrul",
+      "blok": "H-14/39",
+      "hp": "081284482044",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "717cab3b-f491-4576-8233-b5955647fc16",
+      "nama": "Husada Setiawan/Wiwi",
+      "blok": "H-14/41-42",
+      "hp": "012345678910",
+      "tarif": 225000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "d1d9108e-4747-4a7a-9fa2-ac5f43dffbf6",
+      "nama": "Dhaniel",
+      "blok": "H-14/43",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "84134b88-4d48-493c-9680-5c6654403004",
+      "nama": "Ali",
+      "blok": "H-14/44",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "6bf73389-cfcd-4a08-818e-cbea716480ec",
+      "nama": "Wiwit/Suryanto Mess",
+      "blok": "H-14/45",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f6d8cb48-4516-497b-b82b-d49ece052572",
+      "nama": "Amin/Titin (Mohamad Iqbal)",
+      "blok": "H-14/46",
+      "hp": "012345678910",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "b6cf885a-4b45-4ace-b0e6-bd3d38f46682",
+      "nama": "Ngadimin",
+      "blok": "H-14/47",
+      "hp": "082125430103",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "f308208f-8503-4e80-9eb8-73a69679f267",
+      "nama": "Sun Huat",
+      "blok": "H-14/48",
+      "hp": "081280609485",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "ef18bed4-7174-43cb-9884-4258d368f56d",
+      "nama": "Depran",
+      "blok": "H-14/49",
+      "hp": "082228488040",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "b14c2111-6f75-47e6-91e0-d99f5c59e94e",
+      "nama": "Rudi (Mega)",
+      "blok": "H-14/50-52-53",
+      "hp": "085714096644",
+      "tarif": 425000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "022857ee-493f-48cd-b9ce-f17a57396b7b",
+      "nama": "Bambang Suryo Aji",
+      "blok": "H-14/51",
+      "hp": "012345678910",
+      "tarif": 100000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    }
+  ],
+  "proofs": [
+    {
+      "id": "BKT-2611-2602",
+      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
+      "residentName": "Eri Raihanul Firdaus",
+      "blok": "E-1/32",
+      "hp": "",
+      "kategori": "Iuran Bulanan (Reguler)",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1bCGcmdx5PugLqIWrhO1GvJZplrlmox3y/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1bCGcmdx5PugLqIWrhO1GvJZplrlmox3y/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Bukti valid dan sesuai",
+      "createdAt": "2026-11-09",
+      "verifiedAt": "11/9/2026",
+      "verifiedBy": "Bendahara RT",
+      "transactionId": "INC-1794238993914-1"
+    },
+    {
+      "id": "bf087a61-a419-4875-a315-63e656690e08",
+      "residentId": "5b0de881-6e14-4f1d-81af-15144c0091c8",
+      "residentName": "Hermawan Dodi",
+      "blok": "H-13/12",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1TYv6FfF6EnJ6PVZ1iVtmd4g3xzO_tcZB/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1TYv6FfF6EnJ6PVZ1iVtmd4g3xzO_tcZB/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-04",
+      "verifiedAt": "11/4/2026",
+      "verifiedBy": "admin",
+      "transactionId": "57b431ba-a4bb-453a-9865-d5aeb699434c"
+    },
+    {
+      "id": "7b12d23d-c9a1-443a-bed3-617e0b18e31e",
+      "residentId": "dde9ece1-3752-49e0-afc6-26fdadb14337",
+      "residentName": "Firmansyah",
+      "blok": "H-12/12-13",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 212500,
+      "buktiUrl": "https://drive.google.com/file/d/1_a818KXRYUSnzDH6kG8oAP4KZx_CA_Yu/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1_a818KXRYUSnzDH6kG8oAP4KZx_CA_Yu/view?usp=drivesdk",
+      "catatanWarga": "Tanggal 4",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-04",
+      "verifiedAt": "11/4/2026",
+      "verifiedBy": "admin",
+      "transactionId": "21e182ee-1b99-424c-ac7f-602d3d484de2"
+    },
+    {
+      "id": "ea6b44db-e4b3-457d-8987-2e853fa22799",
+      "residentId": "9f1a1a44-bb5f-4309-941e-90c33a87ac1c",
+      "residentName": "Fais Haryadi",
+      "blok": "H-1/26",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1OCO-foj2jk3jTNztwZ43-fueyNJVzkEM/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1OCO-foj2jk3jTNztwZ43-fueyNJVzkEM/view?usp=drivesdk",
+      "catatanWarga": "Iuran RT Nopember 2026",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "38339b62-5cb2-4c84-9763-d63a519e2266"
+    },
+    {
+      "id": "3dda7bc2-10aa-4ed0-b6e6-3f1f9bcc0f23",
+      "residentId": "afc9b840-10b0-4092-b1a6-40a6d8f1495b",
+      "residentName": "Arnety",
+      "blok": "H-13/10",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1--nk-jd-QOLttOh0HUSKogZL3Ud5D9I5/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1--nk-jd-QOLttOh0HUSKogZL3Ud5D9I5/view?usp=drivesdk",
+      "catatanWarga": "rek a/n Fadhilatul Ulfa",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "0edad42f-d2e0-42c0-8dfd-4d462b12fe1f"
+    },
+    {
+      "id": "a3c22aeb-1402-4662-92ff-9c45b0868f60",
+      "residentId": "bfc86dd3-0d3e-47dc-a20d-f6d1b0b60f18",
+      "residentName": "Samsuar",
+      "blok": "H-1/25",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1G4fYYdwaVOCG5xppLqDtdKI57PszN9PN/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1G4fYYdwaVOCG5xppLqDtdKI57PszN9PN/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "e83d99c2-d6bd-4f75-991b-79141e41411c"
+    },
+    {
+      "id": "27cdf77a-89b3-4863-bacd-41b4fb061a90",
+      "residentId": "b14c2111-6f75-47e6-91e0-d99f5c59e94e",
+      "residentName": "Rudi (Mega)",
+      "blok": "H-14/50-52-53",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 425000,
+      "buktiUrl": "https://drive.google.com/file/d/1n1Kt5x4qywYGC0HEesr5rh8YqICZYTPW/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1n1Kt5x4qywYGC0HEesr5rh8YqICZYTPW/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "ec4b1308-47a3-4f2a-bb38-8d25f304d560"
+    },
+    {
+      "id": "e92c2f06-bbdd-4088-a0f6-87b4a3b3a228",
+      "residentId": "8b2757d6-b7ba-4881-9f22-1d7fefef036f",
+      "residentName": "Dwi Warno",
+      "blok": "H-1/16",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1I2RaltgoYWfqE3QqsbQcd8DATU8WJ6-Z/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1I2RaltgoYWfqE3QqsbQcd8DATU8WJ6-Z/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "2ade277a-083b-4bcc-9571-efa94ae1ba11"
+    },
+    {
+      "id": "79931d6f-eefe-4c3e-a01c-66b8f262f24c",
+      "residentId": "f70c7329-15c5-4779-86a1-16a8aa5da26b",
+      "residentName": "Nursofi",
+      "blok": "H-12/8",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/14wZo2VAY5EBLIm-xCFnZ_RmKS4uiA3Fq/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/14wZo2VAY5EBLIm-xCFnZ_RmKS4uiA3Fq/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-05",
+      "verifiedAt": "11/5/2026",
+      "verifiedBy": "admin",
+      "transactionId": "027733a3-d14a-4109-99fa-f8389442fe11"
+    },
+    {
+      "id": "8f559455-2f29-42cc-bf67-a9fd43bd92aa",
+      "residentId": "72925e14-410b-4dac-82e0-7abbf5f2fbbd",
+      "residentName": "Fikri/Irfan",
+      "blok": "H-1/23",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1BDL6oSmJYaNbf5dUYgh2OdGiKpuzKkKT/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1BDL6oSmJYaNbf5dUYgh2OdGiKpuzKkKT/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-06",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "0081ad28-8435-478a-8757-484922664ac9"
+    },
+    {
+      "id": "76655f10-7e5e-41fa-a3b6-6578e030a7af",
+      "residentId": "9f489120-8b46-416c-bbc5-7180bd5a0909",
+      "residentName": "Maji Prayitna/Wahyu",
+      "blok": "H-13/17",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1jRkYGYF0XZxc1znDkl6OwMux_NoXn5JO/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1jRkYGYF0XZxc1znDkl6OwMux_NoXn5JO/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-06",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "e2426ad5-232f-4a61-8a32-d9b6791513bf"
+    },
+    {
+      "id": "cc0a740c-6d18-4454-a030-a1df0928b0e6",
+      "residentId": "6f408fca-84df-4366-987f-541ef200ada3",
+      "residentName": "Rohman",
+      "blok": "H-13/16",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1Mzdnxtyagwm612vW0iv7mIkKs5VfTxZe/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1Mzdnxtyagwm612vW0iv7mIkKs5VfTxZe/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-06",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "98ec6a8c-e772-429a-9fb1-28749a2aaa3f"
+    },
+    {
+      "id": "04e37709-97d0-46ba-835e-d61149d7c7ad",
+      "residentId": "d92223dc-eb9a-4b0b-a83c-2a3e097b5999",
+      "residentName": "Baharudin",
+      "blok": "H-1/29",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1v1IYgmmQPR6tFSm8553fYwIKmkGicm4W/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1v1IYgmmQPR6tFSm8553fYwIKmkGicm4W/view?usp=drivesdk",
+      "catatanWarga": "H1/29 Nov'26",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "f97de59d-dca2-4d73-94c0-73b67b598910"
+    },
+    {
+      "id": "ce63d361-a586-49de-aa25-d19cfb425aa5",
+      "residentId": "5b773219-ac63-473a-a7a1-0a95b34bab58",
+      "residentName": "Sarwoko",
+      "blok": "H-14/36-38",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 360000,
+      "buktiUrl": "https://drive.google.com/file/d/1uyq77td7YLfUX003KBrrol8SpDqftmyl/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1uyq77td7YLfUX003KBrrol8SpDqftmyl/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "570fe660-386f-4b04-b8c2-87effe36c665"
+    },
+    {
+      "id": "6cea8958-c0fc-4af8-91ba-cdf4afc71129",
+      "residentId": "485d5d4f-9a1a-4c20-87b0-7a222af59ab1",
+      "residentName": "Pandan",
+      "blok": "H-13/3A",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1WNtorIbH77LK6S5ADJlKvfwBtRLD___W/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1WNtorIbH77LK6S5ADJlKvfwBtRLD___W/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "a9addc3b-0168-474d-b10a-9e5f6e249514"
+    },
+    {
+      "id": "428e0a6e-fa9e-4f96-aa23-927067d970d6",
+      "residentId": "49f2cce4-081e-4d4a-a13a-4dce0edb37bc",
+      "residentName": "Sulaiman",
+      "blok": "H-1/20",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1H7wBF7cKgbs9lwmWC-mmUMOZxDh7kIMr/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1H7wBF7cKgbs9lwmWC-mmUMOZxDh7kIMr/view?usp=drivesdk",
+      "catatanWarga": "IPL nov 2026",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "01cc94a5-046e-4ee2-ba9e-f19d70cdc752"
+    },
+    {
+      "id": "a839d313-ef72-478e-83e1-1c139a97d194",
+      "residentId": "c3361345-0ea8-442d-a928-de06e539e579",
+      "residentName": "Muhroni",
+      "blok": "H-13/6",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiUrl": "https://drive.google.com/file/d/1C4Srp-V053BkCW7ikbIrWZ9nBwPGtAfN/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/1C4Srp-V053BkCW7ikbIrWZ9nBwPGtAfN/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "238cc1f1-cdb6-459d-85e7-c82fd38aae05"
+    },
+    {
+      "id": "e90dc9f6-4360-4c4f-a29b-b1ee10259727",
+      "residentId": "717cab3b-f491-4576-8233-b5955647fc16",
+      "residentName": "Husada Setiawan",
+      "blok": "H-14/41-42",
+      "hp": "",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 225000,
+      "buktiUrl": "https://drive.google.com/file/d/127tc-_Zhn3t7-UZmda__JDQSA2_IXxqE/view?usp=drivesdk",
+      "driveUrl": "https://drive.google.com/file/d/127tc-_Zhn3t7-UZmda__JDQSA2_IXxqE/view?usp=drivesdk",
+      "catatanWarga": "",
+      "status": "Terverifikasi",
+      "adminNote": "Masuk",
+      "createdAt": "2026-11-07",
+      "verifiedAt": "11/7/2026",
+      "verifiedBy": "admin",
+      "transactionId": "7a5f73ae-c2d1-43f5-8ec3-1604aa2d287b"
+    }
+  ],
+  "incomes": [
+    {
+      "id": "INC-MANUAL-1794226269544-1",
+      "tanggal": "2026-11-09",
+      "sumber": "Muhamad Farouq (H-13/8)",
+      "residentId": "ab3f4f8b-0644-4173-88ad-8f314fd9108b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "INC-MANUAL-1794227365416-1",
+      "tanggal": "2026-11-09",
+      "sumber": "Dito Aristhyawan (H-12/2)",
+      "residentId": "448b0ba5-a3d2-479b-8433-7bd50bf3bf16",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "INC-MANUAL-1794231899659-1",
+      "tanggal": "2026-11-09",
+      "sumber": "Tak Hiang (H-1/19)",
+      "residentId": "d6828807-4439-4d03-823d-24bbcb83f429",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "INC-TUNG-1794263190877",
+      "tanggal": "2026-11-09",
+      "sumber": "Lia (N/A)",
+      "kategori": "Cicilan Tunggakan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 1000000,
+      "buktiId": "Cash",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "INC-KSB-1794263493123",
+      "tanggal": "2026-11-09",
+      "sumber": "Rahmat Security (Kasbon Petugas)",
+      "kategori": "Pengembalian Kasbon",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 100000,
+      "buktiId": "Cash",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "INC-1794238993914-1",
+      "tanggal": "2026-11-09",
+      "sumber": "Eri Raihanul Firdaus (E-1/32)",
+      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "buktiId": "BKT-2611-2602",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "98ec6a8c-e772-429a-9fb1-28749a2aaa3f",
+      "tanggal": "2026-11-07",
+      "sumber": "Rohman (H-13/16)",
+      "residentId": "6f408fca-84df-4366-987f-541ef200ada3",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "cc0a740c-6d18-4454-a030-a1df0928b0e6",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e2426ad5-232f-4a61-8a32-d9b6791513bf",
+      "tanggal": "2026-11-07",
+      "sumber": "Maji Prayitna/Wahyu (H-13/17)",
+      "residentId": "9f489120-8b46-416c-bbc5-7180bd5a0909",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "76655f10-7e5e-41fa-a3b6-6578e030a7af",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "f97de59d-dca2-4d73-94c0-73b67b598910",
+      "tanggal": "2026-11-07",
+      "sumber": "Bakhrudin Affandi (H-1/29)",
+      "residentId": "d92223dc-eb9a-4b0b-a83c-2a3e097b5999",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "04e37709-97d0-46ba-835e-d61149d7c7ad",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "0081ad28-8435-478a-8757-484922664ac9",
+      "tanggal": "2026-11-07",
+      "sumber": "Irfan Pratomo Putra (H-1/23)",
+      "residentId": "72925e14-410b-4dac-82e0-7abbf5f2fbbd",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "8f559455-2f29-42cc-bf67-a9fd43bd92aa",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "7969564d-3c9c-4368-b928-b2e1ab417e9a",
+      "tanggal": "2026-11-07",
+      "sumber": "Komarudin (E-1/30)",
+      "residentId": "86b44943-d551-4f9b-8d66-f20b94235136",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "12b6b704-c2fc-47b7-9f75-5e95f6ccc205",
+      "tanggal": "2026-11-07",
+      "sumber": "Komarudin (E-1/30)",
+      "residentId": "86b44943-d551-4f9b-8d66-f20b94235136",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "570fe660-386f-4b04-b8c2-87effe36c665",
+      "tanggal": "2026-11-07",
+      "sumber": "Sarwoko (H-14/36-38)",
+      "residentId": "5b773219-ac63-473a-a7a1-0a95b34bab58",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 360000,
+      "buktiId": "ce63d361-a586-49de-aa25-d19cfb425aa5",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "01cc94a5-046e-4ee2-ba9e-f19d70cdc752",
+      "tanggal": "2026-11-07",
+      "sumber": "M Sulaiman (H-1/20)",
+      "residentId": "49f2cce4-081e-4d4a-a13a-4dce0edb37bc",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "428e0a6e-fa9e-4f96-aa23-927067d970d6",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "a9addc3b-0168-474d-b10a-9e5f6e249514",
+      "tanggal": "2026-11-07",
+      "sumber": "Pandan (H-13/04)",
+      "residentId": "485d5d4f-9a1a-4c20-87b0-7a222af59ab1",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "6cea8958-c0fc-4af8-91ba-cdf4afc71129",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "7a5f73ae-c2d1-43f5-8ec3-1604aa2d287b",
+      "tanggal": "2026-11-07",
+      "sumber": "Husada Setiawan/Wiwi (H-14/41-42)",
+      "residentId": "717cab3b-f491-4576-8233-b5955647fc16",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 225000,
+      "buktiId": "e90dc9f6-4360-4c4f-a29b-b1ee10259727",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "238cc1f1-cdb6-459d-85e7-c82fd38aae05",
+      "tanggal": "2026-11-07",
+      "sumber": "Muhroni (H-13/6)",
+      "residentId": "c3361345-0ea8-442d-a928-de06e539e579",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "a839d313-ef72-478e-83e1-1c139a97d194",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "c57a54a9-c550-4b62-88f0-1a281c067c61",
+      "tanggal": "2026-11-05",
+      "sumber": "Fais Haryadi (H-1/26)",
+      "residentId": "9f1a1a44-bb5f-4309-941e-90c33a87ac1c",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e83d99c2-d6bd-4f75-991b-79141e41411c",
+      "tanggal": "2026-11-05",
+      "sumber": "Samsuar (H-1/25)",
+      "residentId": "bfc86dd3-0d3e-47dc-a20d-f6d1b0b60f18",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "a3c22aeb-1402-4662-92ff-9c45b0868f60",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "38339b62-5cb2-4c84-9763-d63a519e2266",
+      "tanggal": "2026-11-05",
+      "sumber": "Fais Haryadi (H-1/26)",
+      "residentId": "9f1a1a44-bb5f-4309-941e-90c33a87ac1c",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "ea6b44db-e4b3-457d-8987-2e853fa22799",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "ec4b1308-47a3-4f2a-bb38-8d25f304d560",
+      "tanggal": "2026-11-05",
+      "sumber": "Rudi (Mega) (H-14/50-52-53)",
+      "residentId": "b14c2111-6f75-47e6-91e0-d99f5c59e94e",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 425000,
+      "buktiId": "27cdf77a-89b3-4863-bacd-41b4fb061a90",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "2ade277a-083b-4bcc-9571-efa94ae1ba11",
+      "tanggal": "2026-11-05",
+      "sumber": "Dwi Warno (H-1/16)",
+      "residentId": "8b2757d6-b7ba-4881-9f22-1d7fefef036f",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "e92c2f06-bbdd-4088-a0f6-87b4a3b3a228",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "0edad42f-d2e0-42c0-8dfd-4d462b12fe1f",
+      "tanggal": "2026-11-05",
+      "sumber": "Arneti (H-13/10)",
+      "residentId": "afc9b840-10b0-4092-b1a6-40a6d8f1495b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "3dda7bc2-10aa-4ed0-b6e6-3f1f9bcc0f23",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "027733a3-d14a-4109-99fa-f8389442fe11",
+      "tanggal": "2026-11-05",
+      "sumber": "Nursofi (H-12/8)",
+      "residentId": "f70c7329-15c5-4779-86a1-16a8aa5da26b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "79931d6f-eefe-4c3e-a01c-66b8f262f24c",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "SHEET-ROW-30",
+      "tanggal": "2026-11-04",
+      "sumber": "Winda (H-12/4)",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "SHEET-ROW-31",
+      "tanggal": "2026-11-04",
+      "sumber": "PT Perlita Mess (Ai) (H-13/7)",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "SHEET-ROW-32",
+      "tanggal": "2026-11-04",
+      "sumber": "Dodi/Erwin (H-13-11)",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "SHEET-ROW-33",
+      "tanggal": "2026-11-04",
+      "sumber": "Hendri (H-14/35)",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "57b431ba-a4bb-453a-9865-d5aeb699434c",
+      "tanggal": "2026-11-04",
+      "sumber": "Hermawan Dodi (H-13/12)",
+      "residentId": "5b0de881-6e14-4f1d-81af-15144c0091c8",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "buktiId": "bf087a61-a419-4875-a315-63e656690e08",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "21e182ee-1b99-424c-ac7f-602d3d484de2",
+      "tanggal": "2026-11-04",
+      "sumber": "Firmansyah (H-12/12-13)",
+      "residentId": "dde9ece1-3752-49e0-afc6-26fdadb14337",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 212500,
+      "buktiId": "7b12d23d-c9a1-443a-bed3-617e0b18e31e",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "1ad13cce-e43f-4fe8-9f74-e8232be31008",
+      "tanggal": "2026-11-03",
+      "sumber": "Komar (H-1/11-12)",
+      "residentId": "5d89a1ad-2b9a-471e-9a25-bc1909b06bcd",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 360000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "c01231f1-8f68-4d74-add2-292546e81172",
+      "tanggal": "2026-11-03",
+      "sumber": "Komar (H-1/11-12)",
+      "residentId": "5d89a1ad-2b9a-471e-9a25-bc1909b06bcd",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 360000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "7ecb07e2-1bed-4864-92c4-87197f10a3af",
+      "tanggal": "2026-11-03",
+      "sumber": "Suparman (H-1/17)",
+      "residentId": "b1f90e1d-9141-49dc-9889-33d4ad6056f7",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e83e5bdf-80ed-4899-bff8-b5eb81d37837",
+      "tanggal": "2026-11-03",
+      "sumber": "Marjuni (H-1/18)",
+      "residentId": "6723da50-3451-4100-8b96-f48bd1f20f55",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "8327b49b-ffe8-4431-87ac-592d59ce07a4",
+      "tanggal": "2026-11-03",
+      "sumber": "Sunarwan (H-1/22)",
+      "residentId": "7a1030cc-2f3a-4059-a13b-6329114d889b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 100000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "b81ca166-3c0a-4e54-b114-066db4c7ef82",
+      "tanggal": "2026-11-03",
+      "sumber": "Sunarwan (H-1/22)",
+      "residentId": "7a1030cc-2f3a-4059-a13b-6329114d889b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 100000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e52baa7f-7de7-4724-8152-abc6dda20355",
+      "tanggal": "2026-11-03",
+      "sumber": "Yusuf Bangun/Dhanil (H-1/30)",
+      "residentId": "17573526-4858-440b-bfcf-53e57d49af8b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "b1507aa4-c675-4178-961e-cf15e843226d",
+      "tanggal": "2026-11-03",
+      "sumber": "Yusuf Bangun/Dhanil (H-1/30)",
+      "residentId": "17573526-4858-440b-bfcf-53e57d49af8b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "8c1692a4-d308-4b2f-8b62-2596fdee0d80",
+      "tanggal": "2026-11-03",
+      "sumber": "Muhzaeni (H-13/14)",
+      "residentId": "677f69f9-e5d1-4aca-a878-eccaad14c665",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "fc6c3669-c683-49f2-a904-8dd623297d12",
+      "tanggal": "2026-11-03",
+      "sumber": "Rina (H-12/5)",
+      "residentId": "0624b5b6-de08-414b-a988-fa21e4a1a0bd",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "d331cf40-2bda-4406-997d-1213698d3bd0",
+      "tanggal": "2026-11-03",
+      "sumber": "Satria Niko (H-13/2)",
+      "residentId": "a071c9b9-456f-487a-a6bd-65e6981beffe",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "33f5d364-66a2-471e-a337-076537d27103",
+      "tanggal": "2026-11-03",
+      "sumber": "Lyla/Ahmad (H-12/15)",
+      "residentId": "024bad17-a2e4-473b-93e0-59d22fe97d0b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "ff369972-1134-4430-b28b-d2b6ca416e6a",
+      "tanggal": "2026-11-03",
+      "sumber": "Lyla/Ahmad (H-12/15)",
+      "residentId": "024bad17-a2e4-473b-93e0-59d22fe97d0b",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "c9c38d37-56a8-42dc-a792-75c4a00914e0",
+      "tanggal": "2026-11-03",
+      "sumber": "Asep Herdi (H-13/3)",
+      "residentId": "f1b4ae6a-021d-4dce-babd-b5116fd1a1c0",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "34c0ba25-2d0a-4f1f-b078-0ff4f9e5180a",
+      "tanggal": "2026-11-03",
+      "sumber": "Asep Herdi (H-13/3)",
+      "residentId": "f1b4ae6a-021d-4dce-babd-b5116fd1a1c0",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "bc1ccb56-8b1a-4dab-a63c-0888e8613020",
+      "tanggal": "2026-11-03",
+      "sumber": "Mahrul (H-14/39)",
+      "residentId": "f935d11c-da09-4cd7-8e4b-854637389f20",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e44f3dca-2cbb-443c-a92a-530df53ed75a",
+      "tanggal": "2026-11-03",
+      "sumber": "Mahrul (H-14/39)",
+      "residentId": "f935d11c-da09-4cd7-8e4b-854637389f20",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "b6317446-6a4e-4093-bb1b-b8b64a5ff5e8",
+      "tanggal": "2026-11-03",
+      "sumber": "Dhaniel (H-14/43)",
+      "residentId": "d1d9108e-4747-4a7a-9fa2-ac5f43dffbf6",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "0cbc6c38-4f0c-4bfe-9c14-e3b46e9aed80",
+      "tanggal": "2026-11-03",
+      "sumber": "Dhaniel (H-14/43)",
+      "residentId": "d1d9108e-4747-4a7a-9fa2-ac5f43dffbf6",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "0c75c040-2aea-498d-9454-9aff0158901e",
+      "tanggal": "2026-11-03",
+      "sumber": "Amin/Titin (Mohamad Iqbal) (H-14/46)",
+      "residentId": "f6d8cb48-4516-497b-b82b-d49ece052572",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "0423d400-4b56-44c2-a545-95bf219ad9ec",
+      "tanggal": "2026-11-03",
+      "sumber": "Amin/Titin (Mohamad Iqbal) (H-14/46)",
+      "residentId": "f6d8cb48-4516-497b-b82b-d49ece052572",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "a3eecab4-4cd9-4200-891a-6cf358cbf938",
+      "tanggal": "2026-11-03",
+      "sumber": "Ngadimin (H-14/47)",
+      "residentId": "b6cf885a-4b45-4ace-b0e6-bd3d38f46682",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "765e7f76-db4f-493b-a0b7-1d9eb0e6c8a5",
+      "tanggal": "2026-11-03",
+      "sumber": "Ngadimin (H-14/47)",
+      "residentId": "b6cf885a-4b45-4ace-b0e6-bd3d38f46682",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "e67e2566-e879-4e10-bfa7-66b168310104",
+      "tanggal": "2026-11-03",
+      "sumber": "Sun Huat (H-14/48)",
+      "residentId": "f308208f-8503-4e80-9eb8-73a69679f267",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "a1a43653-8686-46ca-86a3-ee93f832f435",
+      "tanggal": "2026-11-03",
+      "sumber": "Sun Huat (H-14/48)",
+      "residentId": "f308208f-8503-4e80-9eb8-73a69679f267",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "508dad23-8792-4baf-aee5-7a6e4013a721",
+      "tanggal": "2026-11-03",
+      "sumber": "Purnomo (E-1/26-28)",
+      "residentId": "7a19f79f-45e8-4184-be86-f985e6f4cf03",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 365000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "48b9273d-6b16-4e2b-8003-9a5399447aa2",
+      "tanggal": "2026-11-03",
+      "sumber": "Eri Raihanul Firdaus (E-1/32)",
+      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "91c83fc6-5dd7-4419-8c2f-a4ec18861215",
+      "tanggal": "2026-11-03",
+      "sumber": "Wijanarko (E-1/35)",
+      "residentId": "c2220d98-5f97-47d3-91d1-8ec676ee18a3",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    },
+    {
+      "id": "f776573b-da80-47a3-a9df-9ac443df9272",
+      "tanggal": "2026-11-03",
+      "sumber": "Dian Purnama Sari (E-1/36)",
+      "residentId": "c849b3f5-1f47-4140-8d89-e6a36664e67d",
+      "kategori": "Iuran Bulanan",
+      "bulan": [
+        "2026-11"
+      ],
+      "nominal": 150000,
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.559Z"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "7f0baf8e-5804-4921-be31-ed2f3e404530",
+      "tanggal": "2026-11-07",
+      "kategori": "Kasbon",
+      "nominal": 400000,
+      "penerima": "Pepen Security",
+      "keterangan": "Kasbon: Pepen Security - Keluarga",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    },
+    {
+      "id": "926d8713-b6f4-4a29-af80-144c33477b16",
+      "tanggal": "2026-11-07",
+      "kategori": "Kasbon",
+      "nominal": 300000,
+      "penerima": "Mulyadi Security",
+      "keterangan": "Kasbon: Mulyadi Security - Keluarga",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    },
+    {
+      "id": "1ce9a1b5-5540-47f7-a49a-dbf8237cd0fd",
+      "tanggal": "2026-11-07",
+      "kategori": "Variabel",
+      "nominal": 130000,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Pembelian Lampu Taman 2 Pcs",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    },
+    {
+      "id": "af2c0a26-3c5b-4e13-99dc-82eb5d48270b",
+      "tanggal": "2026-11-07",
+      "kategori": "Tetap",
+      "nominal": 100000,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Pengeluaran Mingguan Security",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    },
+    {
+      "id": "61f3add9-786f-4bb0-9062-40ad3528e630",
+      "tanggal": "2026-11-06",
+      "kategori": "Kasbon",
+      "nominal": 300000,
+      "penerima": "Agus Security",
+      "keterangan": "Kasbon: Agus Security - Keluarga",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    },
+    {
+      "id": "a6cfddda-5d0d-43d2-810d-66dd40ce969a",
+      "tanggal": "2026-11-05",
+      "kategori": "Kasbon",
+      "nominal": 400000,
+      "penerima": "Rahmat Security",
+      "keterangan": "Kasbon: Rahmat Security - Keluarga",
+      "status": "Sah",
+      "createdAt": "2026-11-10T03:38:01.561Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "LOG-1794282786524",
+      "timestamp": "2026-11-10T03:53:06.524Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794281881604",
+      "timestamp": "2026-11-10T03:38:01.604Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 59 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794281839667",
+      "timestamp": "2026-11-10T03:37:19.667Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794264799280",
+      "timestamp": "2026-11-09T22:53:19.280Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794263590863",
+      "timestamp": "2026-11-09T22:33:10.863Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794263493146",
+      "timestamp": "2026-11-09T22:31:33.146Z",
+      "aksi": "Pengembalian / Angsuran Kasbon Petugas",
+      "rincian": "Pengembalian kasbon Rp 100.000 diterima dari Rahmat Security via Cash. Sisa: Rp 300.000. Dana telah otomatis masuk ke Kas Masuk RT.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794263413085",
+      "timestamp": "2026-11-09T22:30:13.085Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 57 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 18 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794263190960",
+      "timestamp": "2026-11-09T22:26:30.960Z",
+      "aksi": "Pembayaran Cicilan Tunggakan Warga",
+      "rincian": "Pembayaran Rp 1.000.000 diterima dari Lia (N/A) via Cash. Sisa: Rp 2.240.000. Dana telah otomatis masuk ke Kas Masuk RT.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794262913959",
+      "timestamp": "2026-11-09T22:21:53.959Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240706729",
+      "timestamp": "2026-11-09T16:11:46.729Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-2602 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240697982",
+      "timestamp": "2026-11-09T16:11:37.982Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-5587 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240668867",
+      "timestamp": "2026-11-09T16:11:08.867Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794238993914-1 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240660615",
+      "timestamp": "2026-11-09T16:11:00.615Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794240125883-1 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240645315",
+      "timestamp": "2026-11-09T16:10:45.315Z",
+      "aksi": "Hapus Pengeluaran",
+      "rincian": "Menghapus transaksi pengeluaran EXP-1794240449879 (Fixed - cat) sebesar Rp 100.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240641432",
+      "timestamp": "2026-11-09T16:10:41.432Z",
+      "aksi": "Hapus Pengeluaran",
+      "rincian": "Menghapus transaksi pengeluaran EXP-1794240491892 (Fixed - kuas) sebesar Rp 200.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240555981",
+      "timestamp": "2026-11-09T16:09:15.981Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240494709",
+      "timestamp": "2026-11-09T16:08:14.709Z",
+      "aksi": "Catat Pengeluaran Kas",
+      "rincian": "Pengeluaran EXP-1794240491892 (Fixed) kepada L sebesar Rp 200.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240449895",
+      "timestamp": "2026-11-09T16:07:29.895Z",
+      "aksi": "Catat Pengeluaran Kas",
+      "rincian": "Pengeluaran EXP-1794240449879 (Fixed) kepada K sebesar Rp 100.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240425657",
+      "timestamp": "2026-11-09T16:07:05.657Z",
+      "aksi": "Ubah Pengaturan RT",
+      "rincian": "Informasi rekening & konfigurasi RT diperbarui",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240125928",
+      "timestamp": "2026-11-09T16:02:05.928Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-5587 dari Eri Raihanul Firdaus (E-1/32) disetujui. Dibagi ke 1 bulan kas masuk (INC-1794240125883-1).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240086960",
+      "timestamp": "2026-11-09T16:01:26.960Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794240079165",
+      "timestamp": "2026-11-09T16:01:19.165Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-5587 sebesar Rp 150.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794240052880",
+      "timestamp": "2026-11-09T16:00:52.880Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794239881862",
+      "timestamp": "2026-11-09T15:58:01.862Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794239160968",
+      "timestamp": "2026-11-09T15:46:00.968Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238993963",
+      "timestamp": "2026-11-09T15:43:13.963Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-2602 dari Eri Raihanul Firdaus (E-1/32) disetujui. Dibagi ke 1 bulan kas masuk (INC-1794238993914-1).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238952312",
+      "timestamp": "2026-11-09T15:42:32.312Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238931147",
+      "timestamp": "2026-11-09T15:42:11.147Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-2602 sebesar Rp 150.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794238886780",
+      "timestamp": "2026-11-09T15:41:26.780Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238638609",
+      "timestamp": "2026-11-09T15:37:18.609Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238617326",
+      "timestamp": "2026-11-09T15:36:57.326Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794238446811",
+      "timestamp": "2026-11-09T15:34:06.811Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 56 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794237650839",
+      "timestamp": "2026-11-09T15:20:50.839Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794232630363",
+      "timestamp": "2026-11-09T13:57:10.363Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 55 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794231899672",
+      "timestamp": "2026-11-09T13:44:59.672Z",
+      "aksi": "Catat Kas Masuk Manual (Multi-Bulan)",
+      "rincian": "Pemasukan Iuran (2026-11) dari Tak Hiang (H-1/19) sebesar Rp 150.000 dipecah ke 1 transaksi bulanan.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794231839109",
+      "timestamp": "2026-11-09T13:43:59.109Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794231576659",
+      "timestamp": "2026-11-09T13:39:36.659Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 55 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794231540915",
+      "timestamp": "2026-11-09T13:39:00.915Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794229409252",
+      "timestamp": "2026-11-09T13:03:29.252Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794228793340",
+      "timestamp": "2026-11-09T12:53:13.340Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794228627414",
+      "timestamp": "2026-11-09T12:50:27.414Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794228611764",
+      "timestamp": "2026-11-09T12:50:11.764Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794228218500",
+      "timestamp": "2026-11-09T12:43:38.501Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794227522377",
+      "timestamp": "2026-11-09T12:32:02.377Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794227365434",
+      "timestamp": "2026-11-09T12:29:25.434Z",
+      "aksi": "Catat Kas Masuk Manual (Multi-Bulan)",
+      "rincian": "Pemasukan Iuran (2026-11) dari Dito Aristhyawan (H-12/2) sebesar Rp 150.000 dipecah ke 1 transaksi bulanan.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794227115928",
+      "timestamp": "2026-11-09T12:25:15.928Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794227082971",
+      "timestamp": "2026-11-09T12:24:42.971Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794227036800",
+      "timestamp": "2026-11-09T12:23:56.800Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226987470",
+      "timestamp": "2026-11-09T12:23:07.470Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226950766",
+      "timestamp": "2026-11-09T12:22:30.766Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226945784",
+      "timestamp": "2026-11-09T12:22:25.784Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226872389",
+      "timestamp": "2026-11-09T12:21:12.389Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226868511",
+      "timestamp": "2026-11-09T12:21:08.511Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226861406",
+      "timestamp": "2026-11-09T12:21:01.406Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226797878",
+      "timestamp": "2026-11-09T12:19:57.878Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 53 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226788995",
+      "timestamp": "2026-11-09T12:19:48.995Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226783250",
+      "timestamp": "2026-11-09T12:19:43.250Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan 3ede3a3b-a3f6-44db-84b3-96a04e24acc1 (Iuran Bulanan - Dito (H-12/2)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226648540",
+      "timestamp": "2026-11-09T12:17:28.540Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226623562",
+      "timestamp": "2026-11-09T12:17:03.562Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226538149",
+      "timestamp": "2026-11-09T12:15:38.149Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226533400",
+      "timestamp": "2026-11-09T12:15:33.400Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226455265",
+      "timestamp": "2026-11-09T12:14:15.265Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226450577",
+      "timestamp": "2026-11-09T12:14:10.577Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226306409",
+      "timestamp": "2026-11-09T12:11:46.409Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226269560",
+      "timestamp": "2026-11-09T12:11:09.560Z",
+      "aksi": "Catat Kas Masuk Manual (Multi-Bulan)",
+      "rincian": "Pemasukan Iuran (2026-11) dari Muhamad Farouq (H-13/8) sebesar Rp 150.000 dipecah ke 1 transaksi bulanan.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226201206",
+      "timestamp": "2026-11-09T12:10:01.206Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794226194826",
+      "timestamp": "2026-11-09T12:09:54.826Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794196824087",
+      "timestamp": "2026-11-09T04:00:24.087Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794196472049",
+      "timestamp": "2026-11-09T03:54:32.049Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794196439986",
+      "timestamp": "2026-11-09T03:53:59.986Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794196432222",
+      "timestamp": "2026-11-09T03:53:52.222Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794193972021",
+      "timestamp": "2026-11-09T03:12:52.021Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794193798537",
+      "timestamp": "2026-11-09T03:09:58.537Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794193740661",
+      "timestamp": "2026-11-09T03:09:00.661Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794192952494",
+      "timestamp": "2026-11-09T02:55:52.494Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794143647591",
+      "timestamp": "2026-11-08T13:14:07.591Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794143530502",
+      "timestamp": "2026-11-08T13:12:10.502Z",
+      "aksi": "Catat Tunggakan Baru",
+      "rincian": "Tunggakan baru dicatat untuk Lia (N/A) [Bekas Warga (Pindah)] sebesar Rp 3.240.000 (Agustus 2021 - Juni 2023).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794143436757",
+      "timestamp": "2026-11-08T13:10:36.757Z",
+      "aksi": "Catat Tunggakan Baru",
+      "rincian": "Tunggakan baru dicatat untuk Hermanto (N/a) [Bekas Warga (Pindah)] sebesar Rp 3.960.000 (Juli 2020 - Desember 2024).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794143155268",
+      "timestamp": "2026-11-08T13:05:55.268Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794142292176",
+      "timestamp": "2026-11-08T12:51:32.176Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794142245017",
+      "timestamp": "2026-11-08T12:50:45.017Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794138533680",
+      "timestamp": "2026-11-08T11:48:53.680Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794138531284",
+      "timestamp": "2026-11-08T11:48:51.284Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112730485",
+      "timestamp": "2026-11-08T04:38:50.485Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112703342",
+      "timestamp": "2026-11-08T04:38:23.342Z",
+      "aksi": "Hapus Pengeluaran",
+      "rincian": "Menghapus transaksi pengeluaran EXP-KSB-1794112106263 (Variabel - Kasbon: Rahmat Security - Keluarga) sebesar Rp 400.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112699022",
+      "timestamp": "2026-11-08T04:38:19.022Z",
+      "aksi": "Hapus Pengeluaran",
+      "rincian": "Menghapus transaksi pengeluaran EXP-KSB-1794112137702 (Variabel - Kasbon: Agus Security - Keluarga) sebesar Rp 300.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112659176",
+      "timestamp": "2026-11-08T04:37:39.176Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112653995",
+      "timestamp": "2026-11-08T04:37:33.995Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112633941",
+      "timestamp": "2026-11-08T04:37:13.941Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112500033",
+      "timestamp": "2026-11-08T04:35:00.033Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112310616",
+      "timestamp": "2026-11-08T04:31:50.616Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112307916",
+      "timestamp": "2026-11-08T04:31:47.916Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112293899",
+      "timestamp": "2026-11-08T04:31:33.899Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112284721",
+      "timestamp": "2026-11-08T04:31:24.721Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112275844",
+      "timestamp": "2026-11-08T04:31:15.844Z",
+      "aksi": "Hapus Data Kasbon",
+      "rincian": "Data pinjaman kasbon Rahmat Security sebesar Rp 400.000 berhasil dihapus oleh Admin.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112269588",
+      "timestamp": "2026-11-08T04:31:09.588Z",
+      "aksi": "Hapus Data Kasbon",
+      "rincian": "Data pinjaman kasbon Agus Security sebesar Rp 300.000 berhasil dihapus oleh Admin.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112241762",
+      "timestamp": "2026-11-08T04:30:41.762Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112203870",
+      "timestamp": "2026-11-08T04:30:03.870Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112137719",
+      "timestamp": "2026-11-08T04:28:57.719Z",
+      "aksi": "Pemberian Kasbon Baru Petugas",
+      "rincian": "Pencairan kasbon Rp 300.000 kepada Agus Security (Keluarga). Kas keluar RT dicatat otomatis.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794112106276",
+      "timestamp": "2026-11-08T04:28:26.276Z",
+      "aksi": "Pemberian Kasbon Baru Petugas",
+      "rincian": "Pencairan kasbon Rp 400.000 kepada Rahmat Security (Keluarga). Kas keluar RT dicatat otomatis.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111929371",
+      "timestamp": "2026-11-08T04:25:29.371Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111906297",
+      "timestamp": "2026-11-08T04:25:06.297Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-5586 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 300.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111903172",
+      "timestamp": "2026-11-08T04:25:03.172Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-1789 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 450.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111900022",
+      "timestamp": "2026-11-08T04:25:00.022Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-3852 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111889383",
+      "timestamp": "2026-11-08T04:24:49.383Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-BKT26115586-1 (Iuran Bulanan (Reguler) - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111885608",
+      "timestamp": "2026-11-08T04:24:45.608Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-BKT26115586-2 (Iuran Bulanan (Reguler) - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111881794",
+      "timestamp": "2026-11-08T04:24:41.794Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794104447146-1 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111875818",
+      "timestamp": "2026-11-08T04:24:35.818Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794104447146-2 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111872036",
+      "timestamp": "2026-11-08T04:24:32.036Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794104447146-3 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111867392",
+      "timestamp": "2026-11-08T04:24:27.392Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-KSB-1794107474685 (Pengembalian Kasbon - Rahmat Security) sebesar Rp 400.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111862668",
+      "timestamp": "2026-11-08T04:24:22.668Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-KSB-1794107649053 (Pengembalian Kasbon - Agus Security) sebesar Rp 100.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111858298",
+      "timestamp": "2026-11-08T04:24:18.298Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-1794109155340-1 (Iuran Bulanan - Eri Raihanul Firdaus (E-1/32)) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111854116",
+      "timestamp": "2026-11-08T04:24:14.116Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-TUNG-1794107968324 (Cicilan Tunggakan - Iwan Rio) sebesar Rp 1.000.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111829221",
+      "timestamp": "2026-11-08T04:23:49.221Z",
+      "aksi": "Hapus Data Tunggakan Lama",
+      "rincian": "Data tunggakan Iwan Rio sebesar Rp 1.100.000 berhasil dihapus oleh Admin.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111821295",
+      "timestamp": "2026-11-08T04:23:41.295Z",
+      "aksi": "Hapus Data Kasbon",
+      "rincian": "Data pinjaman kasbon Agus Security sebesar Rp 200.000 berhasil dihapus oleh Admin.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794111817044",
+      "timestamp": "2026-11-08T04:23:37.044Z",
+      "aksi": "Hapus Data Kasbon",
+      "rincian": "Data pinjaman kasbon Rahmat Security sebesar Rp 0 berhasil dihapus oleh Admin.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794109651122",
+      "timestamp": "2026-11-08T03:47:31.122Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794109155377",
+      "timestamp": "2026-11-08T03:39:15.377Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-3852 dari Eri Raihanul Firdaus (E-1/32) disetujui. Dibagi ke 1 bulan kas masuk (INC-1794109155340-1).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794109112618",
+      "timestamp": "2026-11-08T03:38:32.618Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-3852 sebesar Rp 150.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794107968340",
+      "timestamp": "2026-11-08T03:19:28.340Z",
+      "aksi": "Pembayaran Cicilan Tunggakan Warga",
+      "rincian": "Pembayaran Rp 1.000.000 diterima dari Iwan Rio via Cash. Sisa: Rp 1.100.000. Dana telah otomatis masuk ke Kas Masuk RT.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107649075",
+      "timestamp": "2026-11-08T03:14:09.075Z",
+      "aksi": "Pengembalian / Angsuran Kasbon Petugas",
+      "rincian": "Pengembalian kasbon Rp 100.000 diterima dari Agus Security via Cash. Sisa: Rp 200.000. Dana telah otomatis masuk ke Kas Masuk RT.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107523453",
+      "timestamp": "2026-11-08T03:12:03.453Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107474702",
+      "timestamp": "2026-11-08T03:11:14.702Z",
+      "aksi": "Pelunasan Kasbon Petugas",
+      "rincian": "Pengembalian kasbon Rp 400.000 diterima dari Rahmat Security via Cash. Sisa: Rp 0. Dana telah otomatis masuk ke Kas Masuk RT.",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107228185",
+      "timestamp": "2026-11-08T03:07:08.185Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107187578",
+      "timestamp": "2026-11-08T03:06:27.578Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107101996",
+      "timestamp": "2026-11-08T03:05:01.996Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794107071845",
+      "timestamp": "2026-11-08T03:04:31.845Z",
+      "aksi": "Ubah Pengaturan RT",
+      "rincian": "Informasi rekening & konfigurasi RT diperbarui",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794106306926",
+      "timestamp": "2026-11-08T02:51:46.926Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794106177931",
+      "timestamp": "2026-11-08T02:49:37.931Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794105732462",
+      "timestamp": "2026-11-08T02:42:12.462Z",
+      "aksi": "Catat Pengeluaran Kas",
+      "rincian": "Pengeluaran EXP-1794105732438 (Fixed) kepada toko b sebesar Rp 1.000.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794105520588",
+      "timestamp": "2026-11-08T02:38:40.588Z",
+      "aksi": "Hapus Pengeluaran",
+      "rincian": "Menghapus transaksi pengeluaran EXP-1794105472859 (Fixed - perbaikan pagar) sebesar Rp 1.000.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794105472876",
+      "timestamp": "2026-11-08T02:37:52.876Z",
+      "aksi": "Catat Pengeluaran Kas",
+      "rincian": "Pengeluaran EXP-1794105472859 (Fixed) kepada tokoa sebesar Rp 1.000.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794104785187",
+      "timestamp": "2026-11-08T02:26:25.187Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794104447172",
+      "timestamp": "2026-11-08T02:20:47.172Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-1789 dari Eri Raihanul Firdaus (E-1/32) disetujui. Dibagi ke 3 bulan kas masuk (INC-1794104447146-1, INC-1794104447146-2, INC-1794104447146-3).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794104389074",
+      "timestamp": "2026-11-08T02:19:49.074Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-1789 sebesar Rp 450.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794103903171",
+      "timestamp": "2026-11-08T02:11:43.171Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794103607033",
+      "timestamp": "2026-11-08T02:06:47.033Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794102166724",
+      "timestamp": "2026-11-08T01:42:46.724Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794101652196",
+      "timestamp": "2026-11-08T01:34:12.196Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794101570348",
+      "timestamp": "2026-11-08T01:32:50.348Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794101393021",
+      "timestamp": "2026-11-08T01:29:53.021Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794098351486",
+      "timestamp": "2026-11-08T00:39:11.486Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794098228820",
+      "timestamp": "2026-11-08T00:37:08.820Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-5586 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 300.000 disetujui & dicatat ke Kas Masuk (INC-1794098228801).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794098190543",
+      "timestamp": "2026-11-08T00:36:30.543Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-5586 sebesar Rp 300.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794097954347",
+      "timestamp": "2026-11-08T00:32:34.347Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794093278090",
+      "timestamp": "2026-11-07T23:14:38.090Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794092637972",
+      "timestamp": "2026-11-07T23:03:57.972Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794092249461",
+      "timestamp": "2026-11-07T22:57:29.461Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794090607730",
+      "timestamp": "2026-11-07T22:30:07.730Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794090036140",
+      "timestamp": "2026-11-07T22:20:36.140Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794090017127",
+      "timestamp": "2026-11-07T22:20:17.127Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-2945 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 300.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794090013317",
+      "timestamp": "2026-11-07T22:20:13.317Z",
+      "aksi": "Hapus Bukti Transfer",
+      "rincian": "Menghapus bukti transfer BKT-2611-8697 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 150.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089817276",
+      "timestamp": "2026-11-07T22:16:57.276Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089728250",
+      "timestamp": "2026-11-07T22:15:28.250Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 54 Iuran, 6 Pengeluaran, 7 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089719800",
+      "timestamp": "2026-11-07T22:15:19.800Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089641020",
+      "timestamp": "2026-11-07T22:14:01.020Z",
+      "aksi": "Hapus Data Warga",
+      "rincian": "Menghapus warga Hermanto (N/A)",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089637898",
+      "timestamp": "2026-11-07T22:13:57.898Z",
+      "aksi": "Hapus Data Warga",
+      "rincian": "Menghapus warga Lia (N/A)",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089149054",
+      "timestamp": "2026-11-07T22:05:49.054Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089140386",
+      "timestamp": "2026-11-07T22:05:40.386Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089136956",
+      "timestamp": "2026-11-07T22:05:36.956Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089123335",
+      "timestamp": "2026-11-07T22:05:23.335Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794089046793",
+      "timestamp": "2026-11-07T22:04:06.793Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794088933596",
+      "timestamp": "2026-11-07T22:02:13.596Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794088898491",
+      "timestamp": "2026-11-07T22:01:38.491Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794088552428",
+      "timestamp": "2026-11-07T21:55:52.428Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794088399162",
+      "timestamp": "2026-11-07T21:53:19.162Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794088351405",
+      "timestamp": "2026-11-07T21:52:31.405Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794072402062",
+      "timestamp": "2026-11-07T17:26:42.062Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794072387227",
+      "timestamp": "2026-11-07T17:26:27.227Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794070528401",
+      "timestamp": "2026-11-07T16:55:28.401Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-8697 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 150.000 disetujui & dicatat ke Kas Masuk (INC-1794070528377).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794070513047",
+      "timestamp": "2026-11-07T16:55:13.047Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794070467942",
+      "timestamp": "2026-11-07T16:54:27.942Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-8697 sebesar Rp 150.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794070136370",
+      "timestamp": "2026-11-07T16:48:56.370Z",
+      "aksi": "Verifikasi Bukti Disetujui",
+      "rincian": "Bukti BKT-2611-2945 dari Eri Raihanul Firdaus (E-1/32) sebesar Rp 300.000 disetujui & dicatat ke Kas Masuk (INC-1794070136343).",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794069996472",
+      "timestamp": "2026-11-07T16:46:36.472Z",
+      "aksi": "Pengajuan Bukti Transfer",
+      "rincian": "Warga Eri Raihanul Firdaus (E-1/32) mengupload bukti transfer BKT-2611-2945 sebesar Rp 300.000",
+      "actor": "Warga"
+    },
+    {
+      "id": "LOG-1794069766330",
+      "timestamp": "2026-11-07T16:42:46.330Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794069499217",
+      "timestamp": "2026-11-07T16:38:19.217Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794067363174",
+      "timestamp": "2026-11-07T16:02:43.174Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794067072807",
+      "timestamp": "2026-11-07T15:57:52.807Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794066415034",
+      "timestamp": "2026-11-07T15:46:55.034Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794066361828",
+      "timestamp": "2026-11-07T15:46:01.828Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794065055536",
+      "timestamp": "2026-11-07T15:24:15.536Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794065048448",
+      "timestamp": "2026-11-07T15:24:08.448Z",
+      "aksi": "Ubah Pengaturan RT",
+      "rincian": "Informasi rekening & konfigurasi RT diperbarui",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794064267796",
+      "timestamp": "2026-11-07T15:11:07.796Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794063312141",
+      "timestamp": "2026-11-07T14:55:12.141Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794063160120",
+      "timestamp": "2026-11-07T14:52:40.120Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794063076500",
+      "timestamp": "2026-11-07T14:51:16.500Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794062841048",
+      "timestamp": "2026-11-07T14:47:21.048Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794062693367",
+      "timestamp": "2026-11-07T14:44:53.367Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 70 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794062617192",
+      "timestamp": "2026-11-07T14:43:37.192Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794062266475",
+      "timestamp": "2026-11-07T14:37:46.475Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794061610782",
+      "timestamp": "2026-11-07T14:26:50.782Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794061402795",
+      "timestamp": "2026-11-07T14:23:22.795Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794061002592",
+      "timestamp": "2026-11-07T14:16:42.592Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794060973837",
+      "timestamp": "2026-11-07T14:16:13.837Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794060386997",
+      "timestamp": "2026-11-07T14:06:26.998Z",
+      "aksi": "Login Admin",
+      "rincian": "Admin berhasil login ke panel pengurus RT",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794060056396",
+      "timestamp": "2026-11-07T14:00:56.396Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794060003424",
+      "timestamp": "2026-11-07T14:00:03.424Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794059964530",
+      "timestamp": "2026-11-07T13:59:24.530Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794059933756",
+      "timestamp": "2026-11-07T13:58:53.756Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 52 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794058322504",
+      "timestamp": "2026-11-07T13:32:02.504Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 69 Warga, 52 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    }
+  ],
+  "tunggakanLama": [
+    {
+      "id": "bd5a6ff6-00f3-4be8-b2ab-77fbaa0a8254",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Iwan Rio",
+      "jumlah": 2100000,
+      "nominalAwal": 2100000,
+      "keterangan": "Oktober 2023 - Oktober 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "bd5a6ff6-00f3-4be8-b2ab-77fbaa0a8254",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "c62f1688-c349-45a3-adff-81b0e7b4bada",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Agung",
+      "jumlah": 2750000,
+      "nominalAwal": 2750000,
+      "keterangan": "Mei 2025 - Oktober 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "c62f1688-c349-45a3-adff-81b0e7b4bada",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "3b056b15-58f2-4dbd-b0a8-bc38920e7df9",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Wisnu/Panji",
+      "jumlah": 1600000,
+      "nominalAwal": 1600000,
+      "keterangan": "November 2024 - Januari 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "3b056b15-58f2-4dbd-b0a8-bc38920e7df9",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "842f8f4a-c796-4397-8163-c77ea47ebb50",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Wawan Hermawan",
+      "jumlah": 8760000,
+      "nominalAwal": 8760000,
+      "keterangan": "Juni 2022 - Oktober 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "842f8f4a-c796-4397-8163-c77ea47ebb50",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "f08b2a02-61ca-433a-9878-eab8c5d618bf",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Yunus",
+      "jumlah": 6300000,
+      "nominalAwal": 6300000,
+      "keterangan": "Juli 2023 - Oktober 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "f08b2a02-61ca-433a-9878-eab8c5d618bf",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "e650d136-994d-497f-bbad-f7d1d5ef22d1",
+      "tanggal": "2026-11-07",
+      "namaWarga": "Rudi (Mega)",
+      "jumlah": 1275000,
+      "nominalAwal": 1275000,
+      "keterangan": "Apri-Juni 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "e650d136-994d-497f-bbad-f7d1d5ef22d1",
+      "wargaId": "b14c2111-6f75-47e6-91e0-d99f5c59e94e",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "4a351758-166d-47e9-9891-f85b08b0868b",
+      "tanggal": "2026-11-07",
+      "namaWarga": "Wiwit/Suryanto Mess",
+      "jumlah": 450000,
+      "nominalAwal": 450000,
+      "keterangan": "Agustus-Oktober 2026",
+      "status": "Belum Lunas",
+      "tunggakanId": "4a351758-166d-47e9-9891-f85b08b0868b",
+      "wargaId": "6bf73389-cfcd-4a08-818e-cbea716480ec",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "TUNG-1794143530491",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Lia",
+      "blok": "N/A",
+      "jumlah": 2240000,
+      "nominalAwal": 3240000,
+      "keterangan": "Agustus 2021 - Juni 2023",
+      "status": "Dicicil",
+      "tipeWarga": "Pindah",
+      "catatanPindah": "Bekas warga (sudah pindah rumah), masih ada sisa tunggakan",
+      "tunggakanId": "TUNG-1794143530491",
+      "terbayar": 1000000,
+      "riwayatPembayaran": [
+        {
+          "id": "BYR-TUNG-1794263190877",
+          "tanggal": "2026-11-09",
+          "nominal": 1000000,
+          "metode": "Cash",
+          "catatan": "tes",
+          "incomeId": "INC-TUNG-1794263190877",
+          "createdAt": "2026-11-09T22:26:30.877Z"
+        }
+      ]
+    },
+    {
+      "id": "TUNG-1794143436744",
+      "tanggal": "2026-11-02",
+      "namaWarga": "Hermanto",
+      "blok": "N/a",
+      "jumlah": 3960000,
+      "nominalAwal": 3960000,
+      "keterangan": "Juli 2020 - Desember 2024",
+      "status": "Belum Lunas",
+      "tipeWarga": "Pindah",
+      "catatanPindah": "Bekas warga (sudah pindah rumah), masih ada sisa tunggakan",
+      "tunggakanId": "TUNG-1794143436744",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    }
+  ],
+  "kasbon": [
+    {
+      "id": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f",
+      "timestamp": "11/5/2026 9:03:06",
+      "namaPeminjam": "Rahmat Security",
+      "nominal": 300000,
+      "nominalAwal": 400000,
+      "keterangan": "Keluarga",
+      "status": "Dicicil",
+      "tglBackdate": "2026-11-05",
+      "kasbonId": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f",
+      "terbayar": 100000,
+      "riwayatPembayaran": [
+        {
+          "id": "BYR-KSB-1794263493123",
+          "tanggal": "2026-11-09",
+          "nominal": 100000,
+          "metode": "Cash",
+          "catatan": "tes",
+          "incomeId": "INC-KSB-1794263493123",
+          "createdAt": "2026-11-09T22:31:33.123Z"
+        }
+      ]
+    },
+    {
+      "id": "bdfa85fd-f0c1-4077-911c-0ea4316071cb",
+      "timestamp": "11/6/2026 4:58:52",
+      "namaPeminjam": "Agus Security",
+      "nominal": 300000,
+      "nominalAwal": 300000,
+      "keterangan": "Keluarga",
+      "status": "Belum Lunas",
+      "tglBackdate": "2026-11-05",
+      "kasbonId": "bdfa85fd-f0c1-4077-911c-0ea4316071cb",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "3dc69dec-fca1-44ef-8d90-95ffc0c6fabc",
+      "timestamp": "11/7/2026 5:16:23",
+      "namaPeminjam": "Pepen Security",
+      "nominal": 400000,
+      "nominalAwal": 400000,
+      "keterangan": "Keluarga",
+      "status": "Belum Lunas",
+      "tglBackdate": "2026-11-05",
+      "kasbonId": "3dc69dec-fca1-44ef-8d90-95ffc0c6fabc",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    },
+    {
+      "id": "cac91796-641d-4dae-97a7-759bd77297ac",
+      "timestamp": "11/7/2026 5:34:54",
+      "namaPeminjam": "Mulyadi Security",
+      "nominal": 300000,
+      "nominalAwal": 300000,
+      "keterangan": "Keluarga",
+      "status": "Belum Lunas",
+      "tglBackdate": "2026-11-01",
+      "kasbonId": "cac91796-641d-4dae-97a7-759bd77297ac",
+      "terbayar": 0,
+      "riwayatPembayaran": []
+    }
+  ],
+  "saldoAwalHistory": [
+    {
+      "id": "b5a784c3-1a83-4cfa-99bf-10c84268caf2",
+      "tanggal": "2026-10-31",
+      "periode": "2026-10",
+      "keterangan": "Mutasi Kepengurusan RT Baru",
+      "jumlah": 11745000,
+      "transaksiId": "b5a784c3-1a83-4cfa-99bf-10c84268caf2",
+      "createdAt": "2026-11-10T03:38:01.558Z"
+    }
+  ]
+}
