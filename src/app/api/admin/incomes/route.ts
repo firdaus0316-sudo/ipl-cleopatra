@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
-import { appendIncomesToSheet, deleteIncomeFromSheet, extractNameAndBlok } from '@/lib/googleSheet';
+import {
+  appendIncomesToSheet,
+  deleteIncomeFromSheet,
+  extractNameAndBlok,
+  updateKasbonInSheet,
+  updateTunggakanInSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -282,6 +288,11 @@ export async function DELETE(req: NextRequest) {
             t.terbayar = Math.max(0, (t.terbayar || 0) - inc.nominal);
             t.jumlah = (t.nominalAwal || (t.jumlah + inc.nominal)) - (t.terbayar || 0);
             t.status = t.jumlah <= 0 ? 'Lunas' : (t.terbayar > 0 ? 'Dicicil' : 'Belum Lunas');
+            try {
+              await updateTunggakanInSheet(t.id || t.tunggakanId || '', t.jumlah, t.status, t.tipeWarga);
+            } catch (e) {
+              console.warn('Gagal sinkronisasi update tunggakan ke sheet:', e);
+            }
             break;
           }
         }
@@ -302,6 +313,11 @@ export async function DELETE(req: NextRequest) {
             k.terbayar = Math.max(0, (k.terbayar || 0) - inc.nominal);
             k.nominal = (k.nominalAwal || (k.nominal + inc.nominal)) - (k.terbayar || 0);
             k.status = k.nominal <= 0 ? 'Lunas' : (k.terbayar > 0 ? 'Dicicil' : 'Belum Lunas');
+            try {
+              await updateKasbonInSheet(k.id || k.kasbonId || '', k.nominal, k.status);
+            } catch (e) {
+              console.warn('Gagal sinkronisasi update kasbon ke sheet:', e);
+            }
             break;
           }
         }

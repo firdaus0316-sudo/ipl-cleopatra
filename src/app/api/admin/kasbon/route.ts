@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction, ExpenseTransaction, KasbonEntry, PembayaranRecord } from '@/types';
-import { appendIncomesToSheet, appendKasbonToSheet, appendExpenseToSheet, appendPelunasanToSheet } from '@/lib/googleSheet';
+import {
+  appendIncomesToSheet,
+  appendKasbonToSheet,
+  appendExpenseToSheet,
+  appendPelunasanToSheet,
+  updateKasbonInSheet,
+  deleteKasbonFromSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -187,6 +194,9 @@ export async function POST(req: NextRequest) {
           transaksiId: incId,
           admin: 'Admin RT',
         });
+
+        // Sinkronkan sisa dan status kasbon ke Google Sheet DataKasbon
+        await updateKasbonInSheet(item.id || item.kasbonId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil');
       } catch (e) {
         console.error('Auto-sync kasbon payment to sheets error:', e);
       }
@@ -219,6 +229,12 @@ export async function POST(req: NextRequest) {
         item.nominal = 0;
       }
       saveDb(db);
+
+      try {
+        await updateKasbonInSheet(item.id || item.kasbonId || '', item.nominal, item.status);
+      } catch (e) {
+        console.error('Auto-sync kasbon status to sheets error:', e);
+      }
 
       addLog(
         'Update Status Kasbon',
@@ -257,6 +273,12 @@ export async function DELETE(req: NextRequest) {
 
     db.kasbon = (db.kasbon || []).filter((k) => k.id !== id && k.kasbonId !== id);
     saveDb(db);
+
+    try {
+      await deleteKasbonFromSheet(itemToDelete.id || itemToDelete.kasbonId || id);
+    } catch (e) {
+      console.error('Auto-sync delete kasbon from sheets error:', e);
+    }
 
     addLog(
       'Hapus Data Kasbon',

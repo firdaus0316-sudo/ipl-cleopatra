@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ExpenseTransaction } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
-import { appendExpenseToSheet, appendBuktiStrukToSheet } from '@/lib/googleSheet';
+import { appendExpenseToSheet, appendBuktiStrukToSheet, deleteExpenseFromSheet } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -142,6 +142,12 @@ export async function DELETE(req: NextRequest) {
     const exp = db.expenses[idx];
     db.expenses.splice(idx, 1);
     saveDb(db);
+
+    try {
+      await deleteExpenseFromSheet(exp.id || id);
+    } catch (e) {
+      console.error('Auto-sync delete expense from sheets error:', e);
+    }
 
     addLog(
       'Hapus Pengeluaran',

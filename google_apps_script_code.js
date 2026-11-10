@@ -94,6 +94,39 @@ function doPost(e) {
       });
     }
 
+    // 0.2 Aksi Update Baris Berdasarkan ID di Kolom Tertentu (Misal: Update sisa/status di DataKasbon / Tunggakan)
+    if (action === "update_row") {
+      var targetSheetName = data.sheetName || "DataKasbon";
+      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var sheet = ss.getSheetByName(targetSheetName);
+      var updated = false;
+      if (sheet) {
+        var lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          var idCol = data.idColIndex || 1;
+          var values = sheet.getRange(1, idCol, lastRow, 1).getValues();
+          for (var r = values.length - 1; r >= 1; r--) {
+            if (values[r][0] && values[r][0].toString() === data.rowId.toString()) {
+              var rowNum = r + 1;
+              if (data.updates) {
+                for (var colKey in data.updates) {
+                  var cIndex = parseInt(colKey, 10);
+                  sheet.getRange(rowNum, cIndex).setValue(data.updates[colKey]);
+                }
+              }
+              updated = true;
+              break;
+            }
+          }
+        }
+      }
+      return responseJson({
+        success: true,
+        updated: updated,
+        message: updated ? "Baris berhasil diperbarui pada sheet " + targetSheetName : "Baris tidak ditemukan"
+      });
+    }
+
     // 1. Aksi Verifikasi Bukti -> Simpan / Update ke Sheet BuktiTransfer
     if (action === "verify_bukti") {
       var ss = SpreadsheetApp.openById(SPREADSHEET_ID);

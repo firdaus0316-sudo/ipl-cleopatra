@@ -6,6 +6,8 @@ import {
   appendTunggakanLamaToSheet,
   appendTunggakanNonWargaToSheet,
   appendPelunasanToSheet,
+  updateTunggakanInSheet,
+  deleteTunggakanFromSheet,
   extractNameAndBlok,
 } from '@/lib/googleSheet';
 
@@ -187,6 +189,9 @@ export async function POST(req: NextRequest) {
           transaksiId: incId,
           admin: 'Admin RT',
         });
+
+        // Sinkronkan sisa dan status tunggakan ke Google Sheet TunggakanLama / TunggakanNonWarga
+        await updateTunggakanInSheet(item.id || item.tunggakanId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil', item.tipeWarga);
       } catch (e) {
         console.error('Auto-sync tunggakan payment to sheets error:', e);
       }
@@ -214,6 +219,12 @@ export async function POST(req: NextRequest) {
         item.jumlah = 0;
       }
       saveDb(db);
+
+      try {
+        await updateTunggakanInSheet(item.id || item.tunggakanId || '', item.jumlah, item.status, item.tipeWarga);
+      } catch (e) {
+        console.error('Auto-sync tunggakan status to sheets error:', e);
+      }
 
       addLog(
         'Update Status Tunggakan',
@@ -244,7 +255,6 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
-    const initialCount = (db.tunggakanLama || []).length;
     const itemToDelete = (db.tunggakanLama || []).find((t) => t.id === id || t.tunggakanId === id);
 
     if (!itemToDelete) {
@@ -253,6 +263,12 @@ export async function DELETE(req: NextRequest) {
 
     db.tunggakanLama = (db.tunggakanLama || []).filter((t) => t.id !== id && t.tunggakanId !== id);
     saveDb(db);
+
+    try {
+      await deleteTunggakanFromSheet(itemToDelete.id || itemToDelete.tunggakanId || id, itemToDelete.tipeWarga);
+    } catch (e) {
+      console.error('Auto-sync delete tunggakan from sheets error:', e);
+    }
 
     addLog(
       'Hapus Data Tunggakan Lama',

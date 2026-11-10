@@ -742,48 +742,59 @@ export async function appendIncomesToSheet(
   }
 }
 
-export async function deleteIncomeFromSheet(txId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteRowFromSheet(
+  sheetName: string,
+  idColIndex: number,
+  rowId: string,
+  gid?: string
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const csvText = await fetchCsvByGid(SHEET_GIDS.dataiuran);
-    const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    let targetRowIndex = -1;
+    if (!rowId) return { success: true };
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCsvLine(lines[i]);
-      const curTxId = cols[8] || '';
-      if (curTxId.trim() === txId.trim()) {
-        targetRowIndex = i;
-        break;
-      }
-    }
-
-    if (targetRowIndex === -1) {
-      return { success: true };
-    }
-
-    // 1. Coba via gsheets CLI
-    const cliResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+    // 1. Coba via gsheets CLI jika di komputer lokal
+    if (gid) {
       try {
-        const child = spawn(
-          'gsheets',
-          ['mutate', 'delete-rows', SHEET_ID, '--sheet-id', '0', '--start', String(targetRowIndex), '--end', String(targetRowIndex + 1)],
-          { shell: true }
-        );
-        let stderr = '';
-        child.stderr.on('data', (d) => (stderr += d.toString()));
-        child.on('close', (code) => {
-          if (code === 0) resolve({ success: true });
-          else resolve({ success: false, error: stderr });
-        });
-        child.on('error', (err) => resolve({ success: false, error: err.message }));
-      } catch (e: any) {
-        resolve({ success: false, error: e.message });
+        const csvText = await fetchCsvByGid(gid);
+        const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        let targetRowIndex = -1;
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvLine(lines[i]);
+          const curId = cols[idColIndex - 1] || '';
+          if (curId.trim() === rowId.trim()) {
+            targetRowIndex = i;
+            break;
+          }
+        }
+
+        if (targetRowIndex !== -1) {
+          const cliResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+            try {
+              const child = spawn(
+                'gsheets',
+                ['mutate', 'delete-rows', SHEET_ID, '--sheet-id', gid, '--start', String(targetRowIndex), '--end', String(targetRowIndex + 1)],
+                { shell: true }
+              );
+              let stderr = '';
+              child.stderr.on('data', (d) => (stderr += d.toString()));
+              child.on('close', (code) => {
+                if (code === 0) resolve({ success: true });
+                else resolve({ success: false, error: stderr });
+              });
+              child.on('error', (err) => resolve({ success: false, error: err.message }));
+            } catch (e: any) {
+              resolve({ success: false, error: e.message });
+            }
+          });
+
+          if (cliResult.success) return cliResult;
+        }
+      } catch (cliErr) {
+        // Lanjutkan ke webhook jika CLI gagal
       }
-    });
+    }
 
-    if (cliResult.success) return cliResult;
-
-    // 2. Fallback Webhook jika di cloud / CLI tidak ada
+    // 2. Fallback Webhook jika di cloud / Vercel
     const { getDb } = await import('@/lib/db');
     const db = getDb();
     const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
@@ -791,16 +802,88 @@ export async function deleteIncomeFromSheet(txId: string): Promise<{ success: bo
       const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'delete_row', sheetName: 'DataIuran', rowId: txId, colIndex: 9 }),
+        body: JSON.stringify({ action: 'delete_row', sheetName, rowId, colIndex: idColIndex }),
       });
       if (res.ok) return { success: true };
     }
 
-    return cliResult;
+    return { success: false, error: 'Gagal menghapus baris dari Google Sheets (Webhook belum terhubung).' };
   } catch (err: any) {
-    console.error('deleteIncomeFromSheet error:', err);
+    console.error(`deleteRowFromSheet [${sheetName}] error:`, err);
     return { success: false, error: err.message };
   }
+}
+
+export async function updateRowInSheet(
+  sheetName: string,
+  idColIndex: number,
+  rowId: string,
+  updates: Record<number, any>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!rowId) return { success: false, error: 'Row ID wajib diisi.' };
+
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    if (webhookUrl && webhookUrl.startsWith('http')) {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'update_row', sheetName, rowId, idColIndex, updates }),
+      });
+      if (res.ok) return { success: true };
+    }
+
+    return { success: false, error: 'Gagal memperbarui data Google Sheet (Webhook belum terhubung).' };
+  } catch (err: any) {
+    console.error(`updateRowInSheet [${sheetName}] error:`, err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteIncomeFromSheet(txId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('DataIuran', 9, txId, SHEET_GIDS.dataiuran);
+}
+
+export async function deleteExpenseFromSheet(expId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('DataPengeluaran', 5, expId, SHEET_GIDS.datapengeluaran);
+}
+
+export async function deleteKasbonFromSheet(kasbonId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('DataKasbon', 7, kasbonId, SHEET_GIDS.kasbon);
+}
+
+export async function updateKasbonInSheet(
+  kasbonId: string,
+  nominalSisa: number,
+  status: string
+): Promise<{ success: boolean; error?: string }> {
+  return updateRowInSheet('DataKasbon', 7, kasbonId, { 3: nominalSisa, 5: status });
+}
+
+export async function deleteTunggakanFromSheet(
+  tunggakanId: string,
+  tipeWarga?: string
+): Promise<{ success: boolean; error?: string }> {
+  const isPindah = tipeWarga === 'Pindah' || tipeWarga === 'Non-Warga';
+  if (isPindah) {
+    return deleteRowFromSheet('TunggakanNonWarga', 8, tunggakanId, SHEET_GIDS.tunggakannonwarga);
+  }
+  return deleteRowFromSheet('TunggakanLama', 6, tunggakanId, SHEET_GIDS.tunggakanlama);
+}
+
+export async function updateTunggakanInSheet(
+  tunggakanId: string,
+  nominalSisa: number,
+  status: string,
+  tipeWarga?: string
+): Promise<{ success: boolean; error?: string }> {
+  const isPindah = tipeWarga === 'Pindah' || tipeWarga === 'Non-Warga';
+  if (isPindah) {
+    return updateRowInSheet('TunggakanNonWarga', 8, tunggakanId, { 4: nominalSisa, 6: status });
+  }
+  return updateRowInSheet('TunggakanLama', 6, tunggakanId, { 3: nominalSisa, 5: status });
 }
 
 /**

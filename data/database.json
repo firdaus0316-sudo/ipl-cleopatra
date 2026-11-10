@@ -1796,6 +1796,13 @@
   ],
   "logs": [
     {
+      "id": "LOG-1794318639861",
+      "timestamp": "2026-11-10T13:50:39.861Z",
+      "aksi": "Pemberian Kasbon Baru Petugas",
+      "rincian": "Pencairan kasbon Rp 250.000 kepada Test Petugas (Uji Kasbon). Kas keluar RT dicatat otomatis.",
+      "actor": "Admin"
+    },
+    {
       "id": "LOG-1794286127464",
       "timestamp": "2026-11-10T04:48:47.464Z",
       "aksi": "Sinkronisasi Google Sheets Lengkap",
@@ -3184,13 +3191,6 @@
     {
       "id": "LOG-1794060003424",
       "timestamp": "2026-11-07T14:00:03.424Z",
-      "aksi": "Sinkronisasi Google Sheets Lengkap",
-      "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
-      "actor": "Admin"
-    },
-    {
-      "id": "LOG-1794059964530",
-      "timestamp": "2026-11-07T13:59:24.530Z",
       "aksi": "Sinkronisasi Google Sheets Lengkap",
       "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
       "actor": "Admin"
