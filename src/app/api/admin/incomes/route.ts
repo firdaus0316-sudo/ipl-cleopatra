@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
-import { appendIncomesToSheet, extractNameAndBlok } from '@/lib/googleSheet';
+import { appendIncomesToSheet, deleteIncomeFromSheet, extractNameAndBlok } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -261,7 +261,7 @@ export async function DELETE(req: NextRequest) {
 
     const inc = db.incomes[idx];
 
-    // Jika pemasukan berasal dari bukti transfer warga, sinkronkan status bukti transfernya
+    // 1. Jika pemasukan berasal dari bukti transfer warga, sinkronkan status bukti transfernya
     if (inc.buktiId) {
       const pIndex = db.proofs.findIndex((p) => p.id === inc.buktiId || p.transactionId === inc.id);
       if (pIndex !== -1) {
@@ -270,8 +270,55 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    // 2. Jika pemasukan berasal dari cicilan/pelunasan tunggakan, kembalikan saldo piutang warga
+    if (inc.id.startsWith('INC-TUNG-') || (inc.kategori && inc.kategori.includes('Tunggakan'))) {
+      if (db.tunggakanLama) {
+        for (const t of db.tunggakanLama) {
+          const rIdx = (t.riwayatPembayaran || []).findIndex(
+            (r: any) => r.incomeId === inc.id || r.id === inc.id
+          );
+          if (rIdx !== -1 || (inc.sumber && inc.sumber.toLowerCase().includes(t.namaWarga.toLowerCase()))) {
+            if (rIdx !== -1 && t.riwayatPembayaran) {
+              t.riwayatPembayaran.splice(rIdx, 1);
+            }
+            t.terbayar = Math.max(0, (t.terbayar || 0) - inc.nominal);
+            t.jumlah = (t.nominalAwal || (t.jumlah + inc.nominal)) - (t.terbayar || 0);
+            t.status = t.jumlah <= 0 ? 'Lunas' : (t.terbayar > 0 ? 'Dicicil' : 'Belum Lunas');
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Jika pemasukan berasal dari pengembalian kasbon petugas, kembalikan sisa kasbon
+    if (inc.id.startsWith('INC-KSB-') || (inc.kategori && inc.kategori.includes('Kasbon'))) {
+      if (db.kasbon) {
+        for (const k of db.kasbon) {
+          const rIdx = (k.riwayatPembayaran || []).findIndex(
+            (r: any) => r.incomeId === inc.id || r.id === inc.id
+          );
+          if (rIdx !== -1 || (inc.sumber && inc.sumber.toLowerCase().includes(k.namaPeminjam.toLowerCase()))) {
+            if (rIdx !== -1 && k.riwayatPembayaran) {
+              k.riwayatPembayaran.splice(rIdx, 1);
+            }
+            k.terbayar = Math.max(0, (k.terbayar || 0) - inc.nominal);
+            k.nominal = (k.nominalAwal || (k.nominal + inc.nominal)) - (k.terbayar || 0);
+            k.status = k.nominal <= 0 ? 'Lunas' : (k.terbayar > 0 ? 'Dicicil' : 'Belum Lunas');
+            break;
+          }
+        }
+      }
+    }
+
     db.incomes.splice(idx, 1);
     saveDb(db);
+
+    // 4. Hapus dari Google Sheet DataIuran secara real-time
+    try {
+      await deleteIncomeFromSheet(inc.id);
+    } catch (e: any) {
+      console.warn('Gagal sinkronisasi hapus ke Google Sheet DataIuran:', e.message);
+    }
 
     addLog(
       'Hapus Pemasukan',

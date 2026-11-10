@@ -67,6 +67,33 @@ function doPost(e) {
       });
     }
 
+    // 0.1 Aksi Hapus Baris Berdasarkan ID di Kolom Tertentu (Misal: Transaksi ID di Kolom 9 DataIuran)
+    if (action === "delete_row") {
+      var targetSheetName = data.sheetName || "DataIuran";
+      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var sheet = ss.getSheetByName(targetSheetName);
+      var deleted = false;
+      if (sheet) {
+        var lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          var colIndex = data.colIndex || 9;
+          var values = sheet.getRange(1, colIndex, lastRow, 1).getValues();
+          for (var r = values.length - 1; r >= 1; r--) {
+            if (values[r][0] && values[r][0].toString() === data.rowId.toString()) {
+              sheet.deleteRow(r + 1);
+              deleted = true;
+              break;
+            }
+          }
+        }
+      }
+      return responseJson({
+        success: true,
+        deleted: deleted,
+        message: deleted ? "Baris berhasil dihapus dari sheet " + targetSheetName : "Baris tidak ditemukan"
+      });
+    }
+
     // 1. Aksi Verifikasi Bukti -> Simpan / Update ke Sheet BuktiTransfer
     if (action === "verify_bukti") {
       var ss = SpreadsheetApp.openById(SPREADSHEET_ID);

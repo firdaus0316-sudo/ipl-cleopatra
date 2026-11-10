@@ -1022,7 +1022,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "INC-MANUAL-1794227365416-1",
@@ -1035,7 +1035,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "INC-MANUAL-1794231899659-1",
@@ -1048,20 +1048,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
-    },
-    {
-      "id": "INC-TUNG-1794263190877",
-      "tanggal": "2026-11-09",
-      "sumber": "Lia (N/A)",
-      "kategori": "Cicilan Tunggakan",
-      "bulan": [
-        "2026-11"
-      ],
-      "nominal": 1000000,
-      "buktiId": "Cash",
-      "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "INC-KSB-1794263493123",
@@ -1074,7 +1061,7 @@
       "nominal": 100000,
       "buktiId": "Cash",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "INC-1794238993914-1",
@@ -1088,7 +1075,7 @@
       "nominal": 150000,
       "buktiId": "BKT-2611-2602",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "98ec6a8c-e772-429a-9fb1-28749a2aaa3f",
@@ -1102,7 +1089,7 @@
       "nominal": 150000,
       "buktiId": "cc0a740c-6d18-4454-a030-a1df0928b0e6",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "e2426ad5-232f-4a61-8a32-d9b6791513bf",
@@ -1116,7 +1103,7 @@
       "nominal": 150000,
       "buktiId": "76655f10-7e5e-41fa-a3b6-6578e030a7af",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "f97de59d-dca2-4d73-94c0-73b67b598910",
@@ -1130,7 +1117,7 @@
       "nominal": 150000,
       "buktiId": "04e37709-97d0-46ba-835e-d61149d7c7ad",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "0081ad28-8435-478a-8757-484922664ac9",
@@ -1144,7 +1131,7 @@
       "nominal": 150000,
       "buktiId": "8f559455-2f29-42cc-bf67-a9fd43bd92aa",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "7969564d-3c9c-4368-b928-b2e1ab417e9a",
@@ -1157,7 +1144,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "12b6b704-c2fc-47b7-9f75-5e95f6ccc205",
@@ -1170,7 +1157,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "570fe660-386f-4b04-b8c2-87effe36c665",
@@ -1184,7 +1171,7 @@
       "nominal": 360000,
       "buktiId": "ce63d361-a586-49de-aa25-d19cfb425aa5",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "01cc94a5-046e-4ee2-ba9e-f19d70cdc752",
@@ -1198,7 +1185,7 @@
       "nominal": 150000,
       "buktiId": "428e0a6e-fa9e-4f96-aa23-927067d970d6",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "a9addc3b-0168-474d-b10a-9e5f6e249514",
@@ -1212,7 +1199,7 @@
       "nominal": 150000,
       "buktiId": "6cea8958-c0fc-4af8-91ba-cdf4afc71129",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "7a5f73ae-c2d1-43f5-8ec3-1604aa2d287b",
@@ -1226,7 +1213,7 @@
       "nominal": 225000,
       "buktiId": "e90dc9f6-4360-4c4f-a29b-b1ee10259727",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "238cc1f1-cdb6-459d-85e7-c82fd38aae05",
@@ -1240,7 +1227,7 @@
       "nominal": 150000,
       "buktiId": "a839d313-ef72-478e-83e1-1c139a97d194",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "c57a54a9-c550-4b62-88f0-1a281c067c61",
@@ -1253,7 +1240,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "e83d99c2-d6bd-4f75-991b-79141e41411c",
@@ -1267,7 +1254,7 @@
       "nominal": 150000,
       "buktiId": "a3c22aeb-1402-4662-92ff-9c45b0868f60",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "38339b62-5cb2-4c84-9763-d63a519e2266",
@@ -1281,7 +1268,7 @@
       "nominal": 150000,
       "buktiId": "ea6b44db-e4b3-457d-8987-2e853fa22799",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "ec4b1308-47a3-4f2a-bb38-8d25f304d560",
@@ -1295,7 +1282,7 @@
       "nominal": 425000,
       "buktiId": "27cdf77a-89b3-4863-bacd-41b4fb061a90",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "2ade277a-083b-4bcc-9571-efa94ae1ba11",
@@ -1309,7 +1296,7 @@
       "nominal": 150000,
       "buktiId": "e92c2f06-bbdd-4088-a0f6-87b4a3b3a228",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "0edad42f-d2e0-42c0-8dfd-4d462b12fe1f",
@@ -1323,7 +1310,7 @@
       "nominal": 150000,
       "buktiId": "3dda7bc2-10aa-4ed0-b6e6-3f1f9bcc0f23",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "027733a3-d14a-4109-99fa-f8389442fe11",
@@ -1337,7 +1324,7 @@
       "nominal": 150000,
       "buktiId": "79931d6f-eefe-4c3e-a01c-66b8f262f24c",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "SHEET-ROW-30",
@@ -1349,7 +1336,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "SHEET-ROW-31",
@@ -1361,7 +1348,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "SHEET-ROW-32",
@@ -1373,7 +1360,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "SHEET-ROW-33",
@@ -1385,7 +1372,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "57b431ba-a4bb-453a-9865-d5aeb699434c",
@@ -1399,7 +1386,7 @@
       "nominal": 150000,
       "buktiId": "bf087a61-a419-4875-a315-63e656690e08",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "21e182ee-1b99-424c-ac7f-602d3d484de2",
@@ -1413,7 +1400,7 @@
       "nominal": 212500,
       "buktiId": "7b12d23d-c9a1-443a-bed3-617e0b18e31e",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "1ad13cce-e43f-4fe8-9f74-e8232be31008",
@@ -1426,7 +1413,7 @@
       ],
       "nominal": 360000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "c01231f1-8f68-4d74-add2-292546e81172",
@@ -1439,7 +1426,7 @@
       ],
       "nominal": 360000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "7ecb07e2-1bed-4864-92c4-87197f10a3af",
@@ -1452,7 +1439,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "e83e5bdf-80ed-4899-bff8-b5eb81d37837",
@@ -1465,7 +1452,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "8327b49b-ffe8-4431-87ac-592d59ce07a4",
@@ -1478,7 +1465,7 @@
       ],
       "nominal": 100000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "b81ca166-3c0a-4e54-b114-066db4c7ef82",
@@ -1491,7 +1478,7 @@
       ],
       "nominal": 100000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "e52baa7f-7de7-4724-8152-abc6dda20355",
@@ -1504,7 +1491,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "b1507aa4-c675-4178-961e-cf15e843226d",
@@ -1517,7 +1504,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "8c1692a4-d308-4b2f-8b62-2596fdee0d80",
@@ -1530,7 +1517,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "fc6c3669-c683-49f2-a904-8dd623297d12",
@@ -1543,7 +1530,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "d331cf40-2bda-4406-997d-1213698d3bd0",
@@ -1556,7 +1543,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "33f5d364-66a2-471e-a337-076537d27103",
@@ -1569,7 +1556,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "ff369972-1134-4430-b28b-d2b6ca416e6a",
@@ -1582,7 +1569,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "c9c38d37-56a8-42dc-a792-75c4a00914e0",
@@ -1595,7 +1582,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "34c0ba25-2d0a-4f1f-b078-0ff4f9e5180a",
@@ -1608,7 +1595,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "bc1ccb56-8b1a-4dab-a63c-0888e8613020",
@@ -1621,7 +1608,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "e44f3dca-2cbb-443c-a92a-530df53ed75a",
@@ -1634,7 +1621,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     },
     {
       "id": "b6317446-6a4e-4093-bb1b-b8b64a5ff5e8",
@@ -1647,7 +1634,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "0cbc6c38-4f0c-4bfe-9c14-e3b46e9aed80",
@@ -1660,7 +1647,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "0c75c040-2aea-498d-9454-9aff0158901e",
@@ -1673,7 +1660,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "0423d400-4b56-44c2-a545-95bf219ad9ec",
@@ -1686,7 +1673,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "a3eecab4-4cd9-4200-891a-6cf358cbf938",
@@ -1699,7 +1686,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "765e7f76-db4f-493b-a0b7-1d9eb0e6c8a5",
@@ -1712,7 +1699,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "e67e2566-e879-4e10-bfa7-66b168310104",
@@ -1725,7 +1712,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "a1a43653-8686-46ca-86a3-ee93f832f435",
@@ -1738,7 +1725,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "508dad23-8792-4baf-aee5-7a6e4013a721",
@@ -1751,7 +1738,7 @@
       ],
       "nominal": 365000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "48b9273d-6b16-4e2b-8003-9a5399447aa2",
@@ -1764,7 +1751,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "91c83fc6-5dd7-4419-8c2f-a4ec18861215",
@@ -1777,7 +1764,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "f776573b-da80-47a3-a9df-9ac443df9272",
@@ -1790,7 +1777,7 @@
       ],
       "nominal": 150000,
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.559Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     }
   ],
   "expenses": [
@@ -1802,7 +1789,7 @@
       "penerima": "Pepen Security",
       "keterangan": "Kasbon: Pepen Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "926d8713-b6f4-4a29-af80-144c33477b16",
@@ -1812,7 +1799,7 @@
       "penerima": "Mulyadi Security",
       "keterangan": "Kasbon: Mulyadi Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "1ce9a1b5-5540-47f7-a49a-dbf8237cd0fd",
@@ -1822,7 +1809,7 @@
       "penerima": "Pihak Terkait / Toko",
       "keterangan": "Pembelian Lampu Taman 2 Pcs",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.450Z"
     },
     {
       "id": "af2c0a26-3c5b-4e13-99dc-82eb5d48270b",
@@ -1832,7 +1819,7 @@
       "penerima": "Pihak Terkait / Toko",
       "keterangan": "Pengeluaran Mingguan Security",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.450Z"
     },
     {
       "id": "61f3add9-786f-4bb0-9062-40ad3528e630",
@@ -1842,7 +1829,7 @@
       "penerima": "Agus Security",
       "keterangan": "Kasbon: Agus Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
       "id": "a6cfddda-5d0d-43d2-810d-66dd40ce969a",
@@ -1852,10 +1839,24 @@
       "penerima": "Rahmat Security",
       "keterangan": "Kasbon: Rahmat Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T03:38:01.561Z"
+      "createdAt": "2026-11-10T04:48:47.449Z"
     }
   ],
   "logs": [
+    {
+      "id": "LOG-1794286127464",
+      "timestamp": "2026-11-10T04:48:47.464Z",
+      "aksi": "Sinkronisasi Google Sheets Lengkap",
+      "rincian": "Sinkronisasi selesai: 68 Warga, 59 Iuran, 6 Pengeluaran, 9 Tunggakan (7 Warga + 2 Non-Warga), 4 Kasbon, 17 Bukti Transfer. Saldo Awal: Rp 11.745.000",
+      "actor": "Admin"
+    },
+    {
+      "id": "LOG-1794285909656",
+      "timestamp": "2026-11-10T04:45:09.656Z",
+      "aksi": "Hapus Pemasukan",
+      "rincian": "Menghapus transaksi pemasukan INC-TUNG-1794263190877 (Cicilan Tunggakan - Lia (N/A)) sebesar Rp 1.000.000",
+      "actor": "Admin"
+    },
     {
       "id": "LOG-1794282786524",
       "timestamp": "2026-11-10T03:53:06.524Z",
@@ -3241,20 +3242,6 @@
       "aksi": "Sinkronisasi Google Sheets Lengkap",
       "rincian": "Sinkronisasi selesai: 69 Warga, 54 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
       "actor": "Admin"
-    },
-    {
-      "id": "LOG-1794059933756",
-      "timestamp": "2026-11-07T13:58:53.756Z",
-      "aksi": "Sinkronisasi Google Sheets Lengkap",
-      "rincian": "Sinkronisasi selesai: 69 Warga, 52 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
-      "actor": "Admin"
-    },
-    {
-      "id": "LOG-1794058322504",
-      "timestamp": "2026-11-07T13:32:02.504Z",
-      "aksi": "Sinkronisasi Google Sheets Lengkap",
-      "rincian": "Sinkronisasi selesai: 69 Warga, 52 Iuran, 6 Pengeluaran, 9 Tunggakan, 4 Kasbon. Saldo Awal: Rp 11.745.000",
-      "actor": "Admin"
     }
   ],
   "tunggakanLama": [
@@ -3349,25 +3336,15 @@
       "tanggal": "2026-11-02",
       "namaWarga": "Lia",
       "blok": "N/A",
-      "jumlah": 2240000,
+      "jumlah": 3240000,
       "nominalAwal": 3240000,
       "keterangan": "Agustus 2021 - Juni 2023",
-      "status": "Dicicil",
+      "status": "Belum Lunas",
       "tipeWarga": "Pindah",
       "catatanPindah": "Bekas warga (sudah pindah rumah), masih ada sisa tunggakan",
       "tunggakanId": "TUNG-1794143530491",
-      "terbayar": 1000000,
-      "riwayatPembayaran": [
-        {
-          "id": "BYR-TUNG-1794263190877",
-          "tanggal": "2026-11-09",
-          "nominal": 1000000,
-          "metode": "Cash",
-          "catatan": "tes",
-          "incomeId": "INC-TUNG-1794263190877",
-          "createdAt": "2026-11-09T22:26:30.877Z"
-        }
-      ]
+      "terbayar": 0,
+      "riwayatPembayaran": []
     },
     {
       "id": "TUNG-1794143436744",
@@ -3457,7 +3434,7 @@
       "keterangan": "Mutasi Kepengurusan RT Baru",
       "jumlah": 11745000,
       "transaksiId": "b5a784c3-1a83-4cfa-99bf-10c84268caf2",
-      "createdAt": "2026-11-10T03:38:01.558Z"
+      "createdAt": "2026-11-10T04:48:47.448Z"
     }
   ]
 }

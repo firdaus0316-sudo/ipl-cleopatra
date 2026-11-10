@@ -736,6 +736,67 @@ export async function appendIncomesToSheet(
   }
 }
 
+export async function deleteIncomeFromSheet(txId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const csvText = await fetchCsvByGid(SHEET_GIDS.dataiuran);
+    const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    let targetRowIndex = -1;
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCsvLine(lines[i]);
+      const curTxId = cols[8] || '';
+      if (curTxId.trim() === txId.trim()) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return { success: true };
+    }
+
+    // 1. Coba via gsheets CLI
+    const cliResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+      try {
+        const child = spawn(
+          'gsheets',
+          ['mutate', 'delete-rows', SHEET_ID, '--sheet-id', '0', '--start', String(targetRowIndex), '--end', String(targetRowIndex + 1)],
+          { shell: true }
+        );
+        let stderr = '';
+        child.stderr.on('data', (d) => (stderr += d.toString()));
+        child.on('close', (code) => {
+          if (code === 0) resolve({ success: true });
+          else resolve({ success: false, error: stderr });
+        });
+        child.on('error', (err) => resolve({ success: false, error: err.message }));
+      } catch (e: any) {
+        resolve({ success: false, error: e.message });
+      }
+    });
+
+    if (cliResult.success) return cliResult;
+
+    // 2. Fallback Webhook jika di cloud / CLI tidak ada
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    if (webhookUrl && webhookUrl.startsWith('http')) {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'delete_row', sheetName: 'DataIuran', rowId: txId, colIndex: 9 }),
+      });
+      if (res.ok) return { success: true };
+    }
+
+    return cliResult;
+  } catch (err: any) {
+    console.error('deleteIncomeFromSheet error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 /**
  * 10. HELPER UMUM & MUTASI UNTUK SEMUA SHEET GOOGLE SPREADSHEET
  */
