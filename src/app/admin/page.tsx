@@ -342,8 +342,28 @@ export default function AdminPage() {
         if (dashRes.saldoAwalHistory) setSaldoAwalHistory(dashRes.saldoAwalHistory);
       }
       if (proofsRes?.success) setProofs(proofsRes.data);
-      if (expRes?.success) setExpenses(expRes.data);
-      if (incRes?.success) setIncomes(incRes.data);
+      if (expRes?.success) {
+        let list: ExpenseTransaction[] = expRes.data || [];
+        try {
+          const rawDel = localStorage.getItem('cleopatra_deleted_expenses');
+          if (rawDel) {
+            const delSet = new Set(JSON.parse(rawDel));
+            list = list.filter((e) => !delSet.has(e.id));
+          }
+        } catch {}
+        setExpenses(list);
+      }
+      if (incRes?.success) {
+        let list: IncomeTransaction[] = incRes.data || [];
+        try {
+          const rawDel = localStorage.getItem('cleopatra_deleted_incomes');
+          if (rawDel) {
+            const delSet = new Set(JSON.parse(rawDel));
+            list = list.filter((i) => !delSet.has(i.id));
+          }
+        } catch {}
+        setIncomes(list);
+      }
       if (resRes?.success) setResidents(resRes.data);
       if (matrixRes?.success) setMatrixData(matrixRes);
       if (settRes?.success) setSettings(settRes.settings);
@@ -610,6 +630,14 @@ export default function AdminPage() {
       });
       const d = await res.json();
       if (d.success) {
+        try {
+          const rawDel = localStorage.getItem('cleopatra_deleted_expenses');
+          const arr: string[] = rawDel ? JSON.parse(rawDel) : [];
+          if (!arr.includes(id)) {
+            arr.push(id);
+            localStorage.setItem('cleopatra_deleted_expenses', JSON.stringify(arr));
+          }
+        } catch {}
         alert('Transaksi pengeluaran berhasil dihapus.');
         refreshAll(true);
       } else {
@@ -775,6 +803,14 @@ export default function AdminPage() {
       });
       const d = await res.json();
       if (d.success) {
+        try {
+          const rawDel = localStorage.getItem('cleopatra_deleted_incomes');
+          const arr: string[] = rawDel ? JSON.parse(rawDel) : [];
+          if (!arr.includes(id)) {
+            arr.push(id);
+            localStorage.setItem('cleopatra_deleted_incomes', JSON.stringify(arr));
+          }
+        } catch {}
         alert('Transaksi pemasukan berhasil dihapus.');
         refreshAll(true);
       } else {

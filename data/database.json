@@ -650,7 +650,7 @@
       "createdAt": "2026-11-09",
       "verifiedAt": "11/9/2026",
       "verifiedBy": "Bendahara RT",
-      "transactionId": "INC-1794238993914-1"
+      "transactionId": "INC-BKT26112602-1"
     },
     {
       "id": "bf087a61-a419-4875-a315-63e656690e08",
@@ -1011,6 +1011,21 @@
     }
   ],
   "incomes": [
+    {
+      "id": "INC-BKT26112602-1",
+      "tanggal": "11/9/2026",
+      "sumber": "Eri Raihanul Firdaus (E-1/32)",
+      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
+      "kategori": "Iuran Bulanan (Reguler)",
+      "bulan": [
+        "2026-12"
+      ],
+      "nominal": 150000,
+      "buktiId": "BKT-2611-2602",
+      "status": "Sah",
+      "catatan": "Iuran Periode 2026-12 - Bukti BKT-2611-2602",
+      "createdAt": "11/9/2026"
+    },
     {
       "id": "INC-MANUAL-1794226269544-1",
       "tanggal": "2026-11-09",
