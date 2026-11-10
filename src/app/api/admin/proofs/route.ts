@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
-import { appendIncomesToSheet, appendPelunasanToSheet, extractNameAndBlok } from '@/lib/googleSheet';
+import {
+  appendIncomesToSheet,
+  appendPelunasanToSheet,
+  extractNameAndBlok,
+  fetchProofsFromSheet,
+  updateProofInSheet,
+  deleteProofFromSheet,
+  getDirectGoogleDriveImageUrl,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,7 +20,42 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
 
     const db = getDb();
-    let proofs = db.proofs;
+
+    // Auto-sync live dari Google Sheet BuktiTransfer (Sumber Kebenaran Utama)
+    try {
+      const sheetProofsRes = await fetchProofsFromSheet();
+      if (sheetProofsRes.success && sheetProofsRes.proofs.length > 0) {
+        const localMap = new Map((db.proofs || []).map((p) => [p.id, p]));
+        const mergedProofs = sheetProofsRes.proofs.map((sheetProof) => {
+          const local = localMap.get(sheetProof.id);
+          const directImg = getDirectGoogleDriveImageUrl(sheetProof.driveUrl || sheetProof.buktiUrl);
+          if (local) {
+            return {
+              ...sheetProof,
+              buktiUrl: local.buktiUrl && local.buktiUrl.startsWith('data:') ? local.buktiUrl : directImg || sheetProof.buktiUrl,
+              driveUrl: sheetProof.driveUrl || local.driveUrl,
+              status: sheetProof.status || local.status,
+              adminNote: sheetProof.adminNote || local.adminNote,
+            };
+          }
+          return {
+            ...sheetProof,
+            buktiUrl: directImg || sheetProof.buktiUrl,
+          };
+        });
+
+        // Pertahankan bukti lokal yang belum ter-commit ke sheet jika ada
+        const sheetIdSet = new Set(sheetProofsRes.proofs.map((p) => p.id));
+        const localOnly = (db.proofs || []).filter((p) => !sheetIdSet.has(p.id));
+
+        db.proofs = [...mergedProofs, ...localOnly];
+        saveDb(db);
+      }
+    } catch (e) {
+      console.error('Error auto-sync proofs from sheet:', e);
+    }
+
+    let proofs = db.proofs || [];
 
     if (status && status !== 'Semua') {
       proofs = proofs.filter((p) => p.status === status);
@@ -61,7 +104,20 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
-    const proofIndex = db.proofs.findIndex((p) => p.id === id);
+    let proofIndex = db.proofs.findIndex((p) => p.id === id);
+
+    if (proofIndex === -1) {
+      try {
+        const sheetProofsRes = await fetchProofsFromSheet();
+        if (sheetProofsRes.success && sheetProofsRes.proofs.length > 0) {
+          const found = sheetProofsRes.proofs.find((p) => p.id === id);
+          if (found) {
+            db.proofs.unshift(found);
+            proofIndex = 0;
+          }
+        }
+      } catch {}
+    }
 
     if (proofIndex === -1) {
       return NextResponse.json({ success: false, error: 'Bukti transfer tidak ditemukan.' }, { status: 404 });
@@ -185,31 +241,27 @@ export async function POST(req: NextRequest) {
         proof.driveUrl = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
       }
 
-      // 3. Masukkan ke Google Sheet BuktiTransfer jika Webhook Apps Script aktif
-      if (db.settings.googleDriveWebhookUrl) {
-        try {
-          fetch(db.settings.googleDriveWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-              action: 'verify_bukti',
-              waktuUpload: proof.createdAt || nowIso,
-              namaWarga: proof.residentName,
-              nominal: proof.nominal,
-              keterangan: proof.catatanWarga || '',
-              fileUrl: proof.driveUrl || proof.buktiUrl,
-              kategori: proof.kategori || 'Iuran Bulanan',
-              bulan: monthsList.join(', '),
-              status: 'Terverifikasi',
-              buktiId: proof.id,
-              blok: proof.blok,
-              wargaId: proof.residentId,
-              transactionId: proof.transactionId,
-            }),
-          }).catch((e) => console.error('Webhook async call error:', e));
-        } catch (e) {
-          console.error('Webhook error:', e);
-        }
+      // 3. Update status Terverifikasi ke Google Sheet BuktiTransfer
+      try {
+        await updateProofInSheet({
+          buktiId: proof.id,
+          status: 'Terverifikasi',
+          waktuUpload: proof.createdAt || nowIso,
+          namaWarga: proof.residentName,
+          nominal: proof.nominal,
+          keterangan: proof.catatanWarga || '',
+          fileUrl: proof.driveUrl || proof.buktiUrl,
+          kategori: proof.kategori || 'Iuran Bulanan',
+          bulan: monthsList.join(', '),
+          blok: proof.blok,
+          wargaId: proof.residentId,
+          verifiedAt: nowIso,
+          verifiedBy: 'Bendahara RT',
+          adminNote: proof.adminNote,
+          transactionId: proof.transactionId,
+        });
+      } catch (e) {
+        console.error('updateProofInSheet error:', e);
       }
 
       saveDb(db);
@@ -243,6 +295,28 @@ export async function POST(req: NextRequest) {
       proof.verifiedAt = new Date().toISOString();
       proof.verifiedBy = 'Bendahara RT';
 
+      // Update status ke Google Sheet BuktiTransfer
+      try {
+        await updateProofInSheet({
+          buktiId: proof.id,
+          status: 'Ditolak',
+          waktuUpload: proof.createdAt,
+          namaWarga: proof.residentName,
+          nominal: proof.nominal,
+          keterangan: proof.catatanWarga || '',
+          fileUrl: proof.driveUrl || proof.buktiUrl,
+          kategori: proof.kategori || 'Iuran Bulanan',
+          bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
+          blok: proof.blok,
+          wargaId: proof.residentId,
+          verifiedAt: new Date().toISOString(),
+          verifiedBy: 'Bendahara RT',
+          adminNote: proof.adminNote,
+        });
+      } catch (e) {
+        console.error('updateProofInSheet error:', e);
+      }
+
       saveDb(db);
       addLog(
         'Verifikasi Bukti Ditolak',
@@ -274,6 +348,29 @@ export async function POST(req: NextRequest) {
       proof.verifiedAt = undefined;
       proof.verifiedBy = undefined;
       proof.transactionId = undefined;
+
+      // Update status ke Google Sheet BuktiTransfer
+      try {
+        await updateProofInSheet({
+          buktiId: proof.id,
+          status: 'Menunggu Verifikasi',
+          waktuUpload: proof.createdAt,
+          namaWarga: proof.residentName,
+          nominal: proof.nominal,
+          keterangan: proof.catatanWarga || '',
+          fileUrl: proof.driveUrl || proof.buktiUrl,
+          kategori: proof.kategori || 'Iuran Bulanan',
+          bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
+          blok: proof.blok,
+          wargaId: proof.residentId,
+          verifiedAt: '',
+          verifiedBy: '',
+          adminNote: '',
+          transactionId: '',
+        });
+      } catch (e) {
+        console.error('updateProofInSheet error:', e);
+      }
 
       saveDb(db);
       addLog('Reset Verifikasi Bukti', `Status bukti ${proof.id} dikembalikan ke antrean verifikasi`, 'Admin');
@@ -318,7 +415,14 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // Hapus data bukti transfer
+    // Hapus baris dari Google Sheet BuktiTransfer
+    try {
+      await deleteProofFromSheet(id);
+    } catch (e) {
+      console.error('deleteProofFromSheet error:', e);
+    }
+
+    // Hapus data bukti transfer lokal
     db.proofs.splice(proofIndex, 1);
     saveDb(db);
 

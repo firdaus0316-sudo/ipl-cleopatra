@@ -7,6 +7,7 @@ import {
   fetchTunggakanNonWargaFromSheet,
   fetchExpensesFromSheet,
   fetchIncomesFromSheet,
+  fetchProofsFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -108,6 +109,16 @@ export async function GET(req: NextRequest) {
           }
         }
         db.incomes = mergedInc;
+      }
+    } catch {}
+
+    // Auto-sync proofs live dari Google Sheet BuktiTransfer
+    try {
+      const proofsRes = await fetchProofsFromSheet();
+      if (proofsRes.success && proofsRes.proofs.length > 0) {
+        const sheetProofMap = new Map(proofsRes.proofs.map((p) => [p.id, p]));
+        const localOnly = (db.proofs || []).filter((p) => !sheetProofMap.has(p.id));
+        db.proofs = [...proofsRes.proofs, ...localOnly];
       }
     } catch {}
 

@@ -239,6 +239,14 @@ export default function AdminPage() {
   const [proofFilter, setProofFilter] = useState('Semua');
   const [wargaSearch, setWargaSearch] = useState('');
 
+  const toDirectImg = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m && m[1]) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+    return url;
+  };
+
   // Modals
   const [selectedProof, setSelectedProof] = useState<ProofSubmission | null>(null);
   const [rejectNote, setRejectNote] = useState('');
@@ -2828,11 +2836,11 @@ export default function AdminPage() {
                       .map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/70 transition">
                           <td className="py-3 px-4">
-                            {p.buktiUrl ? (
+                            {p.buktiUrl || p.driveUrl ? (
                               <img
-                                src={p.buktiUrl}
+                                src={toDirectImg(p.buktiUrl || p.driveUrl)}
                                 alt="Foto Bukti"
-                                className="w-12 h-12 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition"
+                                className="w-12 h-12 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition bg-slate-100"
                                 onClick={() => setSelectedProof(p)}
                               />
                             ) : (
@@ -5057,13 +5065,22 @@ export default function AdminPage() {
             </div>
 
             {/* Proof Image Box */}
-            {selectedProof.buktiUrl && (
-              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 mb-4 flex justify-center p-2">
+            {(selectedProof.buktiUrl || selectedProof.driveUrl) && (
+              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 mb-4 flex flex-col items-center p-3">
                 <img
-                  src={selectedProof.buktiUrl}
+                  src={toDirectImg(selectedProof.buktiUrl || selectedProof.driveUrl)}
                   alt="Bukti Transfer"
-                  className="max-h-80 w-auto object-contain rounded-xl"
+                  className="max-h-80 w-auto object-contain rounded-xl shadow"
                 />
+                <a
+                  href={selectedProof.driveUrl || selectedProof.buktiUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Foto Asli di Google Drive</span>
+                </a>
               </div>
             )}
 

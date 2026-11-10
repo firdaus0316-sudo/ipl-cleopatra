@@ -1148,6 +1148,55 @@ export async function appendProofToSheet(p: ProofSubmission) {
   return appendRowsToSheet('BuktiTransfer', [row]);
 }
 
+export async function updateProofInSheet(data: {
+  buktiId: string;
+  status: 'Terverifikasi' | 'Menunggu Verifikasi' | 'Ditolak';
+  waktuUpload?: string;
+  namaWarga?: string;
+  nominal?: number;
+  keterangan?: string;
+  fileUrl?: string;
+  kategori?: string;
+  bulan?: string;
+  blok?: string;
+  wargaId?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  adminNote?: string;
+  transactionId?: string;
+}) {
+  const webhookUrl = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'verify_bukti',
+        ...data,
+      }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    console.error('updateProofInSheet error:', err);
+    return { status: 'error', message: err.message };
+  }
+}
+
+export async function deleteProofFromSheet(proofId: string) {
+  // Kolom 9 di Sheet BuktiTransfer adalah Bukti ID
+  return deleteRowFromSheet('BuktiTransfer', 9, proofId);
+}
+
+export function getDirectGoogleDriveImageUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return url;
+}
+
 // 10.9 BuktiStruk
 export async function appendBuktiStrukToSheet(e: ExpenseTransaction) {
   const formattedTime = formatGoogleSheetTimestamp(e.tanggal ? new Date(e.tanggal) : new Date());
