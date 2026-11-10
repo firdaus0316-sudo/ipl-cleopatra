@@ -632,27 +632,6 @@
   ],
   "proofs": [
     {
-      "id": "BKT-2611-2602",
-      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
-      "residentName": "Eri Raihanul Firdaus",
-      "blok": "E-1/32",
-      "hp": "",
-      "kategori": "Iuran Bulanan (Reguler)",
-      "bulan": [
-        "2026-12"
-      ],
-      "nominal": 150000,
-      "buktiUrl": "https://drive.google.com/file/d/1bCGcmdx5PugLqIWrhO1GvJZplrlmox3y/view?usp=drivesdk",
-      "driveUrl": "https://drive.google.com/file/d/1bCGcmdx5PugLqIWrhO1GvJZplrlmox3y/view?usp=drivesdk",
-      "catatanWarga": "",
-      "status": "Terverifikasi",
-      "adminNote": "Bukti valid dan sesuai",
-      "createdAt": "2026-11-09",
-      "verifiedAt": "11/9/2026",
-      "verifiedBy": "Bendahara RT",
-      "transactionId": "INC-BKT26112602-1"
-    },
-    {
       "id": "bf087a61-a419-4875-a315-63e656690e08",
       "residentId": "5b0de881-6e14-4f1d-81af-15144c0091c8",
       "residentName": "Hermawan Dodi",
@@ -1011,21 +990,6 @@
     }
   ],
   "incomes": [
-    {
-      "id": "INC-BKT26112602-1",
-      "tanggal": "11/9/2026",
-      "sumber": "Eri Raihanul Firdaus (E-1/32)",
-      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
-      "kategori": "Iuran Bulanan (Reguler)",
-      "bulan": [
-        "2026-12"
-      ],
-      "nominal": 150000,
-      "buktiId": "BKT-2611-2602",
-      "status": "Sah",
-      "catatan": "Iuran Periode 2026-12 - Bukti BKT-2611-2602",
-      "createdAt": "11/9/2026"
-    },
     {
       "id": "INC-MANUAL-1794226269544-1",
       "tanggal": "2026-11-09",
@@ -3418,6 +3382,8 @@
   "deletedIncomeIds": [
     "INC-TUNG-1794263190877",
     "INC-KSB-1794263493123",
-    "INC-1794238993914-1"
+    "INC-1794238993914-1",
+    "BKT-2611-2602",
+    "INC-BKT26112602-1"
   ]
 }

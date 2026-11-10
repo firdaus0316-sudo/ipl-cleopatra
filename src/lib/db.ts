@@ -127,10 +127,11 @@ const INITIAL_INCOMES: IncomeTransaction[] = [
 export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
   if (!db.proofs || !db.incomes) return false;
   const existingBuktiIds = new Set(db.incomes.map((i) => i.buktiId).filter(Boolean));
+  const deletedSet = new Set(db.deletedIncomeIds || []);
   let modified = false;
 
   for (const proof of db.proofs) {
-    if (proof.status === 'Terverifikasi' && !existingBuktiIds.has(proof.id)) {
+    if (proof.status === 'Terverifikasi' && !existingBuktiIds.has(proof.id) && !deletedSet.has(proof.id)) {
       const rawMonths = Array.isArray(proof.bulan) && proof.bulan.length > 0 ? proof.bulan : ['2026-11'];
       const monthsList: string[] = [];
       rawMonths.forEach((b) => {

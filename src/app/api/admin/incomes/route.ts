@@ -263,11 +263,9 @@ export async function DELETE(req: NextRequest) {
 
     // 1. Jika pemasukan berasal dari bukti transfer warga, sinkronkan status bukti transfernya
     if (inc.buktiId) {
-      const pIndex = db.proofs.findIndex((p) => p.id === inc.buktiId || p.transactionId === inc.id);
-      if (pIndex !== -1) {
-        db.proofs[pIndex].status = 'Menunggu Verifikasi';
-        db.proofs[pIndex].transactionId = undefined;
-      }
+      if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
+      if (!db.deletedIncomeIds.includes(inc.buktiId)) db.deletedIncomeIds.push(inc.buktiId);
+      db.proofs = (db.proofs || []).filter((p) => p.id !== inc.buktiId && p.transactionId !== inc.id);
     }
 
     // 2. Jika pemasukan berasal dari cicilan/pelunasan tunggakan, kembalikan saldo piutang warga
