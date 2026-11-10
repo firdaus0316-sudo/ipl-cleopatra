@@ -553,6 +553,26 @@ export async function fetchKasbonFromSheet(): Promise<{ success: boolean; kasbon
   }
 }
 
+export function getMonthsBetween(start: string, end: string): string[] {
+  if (!start) return [];
+  if (!end || start === end) return [start];
+  const [startY, startM] = start.split('-').map(Number);
+  const [endY, endM] = end.split('-').map(Number);
+  if (!startY || !startM || !endY || !endM) return [start];
+  const months: string[] = [];
+  let curY = startY;
+  let curM = startM;
+  while (curY < endY || (curY === endY && curM <= endM)) {
+    months.push(`${curY}-${String(curM).padStart(2, '0')}`);
+    curM++;
+    if (curM > 12) {
+      curM = 1;
+      curY++;
+    }
+  }
+  return months;
+}
+
 /**
  * 7. Fetch Bukti Transfer (Sheet BuktiTransfer, GID 4652474)
  */
@@ -600,6 +620,21 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
           }
         });
       }
+
+      // Periksa juga kolom Bulan Awal & Bulan Akhir jika multi-bulan
+      const bulanAwal = (cols[15] || '').trim();
+      const bulanAkhir = (cols[16] || '').trim();
+      if (bulanAwal && bulanAkhir) {
+        const normAwal = normalizePeriodCode(bulanAwal);
+        const normAkhir = normalizePeriodCode(bulanAkhir);
+        if (normAwal && normAkhir) {
+          const range = getMonthsBetween(normAwal, normAkhir);
+          range.forEach((m) => {
+            if (!parsedBulan.includes(m)) parsedBulan.push(m);
+          });
+        }
+      }
+
       if (parsedBulan.length === 0) {
         parsedBulan.push('2026-11');
       }
@@ -1142,7 +1177,7 @@ export async function appendProofToSheet(p: ProofSubmission) {
     escapeGsheetCell(p.catatanWarga || ''),
     escapeGsheetCell(p.driveUrl || p.buktiUrl || ''),
     escapeGsheetCell(p.kategori || 'Iuran Bulanan'),
-    escapeGsheetCell(p.bulan?.join(', ') || '2026-11'),
+    escapeGsheetCell(p.bulan?.join('; ') || '2026-11'),
     escapeGsheetCell(p.status || 'Menunggu Verifikasi'),
     escapeGsheetCell(p.id),
     escapeGsheetCell(p.residentId || ''),

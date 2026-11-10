@@ -106,12 +106,12 @@ export async function POST(req: NextRequest) {
     const rawBulanList = Array.isArray(bulan)
       ? bulan
       : typeof bulan === 'string'
-      ? bulan.split(',')
+      ? bulan.split(/[,;]+/)
       : [];
 
     let monthsList: string[] = [];
     rawBulanList.forEach((bStr: string) => {
-      const parts = String(bStr).split(',');
+      const parts = String(bStr).split(/[,;]+/);
       parts.forEach((p: string) => {
         const norm = normalizePeriodCode(p);
         if (norm && !monthsList.includes(norm)) {
@@ -122,7 +122,31 @@ export async function POST(req: NextRequest) {
 
     const isIuran = kategori.trim() === 'Iuran Bulanan' || kategori.toLowerCase().includes('iuran');
 
-    if (isIuran && monthsList.length > 0) {
+    if (isIuran) {
+      // Cari tarif warga
+      const res = db.residents.find(
+        (r) => r.id === residentId || r.nama.toLowerCase() === sumber.toLowerCase()
+      );
+      const residentTarif = res?.tarif || 150000;
+
+      // Jika nominal mencakup lebih dari 1 bulan tetapi hanya 1 bulan yang terdaftar, ekspansi secara periodik
+      if (monthsList.length === 1 && totalNominal >= residentTarif * 2 && residentTarif > 0) {
+        const calculatedMonthsCount = Math.round(totalNominal / residentTarif);
+        if (calculatedMonthsCount > 1) {
+          const [sY, sM] = monthsList[0].split('-').map(Number);
+          monthsList = [];
+          for (let m = 0; m < calculatedMonthsCount; m++) {
+            const date = new Date(sY, sM - 1 + m, 1);
+            const mCode = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            monthsList.push(mCode);
+          }
+        }
+      }
+
+      if (monthsList.length === 0) {
+        monthsList = [db.settings.periodeAktif ? normalizePeriodCode(db.settings.periodeAktif) : new Date().toISOString().slice(0, 7)];
+      }
+
       monthsList.sort();
       const numMonths = monthsList.length;
       const basePerMonth = Math.floor(totalNominal / numMonths);
