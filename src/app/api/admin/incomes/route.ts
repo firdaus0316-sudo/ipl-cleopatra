@@ -7,6 +7,7 @@ import {
   extractNameAndBlok,
   updateKasbonInSheet,
   updateTunggakanInSheet,
+  fetchIncomesFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,36 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const db = getDb();
-    const incomes = db.incomes.slice().sort((a, b) => {
+    let incomes = db.incomes || [];
+
+    try {
+      const sheetRes = await fetchIncomesFromSheet();
+      if (sheetRes.success && sheetRes.incomes.length > 0) {
+        const sheetIncMap = new Map(sheetRes.incomes.map((i) => [i.id, i]));
+        const localMap = new Map(incomes.map((i) => [i.id, i]));
+
+        incomes = sheetRes.incomes.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            buktiId: local?.buktiId || s.buktiId,
+          };
+        });
+
+        for (const [id, loc] of localMap.entries()) {
+          if (!sheetIncMap.has(id) && !db.deletedIncomeIds?.includes(id)) {
+            incomes.unshift(loc);
+          }
+        }
+
+        db.incomes = incomes;
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('Gagal fetch live incomes dari sheet:', e);
+    }
+
+    incomes.sort((a, b) => {
       const timeB = new Date(b.createdAt || b.tanggal).getTime();
       const timeA = new Date(a.createdAt || a.tanggal).getTime();
       return timeB - timeA;

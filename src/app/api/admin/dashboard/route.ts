@@ -5,6 +5,8 @@ import {
   fetchKasbonFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
+  fetchExpensesFromSheet,
+  fetchIncomesFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -68,6 +70,46 @@ export async function GET(req: NextRequest) {
             riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
           };
         });
+      }
+    } catch {}
+
+    // Auto-sync expenses live dari Google Sheet DataPengeluaran
+    try {
+      const expRes = await fetchExpensesFromSheet();
+      if (expRes.success && expRes.expenses.length > 0) {
+        const sheetExpMap = new Map(expRes.expenses.map((e) => [e.id, e]));
+        const localMap = new Map((db.expenses || []).map((e) => [e.id, e]));
+        const mergedExp = expRes.expenses.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            buktiUrl: local?.buktiUrl || s.buktiUrl,
+            driveUrl: local?.driveUrl || s.driveUrl,
+          };
+        });
+        for (const [id, loc] of localMap.entries()) {
+          if (!sheetExpMap.has(id)) mergedExp.unshift(loc);
+        }
+        db.expenses = mergedExp;
+      }
+    } catch {}
+
+    // Auto-sync incomes live dari Google Sheet DataIuran
+    try {
+      const incRes = await fetchIncomesFromSheet();
+      if (incRes.success && incRes.incomes.length > 0) {
+        const sheetIncMap = new Map(incRes.incomes.map((i) => [i.id, i]));
+        const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
+        const mergedInc = incRes.incomes.map((s) => {
+          const local = localMap.get(s.id);
+          return { ...s, buktiId: local?.buktiId || s.buktiId };
+        });
+        for (const [id, loc] of localMap.entries()) {
+          if (!sheetIncMap.has(id) && !db.deletedIncomeIds?.includes(id)) {
+            mergedInc.unshift(loc);
+          }
+        }
+        db.incomes = mergedInc;
       }
     } catch {}
 

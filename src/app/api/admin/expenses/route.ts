@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ExpenseTransaction } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
-import { appendExpenseToSheet, appendBuktiStrukToSheet, deleteExpenseFromSheet } from '@/lib/googleSheet';
+import {
+  appendExpenseToSheet,
+  appendBuktiStrukToSheet,
+  deleteExpenseFromSheet,
+  fetchExpensesFromSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,7 +15,37 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const db = getDb();
-    const expenses = db.expenses.slice().sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+    let expenses = db.expenses || [];
+
+    try {
+      const sheetRes = await fetchExpensesFromSheet();
+      if (sheetRes.success && sheetRes.expenses.length > 0) {
+        const sheetExpMap = new Map(sheetRes.expenses.map((e) => [e.id, e]));
+        const localMap = new Map(expenses.map((e) => [e.id, e]));
+
+        expenses = sheetRes.expenses.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            buktiUrl: local?.buktiUrl || s.buktiUrl,
+            driveUrl: local?.driveUrl || s.driveUrl,
+          };
+        });
+
+        for (const [id, loc] of localMap.entries()) {
+          if (!sheetExpMap.has(id)) {
+            expenses.unshift(loc);
+          }
+        }
+
+        db.expenses = expenses;
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('Gagal fetch live expenses dari sheet:', e);
+    }
+
+    expenses.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
     return NextResponse.json({ success: true, data: expenses });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
