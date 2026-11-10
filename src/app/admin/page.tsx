@@ -2820,8 +2820,6 @@ export default function AdminPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
-                      <th className="py-3.5 px-4">Bukti Foto</th>
-                      <th className="py-3.5 px-4">No. Tiket</th>
                       <th className="py-3.5 px-4">Warga & Blok</th>
                       <th className="py-3.5 px-4">Bulan Tagihan</th>
                       <th className="py-3.5 px-4">Nominal</th>
@@ -2835,33 +2833,6 @@ export default function AdminPage() {
                       .filter((p) => proofFilter === 'Semua' || p.status === proofFilter)
                       .map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/70 transition">
-                          <td className="py-3 px-4">
-                            {p.buktiUrl || p.driveUrl ? (
-                              <img
-                                src={toDirectImg(p.buktiUrl || p.driveUrl)}
-                                alt="Foto Bukti"
-                                className="w-12 h-12 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition bg-slate-100"
-                                onClick={() => setSelectedProof(p)}
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-[10px]">
-                                No pic
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                            <div>{p.id}</div>
-                            <a
-                              href={p.driveUrl || "https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB"}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-normal mt-0.5"
-                              title="Buka File / Folder di Google Drive"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              <span>Drive Bukti</span>
-                            </a>
-                          </td>
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-900">{p.residentName}</div>
                             <div className="text-[11px] text-slate-500">
