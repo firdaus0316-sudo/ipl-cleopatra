@@ -1734,16 +1734,6 @@
   ],
   "expenses": [
     {
-      "id": "EXP-KSB-1794321823502",
-      "tanggal": "2026-11-10",
-      "kategori": "Kasbon",
-      "nominal": 1600000,
-      "penerima": "Muyadi/Dede Maulana",
-      "keterangan": "Kasbon: Muyadi/Dede Maulana - Keperluan Armada Angkut",
-      "status": "Sah",
-      "createdAt": "2026-11-10T14:43:43.502Z"
-    },
-    {
       "id": "7f0baf8e-5804-4921-be31-ed2f3e404530",
       "tanggal": "2026-11-07",
       "kategori": "Kasbon",
@@ -3374,19 +3364,6 @@
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-01",
       "kasbonId": "cac91796-641d-4dae-97a7-759bd77297ac",
-      "terbayar": 0,
-      "riwayatPembayaran": []
-    },
-    {
-      "id": "KSB-1794321823502",
-      "timestamp": "11/10/2026 14:43:43",
-      "namaPeminjam": "Muyadi/Dede Maulana",
-      "nominal": 1600000,
-      "nominalAwal": 1600000,
-      "keterangan": "Keperluan Armada Angkut",
-      "status": "Belum Lunas",
-      "tglBackdate": "2026-11-10",
-      "kasbonId": "KSB-1794321823502",
       "terbayar": 0,
       "riwayatPembayaran": []
     }

@@ -8,6 +8,8 @@ import {
   appendPelunasanToSheet,
   updateKasbonInSheet,
   deleteKasbonFromSheet,
+  deleteExpenseFromSheet,
+  deleteExpenseByRefIdFromSheet,
   fetchKasbonFromSheet,
 } from '@/lib/googleSheet';
 
@@ -293,24 +295,53 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Data kasbon tidak ditemukan.' }, { status: 404 });
     }
 
+    const kasbonTargetId = itemToDelete.id || itemToDelete.kasbonId || id;
+
+    // 1. Hapus dari db.kasbon
     db.kasbon = (db.kasbon || []).filter((k) => k.id !== id && k.kasbonId !== id);
+
+    // 2. OTOMATIS HAPUS PENGELUARAN KAS TERKAIT (Pencairan Kasbon)
+    const linkedExp = (db.expenses || []).find(
+      (e) =>
+        e.id === `EXP-${kasbonTargetId}` ||
+        e.id === `EXP-KSB-${kasbonTargetId.replace(/^KSB-/, '')}` ||
+        e.id.includes(kasbonTargetId) ||
+        (e.kategori === 'Kasbon' && e.penerima?.toLowerCase() === itemToDelete.namaPeminjam?.toLowerCase())
+    );
+
+    let deletedExpId = '';
+    if (linkedExp) {
+      deletedExpId = linkedExp.id;
+      db.expenses = (db.expenses || []).filter((e) => e.id !== linkedExp.id);
+      if (!db.deletedExpenseIds) db.deletedExpenseIds = [];
+      if (!db.deletedExpenseIds.includes(linkedExp.id)) {
+        db.deletedExpenseIds.push(linkedExp.id);
+      }
+    }
+
     saveDb(db);
 
+    // 3. Sinkronkan penghapusan ke Google Sheet DataKasbon & DataPengeluaran
     try {
-      await deleteKasbonFromSheet(itemToDelete.id || itemToDelete.kasbonId || id);
+      await deleteKasbonFromSheet(kasbonTargetId);
+      if (deletedExpId) {
+        await deleteExpenseFromSheet(deletedExpId);
+      }
+      await deleteExpenseByRefIdFromSheet(kasbonTargetId);
     } catch (e) {
-      console.error('Auto-sync delete kasbon from sheets error:', e);
+      console.error('Auto-sync delete kasbon and linked expense from sheets error:', e);
     }
 
     addLog(
       'Hapus Data Kasbon',
-      `Data pinjaman kasbon ${itemToDelete.namaPeminjam || 'Petugas'} sebesar Rp ${(itemToDelete.nominal || 0).toLocaleString('id-ID')} berhasil dihapus oleh Admin.`,
+      `Data pinjaman kasbon ${itemToDelete.namaPeminjam || 'Petugas'} sebesar Rp ${(itemToDelete.nominal || 0).toLocaleString('id-ID')} dan catatan pengeluaran kas RT terkait berhasil dihapus oleh Admin.`,
       'Admin'
     );
 
     return NextResponse.json({
       success: true,
-      message: `Data kasbon ${itemToDelete.namaPeminjam || 'Petugas'} berhasil dihapus.`,
+      message: `Data kasbon ${itemToDelete.namaPeminjam || 'Petugas'} dan pencairan kas keluar terkait berhasil dihapus.`,
+      deletedExpenseId: deletedExpId || undefined,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

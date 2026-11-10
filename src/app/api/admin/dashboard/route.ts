@@ -77,20 +77,18 @@ export async function GET(req: NextRequest) {
     try {
       const expRes = await fetchExpensesFromSheet();
       if (expRes.success && expRes.expenses.length > 0) {
-        const sheetExpMap = new Map(expRes.expenses.map((e) => [e.id, e]));
+        const deletedSet = new Set(db.deletedExpenseIds || []);
         const localMap = new Map((db.expenses || []).map((e) => [e.id, e]));
-        const mergedExp = expRes.expenses.map((s) => {
-          const local = localMap.get(s.id);
-          return {
-            ...s,
-            buktiUrl: local?.buktiUrl || s.buktiUrl,
-            driveUrl: local?.driveUrl || s.driveUrl,
-          };
-        });
-        for (const [id, loc] of localMap.entries()) {
-          if (!sheetExpMap.has(id)) mergedExp.unshift(loc);
-        }
-        db.expenses = mergedExp;
+        db.expenses = expRes.expenses
+          .filter((s) => !deletedSet.has(s.id))
+          .map((s) => {
+            const local = localMap.get(s.id);
+            return {
+              ...s,
+              buktiUrl: local?.buktiUrl || s.buktiUrl,
+              driveUrl: local?.driveUrl || s.driveUrl,
+            };
+          });
       }
     } catch {}
 

@@ -20,23 +20,20 @@ export async function GET() {
     try {
       const sheetRes = await fetchExpensesFromSheet();
       if (sheetRes.success && sheetRes.expenses.length > 0) {
-        const sheetExpMap = new Map(sheetRes.expenses.map((e) => [e.id, e]));
+        const deletedSet = new Set(db.deletedExpenseIds || []);
         const localMap = new Map(expenses.map((e) => [e.id, e]));
 
-        expenses = sheetRes.expenses.map((s) => {
-          const local = localMap.get(s.id);
-          return {
-            ...s,
-            buktiUrl: local?.buktiUrl || s.buktiUrl,
-            driveUrl: local?.driveUrl || s.driveUrl,
-          };
-        });
-
-        for (const [id, loc] of localMap.entries()) {
-          if (!sheetExpMap.has(id)) {
-            expenses.unshift(loc);
-          }
-        }
+        // Google Sheet adalah Single Source of Truth pengeluaran
+        expenses = sheetRes.expenses
+          .filter((s) => !deletedSet.has(s.id))
+          .map((s) => {
+            const local = localMap.get(s.id);
+            return {
+              ...s,
+              buktiUrl: local?.buktiUrl || s.buktiUrl,
+              driveUrl: local?.driveUrl || s.driveUrl,
+            };
+          });
 
         db.expenses = expenses;
         saveDb(db);

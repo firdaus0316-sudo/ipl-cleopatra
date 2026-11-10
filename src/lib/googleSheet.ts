@@ -851,6 +851,10 @@ export async function deleteExpenseFromSheet(expId: string): Promise<{ success: 
   return deleteRowFromSheet('DataPengeluaran', 5, expId, SHEET_GIDS.datapengeluaran);
 }
 
+export async function deleteExpenseByRefIdFromSheet(refId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('DataPengeluaran', 7, refId, SHEET_GIDS.datapengeluaran);
+}
+
 export async function deleteKasbonFromSheet(kasbonId: string): Promise<{ success: boolean; error?: string }> {
   return deleteRowFromSheet('DataKasbon', 7, kasbonId, SHEET_GIDS.kasbon);
 }
