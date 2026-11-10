@@ -23,6 +23,7 @@ export const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}
 // Google Drive Folders
 export const GOOGLE_DRIVE_MAIN_FOLDER = 'https://drive.google.com/drive/folders/1nFboWcdPdbncsrub31vzd3jgLRZOaZo_';
 export const GOOGLE_DRIVE_BUKTI_STORAGE = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
+export const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxg_LRxCVh-oYYeiMBpJvo6i0kkrClAmAUdXnPfFNhZNTsBXarGZ9JJOaoFMI7l6YBC9w/exec';
 
 export function normalizePeriodCode(input?: string): string {
   if (!input) return '';
@@ -797,7 +798,7 @@ export async function deleteRowFromSheet(
     // 2. Fallback Webhook jika di cloud / Vercel
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
       const res = await fetch(webhookUrl, {
         method: 'POST',
@@ -825,7 +826,7 @@ export async function updateRowInSheet(
 
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
       const res = await fetch(webhookUrl, {
         method: 'POST',
@@ -908,7 +909,7 @@ async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][])
   try {
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
     if (!webhookUrl || !webhookUrl.startsWith('http')) {
       return { success: false, count: 0, error: 'Webhook URL belum dikonfigurasi' };
     }

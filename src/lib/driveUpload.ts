@@ -35,7 +35,12 @@ export async function uploadToGoogleDrive(
   }
 
   // 2. Fallback: Google Apps Script Web App jika webhookUrl tersedia
-  if (webhookUrl && webhookUrl.startsWith('http')) {
+  const activeWebhookUrl =
+    webhookUrl ||
+    process.env.GOOGLE_WEBHOOK_URL ||
+    'https://script.google.com/macros/s/AKfycbxg_LRxCVh-oYYeiMBpJvo6i0kkrClAmAUdXnPfFNhZNTsBXarGZ9JJOaoFMI7l6YBC9w/exec';
+
+  if (activeWebhookUrl && activeWebhookUrl.startsWith('http')) {
     try {
       let base64 = dataUrlOrBase64;
       let mimetype = 'image/jpeg';
@@ -53,7 +58,7 @@ export async function uploadToGoogleDrive(
         folderId: DRIVE_STORAGE_FOLDER_ID,
       };
 
-      const res = await fetch(webhookUrl, {
+      const res = await fetch(activeWebhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',

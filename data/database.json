@@ -13,7 +13,7 @@
     "saldoAwal": 11745000,
     "linkFolderUtamaDrive": "https://drive.google.com/drive/folders/1nFboWcdPdbncsrub31vzd3jgLRZOaZo_",
     "linkPenyimpananBuktiDrive": "https://drive.google.com/drive/folders/1nFboWcdPdbncsrub31vzd3jgLRZOaZo_",
-    "googleDriveWebhookUrl": "",
+    "googleDriveWebhookUrl": "https://script.google.com/macros/s/AKfycbxg_LRxCVh-oYYeiMBpJvo6i0kkrClAmAUdXnPfFNhZNTsBXarGZ9JJOaoFMI7l6YBC9w/exec",
     "periodeAktif": "2026-11"
   },
   "residents": [
