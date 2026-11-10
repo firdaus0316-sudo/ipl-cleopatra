@@ -109,7 +109,7 @@ export function parseDateFlexible(str?: string): string {
 
 export async function fetchCsvByGid(gid: string): Promise<string> {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
-  const res = await fetch(url, { next: { revalidate: 15 } });
+  const res = await fetch(url, { cache: 'no-store' });
 
   if (res.status === 401 || res.status === 403) {
     throw new Error('Spreadsheet masih dikunci (Private). Ubah akses di Google Sheets menjadi "Siapa saja yang memiliki link" -> "Pelihat (Viewer)".');
