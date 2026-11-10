@@ -267,6 +267,10 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
     const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const incomes: IncomeTransaction[] = [];
 
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+    const deletedSet = new Set(db.deletedIncomeIds || []);
+
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i]);
       if (cols.length < 5) continue;
@@ -286,8 +290,10 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       const nominal = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       if (!nama || nominal <= 0) continue;
 
-      const tanggal = parseDateFlexible(waktu);
       const isVoid = statusTx.includes('batal') || statusRaw.includes('batal');
+      if (deletedSet.has(transaksiId) || isVoid) continue;
+
+      const tanggal = parseDateFlexible(waktu);
 
       const bulanList: string[] = [];
       if (periode) {

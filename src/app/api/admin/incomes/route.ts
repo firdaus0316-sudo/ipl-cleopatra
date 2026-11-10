@@ -310,6 +310,11 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
+    if (!db.deletedIncomeIds.includes(inc.id)) {
+      db.deletedIncomeIds.push(inc.id);
+    }
+
     db.incomes.splice(idx, 1);
     saveDb(db);
 

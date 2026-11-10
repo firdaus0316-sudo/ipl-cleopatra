@@ -36,9 +36,10 @@ export async function POST() {
     // Local-only incomes adalah transaksi hasil verifikasi bukti transfer warga, transaksi manual, pembayaran cicilan tunggakan (INC-TUNG-), atau pengembalian kasbon (INC-KSB-).
     if (result.incomes.length > 0) {
       const sheetIncIds = new Set(result.incomes.map((i) => i.id));
+      const deletedSet = new Set(db.deletedIncomeIds || []);
       const localOnlyIncomes = (db.incomes || []).filter((i) => {
-        // Jangan pertahankan ID yang berasal dari Google Sheet atau baris lama sheet
-        if (sheetIncIds.has(i.id) || i.id.startsWith('SHEET-') || /^INC-\d+$/.test(i.id)) {
+        // Jangan pertahankan ID yang berasal dari Google Sheet, baris lama sheet, atau sudah dihapus
+        if (deletedSet.has(i.id) || sheetIncIds.has(i.id) || i.id.startsWith('SHEET-') || /^INC-\d+$/.test(i.id)) {
           return false;
         }
 

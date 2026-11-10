@@ -145,4 +145,6 @@ export interface DatabaseSchema {
   saldoAwalHistory?: SaldoAwalEntry[];
   tunggakanLama?: TunggakanLamaEntry[];
   kasbon?: KasbonEntry[];
+  deletedIncomeIds?: string[];
+  deletedExpenseIds?: string[];
 }

@@ -1051,33 +1051,6 @@
       "createdAt": "2026-11-10T04:48:47.449Z"
     },
     {
-      "id": "INC-KSB-1794263493123",
-      "tanggal": "2026-11-09",
-      "sumber": "Rahmat Security (Kasbon Petugas)",
-      "kategori": "Pengembalian Kasbon",
-      "bulan": [
-        "2026-11"
-      ],
-      "nominal": 100000,
-      "buktiId": "Cash",
-      "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
-    },
-    {
-      "id": "INC-1794238993914-1",
-      "tanggal": "2026-11-09",
-      "sumber": "Eri Raihanul Firdaus (E-1/32)",
-      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
-      "kategori": "Iuran Bulanan",
-      "bulan": [
-        "2026-12"
-      ],
-      "nominal": 150000,
-      "buktiId": "BKT-2611-2602",
-      "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
-    },
-    {
       "id": "98ec6a8c-e772-429a-9fb1-28749a2aaa3f",
       "tanggal": "2026-11-07",
       "sumber": "Rohman (H-13/16)",
@@ -3367,24 +3340,14 @@
       "id": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f",
       "timestamp": "11/5/2026 9:03:06",
       "namaPeminjam": "Rahmat Security",
-      "nominal": 300000,
+      "nominal": 400000,
       "nominalAwal": 400000,
       "keterangan": "Keluarga",
-      "status": "Dicicil",
+      "status": "Belum Lunas",
       "tglBackdate": "2026-11-05",
       "kasbonId": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f",
-      "terbayar": 100000,
-      "riwayatPembayaran": [
-        {
-          "id": "BYR-KSB-1794263493123",
-          "tanggal": "2026-11-09",
-          "nominal": 100000,
-          "metode": "Cash",
-          "catatan": "tes",
-          "incomeId": "INC-KSB-1794263493123",
-          "createdAt": "2026-11-09T22:31:33.123Z"
-        }
-      ]
+      "terbayar": 0,
+      "riwayatPembayaran": []
     },
     {
       "id": "bdfa85fd-f0c1-4077-911c-0ea4316071cb",
@@ -3436,5 +3399,10 @@
       "transaksiId": "b5a784c3-1a83-4cfa-99bf-10c84268caf2",
       "createdAt": "2026-11-10T04:48:47.448Z"
     }
+  ],
+  "deletedIncomeIds": [
+    "INC-TUNG-1794263190877",
+    "INC-KSB-1794263493123",
+    "INC-1794238993914-1"
   ]
 }
