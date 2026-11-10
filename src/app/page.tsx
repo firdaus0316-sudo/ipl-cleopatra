@@ -652,7 +652,7 @@ export default function PublicPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 lg:pb-8">
         {/* TOP GREETING BAR */}
         <div className="mb-6 bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -1873,6 +1873,62 @@ export default function PublicPage() {
           </div>
         )}
       </main>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR FOR SMARTPHONES */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#070c1b]/95 backdrop-blur-md border-t border-slate-800 px-2 py-2 flex items-center justify-around shadow-2xl">
+        <button
+          onClick={() => { setTab('dashboard'); setIsMobileMenuOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition ${
+            tab === 'dashboard' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5 mb-1" />
+          <span className="text-[10px] leading-none">Dashboard</span>
+        </button>
+
+        <button
+          onClick={() => { setTab('upload'); setIsMobileMenuOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition ${
+            tab === 'upload' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Upload className="w-5 h-5 mb-1" />
+          <span className="text-[10px] leading-none">Setor Iuran</span>
+        </button>
+
+        <button
+          onClick={() => { setTab('status'); setIsMobileMenuOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition ${
+            tab === 'status' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Search className="w-5 h-5 mb-1" />
+          <span className="text-[10px] leading-none">Cek Status</span>
+        </button>
+
+        <button
+          onClick={() => { setTab('transparansi'); setIsMobileMenuOpen(false); }}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition ${
+            tab === 'transparansi' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <CalendarCheck className="w-5 h-5 mb-1" />
+          <span className="text-[10px] leading-none">Matriks</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setAdminPinInput('');
+            setAdminPinError('');
+            setShowPinText(false);
+            setShowAdminPinModal(true);
+          }}
+          className="flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition text-slate-400 hover:text-emerald-400"
+        >
+          <Shield className="w-5 h-5 mb-1" />
+          <span className="text-[10px] leading-none">Admin</span>
+        </button>
+      </div>
 
       {/* ============================================================ */}
       {/* MODAL 1: RINCIAN PIUTANG TUNGGAKAN WARGA (GAMBAR 2) */}

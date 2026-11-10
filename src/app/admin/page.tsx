@@ -46,6 +46,7 @@ import {
   Building2,
   Filter,
   Lock,
+  Menu,
 } from 'lucide-react';
 import { formatRupiah, formatDateIndo, formatDateTimeIndo, createWaLink, formatPeriodCode, isIncomeInPeriod } from '@/lib/format';
 import {
@@ -148,6 +149,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'verifikasi' | 'pengeluaran' | 'pemasukan' | 'matriks' | 'warga' | 'tunggakan' | 'kasbon' | 'laporan' | 'pengaturan'
   >('dashboard');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Global Admin Data
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -1642,7 +1644,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row">
       {/* SIDEBAR NAVIGATION */}
       <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col md:min-h-screen border-r border-slate-800 flex-shrink-0">
-        {/* Brand */}
+        {/* Brand & Mobile Hamburger */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
@@ -1659,12 +1661,23 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+          {/* Mobile Menu Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+            className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            aria-label="Toggle Navigation"
+          >
+            {isMobileNavOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
 
+        {/* Collapsible Container on Mobile */}
+        <div className={`flex-col md:flex md:flex-1 ${isMobileNavOpen ? 'flex' : 'hidden'}`}>
         {/* Menu Items */}
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto text-xs font-semibold">
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => { setActiveTab('dashboard'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'dashboard'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1676,7 +1689,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('verifikasi')}
+            onClick={() => { setActiveTab('verifikasi'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'verifikasi'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1695,7 +1708,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('pengeluaran')}
+            onClick={() => { setActiveTab('pengeluaran'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'pengeluaran'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1707,7 +1720,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('pemasukan')}
+            onClick={() => { setActiveTab('pemasukan'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'pemasukan'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1719,7 +1732,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('matriks')}
+            onClick={() => { setActiveTab('matriks'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'matriks'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1731,7 +1744,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('warga')}
+            onClick={() => { setActiveTab('warga'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'warga'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1743,7 +1756,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('tunggakan')}
+            onClick={() => { setActiveTab('tunggakan'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'tunggakan'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1762,7 +1775,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('kasbon')}
+            onClick={() => { setActiveTab('kasbon'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'kasbon'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1781,7 +1794,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('laporan')}
+            onClick={() => { setActiveTab('laporan'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'laporan'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1793,7 +1806,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('pengaturan')}
+            onClick={() => { setActiveTab('pengaturan'); setIsMobileNavOpen(false); }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition cursor-pointer ${
               activeTab === 'pengaturan'
                 ? 'bg-slate-800 text-white border-l-2 border-emerald-500 shadow-xs font-bold'
@@ -1821,6 +1834,7 @@ export default function AdminPage() {
             <LogOut className="w-3.5 h-3.5" />
             <span>Keluar (Logout)</span>
           </button>
+        </div>
         </div>
       </aside>
 
