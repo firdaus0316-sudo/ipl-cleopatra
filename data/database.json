@@ -987,25 +987,6 @@
       "verifiedAt": "11/7/2026",
       "verifiedBy": "admin",
       "transactionId": "7a5f73ae-c2d1-43f5-8ec3-1604aa2d287b"
-    },
-    {
-      "id": "BKT-2611-8211",
-      "residentId": "ce9aaae3-16ca-4bd9-a4ad-254b345a18d5",
-      "residentName": "Eri Raihanul Firdaus",
-      "blok": "E-1/32",
-      "hp": "",
-      "kategori": "Iuran Bulanan (Reguler)",
-      "bulan": [
-        "2026-12"
-      ],
-      "nominal": 150000,
-      "buktiUrl": "https://lh3.googleusercontent.com/d/1Q6YHOaR4Qt31T0mYCUB8DiNKeNBkROrr",
-      "driveUrl": "https://drive.google.com/file/d/1Q6YHOaR4Qt31T0mYCUB8DiNKeNBkROrr/view?usp=drivesdk",
-      "catatanWarga": "tes des",
-      "status": "Menunggu Verifikasi",
-      "adminNote": "",
-      "createdAt": "2026-11-10",
-      "verifiedBy": "Admin"
     }
   ],
   "incomes": [
@@ -3403,6 +3384,10 @@
     "INC-KSB-1794263493123",
     "INC-1794238993914-1",
     "BKT-2611-2602",
-    "INC-BKT26112602-1"
+    "INC-BKT26112602-1",
+    "BKT-2611-8211"
+  ],
+  "deletedProofIds": [
+    "BKT-2611-8211"
   ]
 }

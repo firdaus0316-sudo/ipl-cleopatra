@@ -758,7 +758,24 @@ export async function deleteRowFromSheet(
   try {
     if (!rowId) return { success: true };
 
-    // 1. Coba via gsheets CLI jika di komputer lokal
+    // 1. Prioritaskan Webhook Apps Script (Sangat Cepat & Berjalan di Cloud/Vercel)
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
+    if (webhookUrl && webhookUrl.startsWith('http')) {
+      try {
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'delete_row', sheetName, rowId, colIndex: idColIndex }),
+        });
+        if (res.ok) return { success: true };
+      } catch (webhookErr) {
+        console.warn(`Webhook deleteRowFromSheet error:`, webhookErr);
+      }
+    }
+
+    // 2. Fallback via gsheets CLI jika di komputer lokal
     if (gid) {
       try {
         const csvText = await fetchCsvByGid(gid);
@@ -797,24 +814,11 @@ export async function deleteRowFromSheet(
           if (cliResult.success) return cliResult;
         }
       } catch (cliErr) {
-        // Lanjutkan ke webhook jika CLI gagal
+        // Lanjutkan
       }
     }
 
-    // 2. Fallback Webhook jika di cloud / Vercel
-    const { getDb } = await import('@/lib/db');
-    const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
-    if (webhookUrl && webhookUrl.startsWith('http')) {
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'delete_row', sheetName, rowId, colIndex: idColIndex }),
-      });
-      if (res.ok) return { success: true };
-    }
-
-    return { success: false, error: 'Gagal menghapus baris dari Google Sheets (Webhook belum terhubung).' };
+    return { success: false, error: 'Gagal menghapus baris dari Google Sheets.' };
   } catch (err: any) {
     console.error(`deleteRowFromSheet [${sheetName}] error:`, err);
     return { success: false, error: err.message };
