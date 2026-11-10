@@ -292,7 +292,7 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       if (!nama || nominal <= 0) continue;
 
       const isVoid = statusTx.includes('batal') || statusRaw.includes('batal');
-      if (deletedSet.has(transaksiId) || isVoid) continue;
+      if (deletedSet.has(transaksiId) || (buktiId && deletedSet.has(buktiId)) || isVoid) continue;
 
       const tanggal = parseDateFlexible(waktu);
 
@@ -562,6 +562,10 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
     const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const proofs: ProofSubmission[] = [];
 
+    const { getDb } = await import('@/lib/db');
+    const db = getDb();
+    const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
+
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i]);
       if (cols.length < 3) continue;
@@ -581,6 +585,8 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
       const verifiedBy = cols[12] || 'Admin';
       const adminNote = cols[13] || '';
       const transactionId = cols[14] || undefined;
+
+      if (deletedProofSet.has(buktiId)) continue;
 
       const nominal = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       if (!namaWarga && !driveUrl) continue;
@@ -1184,7 +1190,19 @@ export async function updateProofInSheet(data: {
 
 export async function deleteProofFromSheet(proofId: string) {
   // Kolom 9 di Sheet BuktiTransfer adalah Bukti ID
-  return deleteRowFromSheet('BuktiTransfer', 9, proofId);
+  return deleteRowFromSheet('BuktiTransfer', 9, proofId, SHEET_GIDS.buktitransfer);
+}
+
+export async function deletePelunasanFromSheet(idOrRefId: string) {
+  if (!idOrRefId) return { success: true };
+  try {
+    await deleteRowFromSheet('RiwayatPelunasan', 1, idOrRefId, SHEET_GIDS.riwayatpelunasan);
+    await deleteRowFromSheet('RiwayatPelunasan', 4, idOrRefId, SHEET_GIDS.riwayatpelunasan);
+    await deleteRowFromSheet('RiwayatPelunasan', 8, idOrRefId, SHEET_GIDS.riwayatpelunasan);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export function getDirectGoogleDriveImageUrl(url?: string): string {

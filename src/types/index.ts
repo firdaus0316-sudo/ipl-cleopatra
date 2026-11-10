@@ -147,4 +147,5 @@ export interface DatabaseSchema {
   kasbon?: KasbonEntry[];
   deletedIncomeIds?: string[];
   deletedExpenseIds?: string[];
+  deletedProofIds?: string[];
 }

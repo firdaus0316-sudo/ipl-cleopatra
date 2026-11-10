@@ -4,6 +4,8 @@ import { IncomeTransaction } from '@/types';
 import {
   appendIncomesToSheet,
   deleteIncomeFromSheet,
+  deleteProofFromSheet,
+  deletePelunasanFromSheet,
   extractNameAndBlok,
   updateKasbonInSheet,
   updateTunggakanInSheet,
@@ -296,15 +298,65 @@ export async function DELETE(req: NextRequest) {
     }
 
     const inc = db.incomes[idx];
+    if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
+    if (!db.deletedProofIds) db.deletedProofIds = [];
 
-    // 1. Jika pemasukan berasal dari bukti transfer warga, sinkronkan status bukti transfernya
-    if (inc.buktiId) {
-      if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
-      if (!db.deletedIncomeIds.includes(inc.buktiId)) db.deletedIncomeIds.push(inc.buktiId);
-      db.proofs = (db.proofs || []).filter((p) => p.id !== inc.buktiId && p.transactionId !== inc.id);
+    // 1. Kumpulkan semua Bukti ID yang terhubung dengan transaksi ini
+    const relatedBuktiIds = new Set<string>();
+    if (inc.buktiId) relatedBuktiIds.add(inc.buktiId);
+
+    // Cari juga di db.proofs apakah ada bukti transfer yang merujuk transaksi ini
+    (db.proofs || []).forEach((p) => {
+      if (
+        p.id === inc.buktiId ||
+        (p.transactionId && p.transactionId.includes(inc.id)) ||
+        (p.status === 'Terverifikasi' && inc.sumber && inc.sumber.toLowerCase().includes(p.residentName.toLowerCase()) && p.nominal === inc.nominal)
+      ) {
+        relatedBuktiIds.add(p.id);
+      }
+    });
+
+    // 2. Jika berasal dari verifikasi bukti transfer:
+    // HAPUS TOTAL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS
+    if (relatedBuktiIds.size > 0) {
+      for (const bId of relatedBuktiIds) {
+        if (!db.deletedIncomeIds.includes(bId)) db.deletedIncomeIds.push(bId);
+        if (!db.deletedProofIds.includes(bId)) db.deletedProofIds.push(bId);
+
+        // Hapus baris dari Google Sheet BuktiTransfer secara real-time
+        try {
+          await deleteProofFromSheet(bId);
+        } catch (e: any) {
+          console.warn('Gagal menghapus dari Sheet BuktiTransfer:', e.message);
+        }
+
+        // Hapus pencatatan pelunasan terkait di Google Sheet RiwayatPelunasan
+        try {
+          await deletePelunasanFromSheet(`VERIF-${bId}`);
+          await deletePelunasanFromSheet(bId);
+        } catch {}
+      }
+
+      // Hapus bukti transfer dari memori lokal db.proofs
+      db.proofs = (db.proofs || []).filter((p) => !relatedBuktiIds.has(p.id));
+
+      // Hapus seluruh transaksi pecahan multi-bulan lain yang berasal dari bukti yang sama
+      const siblingIncomes = (db.incomes || []).filter(
+        (other) => other.buktiId && relatedBuktiIds.has(other.buktiId) && other.id !== inc.id
+      );
+
+      for (const sib of siblingIncomes) {
+        if (!db.deletedIncomeIds.includes(sib.id)) db.deletedIncomeIds.push(sib.id);
+        try {
+          await deleteIncomeFromSheet(sib.id);
+          await deletePelunasanFromSheet(sib.id);
+        } catch {}
+      }
+
+      db.incomes = db.incomes.filter((other) => !other.buktiId || !relatedBuktiIds.has(other.buktiId));
     }
 
-    // 2. Jika pemasukan berasal dari cicilan/pelunasan tunggakan, kembalikan saldo piutang warga
+    // 3. Jika pemasukan berasal dari cicilan/pelunasan tunggakan, kembalikan saldo piutang warga
     if (inc.id.startsWith('INC-TUNG-') || (inc.kategori && inc.kategori.includes('Tunggakan'))) {
       if (db.tunggakanLama) {
         for (const t of db.tunggakanLama) {
@@ -329,7 +381,7 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // 3. Jika pemasukan berasal dari pengembalian kasbon petugas, kembalikan sisa kasbon
+    // 4. Jika pemasukan berasal dari pengembalian kasbon petugas, kembalikan sisa kasbon
     if (inc.id.startsWith('INC-KSB-') || (inc.kategori && inc.kategori.includes('Kasbon'))) {
       if (db.kasbon) {
         for (const k of db.kasbon) {
@@ -354,28 +406,32 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
     if (!db.deletedIncomeIds.includes(inc.id)) {
       db.deletedIncomeIds.push(inc.id);
     }
 
-    db.incomes.splice(idx, 1);
+    // Hapus inc dari db.incomes jika belum terhapus
+    db.incomes = db.incomes.filter((i) => i.id !== inc.id);
     saveDb(db);
 
-    // 4. Hapus dari Google Sheet DataIuran secara real-time
+    // 5. Hapus dari Google Sheet DataIuran & RiwayatPelunasan secara real-time
     try {
       await deleteIncomeFromSheet(inc.id);
+      await deletePelunasanFromSheet(inc.id);
     } catch (e: any) {
       console.warn('Gagal sinkronisasi hapus ke Google Sheet DataIuran:', e.message);
     }
 
     addLog(
-      'Hapus Pemasukan',
-      `Menghapus transaksi pemasukan ${inc.id} (${inc.kategori} - ${inc.sumber}) sebesar Rp ${inc.nominal.toLocaleString('id-ID')}`,
+      'Hapus Pemasukan & Bukti Terkait',
+      `Menghapus transaksi pemasukan ${inc.id} (${inc.kategori} - ${inc.sumber}) sebesar Rp ${inc.nominal.toLocaleString('id-ID')}, beserta bukti transfer dan status terkait`,
       'Admin'
     );
 
-    return NextResponse.json({ success: true, message: 'Transaksi pemasukan berhasil dihapus.' });
+    return NextResponse.json({
+      success: true,
+      message: 'Transaksi pemasukan dan seluruh bukti transfer terkait berhasil dihapus total dari aplikasi dan Google Sheet.',
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

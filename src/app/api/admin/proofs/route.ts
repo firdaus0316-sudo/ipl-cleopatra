@@ -8,6 +8,8 @@ import {
   fetchProofsFromSheet,
   updateProofInSheet,
   deleteProofFromSheet,
+  deleteIncomeFromSheet,
+  deletePelunasanFromSheet,
   getDirectGoogleDriveImageUrl,
 } from '@/lib/googleSheet';
 
@@ -406,35 +408,57 @@ export async function DELETE(req: NextRequest) {
 
     const proof = db.proofs[proofIndex];
 
-    // Jika bukti transfer ini sebelumnya sudah disetujui (ada transaksi kas masuk),
-    // batalkan transaksi kas terkait agar saldo kas RT tetap akurat.
+    // 1. Kumpulkan semua transaksi kas masuk yang dihasilkan dari bukti ini
+    const txIdsToDelete = new Set<string>();
     if (proof.transactionId) {
-      const incIndex = db.incomes.findIndex((i) => i.id === proof.transactionId);
-      if (incIndex !== -1) {
-        db.incomes[incIndex].status = 'Dibatalkan';
+      proof.transactionId.split(',').forEach((t) => txIdsToDelete.add(t.trim()));
+    }
+    (db.incomes || []).forEach((inc) => {
+      if (inc.buktiId === proof.id || txIdsToDelete.has(inc.id)) {
+        txIdsToDelete.add(inc.id);
       }
+    });
+
+    if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
+    if (!db.deletedProofIds) db.deletedProofIds = [];
+
+    if (!db.deletedIncomeIds.includes(proof.id)) db.deletedIncomeIds.push(proof.id);
+    if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
+
+    // 2. Hapus seluruh transaksi kas masuk terkait dari Google Sheet DataIuran & RiwayatPelunasan
+    for (const txId of txIdsToDelete) {
+      if (!db.deletedIncomeIds.includes(txId)) db.deletedIncomeIds.push(txId);
+      try {
+        await deleteIncomeFromSheet(txId);
+        await deletePelunasanFromSheet(txId);
+      } catch {}
     }
 
-    // Hapus baris dari Google Sheet BuktiTransfer
+    // 3. Hapus transaksi kas masuk terkait dari memori lokal db.incomes
+    db.incomes = (db.incomes || []).filter((inc) => inc.buktiId !== proof.id && !txIdsToDelete.has(inc.id));
+
+    // 4. Hapus baris dari Google Sheet BuktiTransfer & RiwayatPelunasan
     try {
       await deleteProofFromSheet(id);
+      await deletePelunasanFromSheet(`VERIF-${id}`);
+      await deletePelunasanFromSheet(id);
     } catch (e) {
       console.error('deleteProofFromSheet error:', e);
     }
 
-    // Hapus data bukti transfer lokal
-    db.proofs.splice(proofIndex, 1);
+    // 5. Hapus data bukti transfer dari memori lokal
+    db.proofs = (db.proofs || []).filter((p) => p.id !== id);
     saveDb(db);
 
     addLog(
-      'Hapus Bukti Transfer',
-      `Menghapus bukti transfer ${proof.id} dari ${proof.residentName} (${proof.blok}) sebesar Rp ${proof.nominal.toLocaleString('id-ID')}`,
+      'Hapus Bukti Transfer & Transaksi Terkait',
+      `Menghapus bukti transfer ${proof.id} dari ${proof.residentName} (${proof.blok}) beserta seluruh transaksi kas masuk terkait (${Array.from(txIdsToDelete).join(', ') || '-'}) dari aplikasi dan Google Sheet`,
       'Admin'
     );
 
     return NextResponse.json({
       success: true,
-      message: 'Bukti transfer dan transaksi terkait berhasil dihapus/dibatalkan.',
+      message: 'Bukti transfer dan seluruh transaksi kas masuk terkait berhasil dihapus total dari aplikasi dan Google Sheet.',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

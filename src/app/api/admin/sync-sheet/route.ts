@@ -132,12 +132,14 @@ export async function POST() {
 
     // 7. Bukti Transfer (Sheet BuktiTransfer)
     if (result.proofs && result.proofs.length > 0) {
+      const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
+      const validSheetProofs = result.proofs.filter((p) => !deletedProofSet.has(p.id));
       const existingProofMap = new Map((db.proofs || []).map((p) => [p.id, p]));
       const localOnlyProofs = (db.proofs || []).filter(
-        (p) => !result.proofs.some((sp) => sp.id === p.id || (sp.residentName.toLowerCase() === p.residentName.toLowerCase() && sp.nominal === p.nominal))
+        (p) => !deletedProofSet.has(p.id) && !validSheetProofs.some((sp) => sp.id === p.id)
       );
 
-      const mergedProofs = result.proofs.map((sheetProof) => {
+      const mergedProofs = validSheetProofs.map((sheetProof) => {
         const local = existingProofMap.get(sheetProof.id);
         if (local) {
           return {
