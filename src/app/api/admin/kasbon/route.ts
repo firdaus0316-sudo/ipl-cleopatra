@@ -8,6 +8,7 @@ import {
   appendPelunasanToSheet,
   updateKasbonInSheet,
   deleteKasbonFromSheet,
+  fetchKasbonFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -16,9 +17,30 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const db = getDb();
+    let kasbonList = db.kasbon || [];
+
+    // Ambil data kasbon terkini secara langsung dari Google Sheet DataKasbon
+    try {
+      const sheetRes = await fetchKasbonFromSheet();
+      if (sheetRes.success && sheetRes.kasbon.length > 0) {
+        const localMap = new Map(kasbonList.map((k) => [k.id, k]));
+        kasbonList = sheetRes.kasbon.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+        db.kasbon = kasbonList;
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('Gagal fetch live kasbon dari sheet:', e);
+    }
+
     return NextResponse.json({
       success: true,
-      data: db.kasbon || [],
+      data: kasbonList,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

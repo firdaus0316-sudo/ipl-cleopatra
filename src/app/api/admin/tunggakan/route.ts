@@ -8,6 +8,8 @@ import {
   appendPelunasanToSheet,
   updateTunggakanInSheet,
   deleteTunggakanFromSheet,
+  fetchTunggakanLamaFromSheet,
+  fetchTunggakanNonWargaFromSheet,
   extractNameAndBlok,
 } from '@/lib/googleSheet';
 
@@ -17,9 +19,34 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const db = getDb();
+    let tunggakanList = db.tunggakanLama || [];
+
+    try {
+      const [wargaRes, nonWargaRes] = await Promise.all([
+        fetchTunggakanLamaFromSheet(),
+        fetchTunggakanNonWargaFromSheet(),
+      ]);
+      const combined = [...(wargaRes.tunggakan || []), ...(nonWargaRes.tunggakan || [])];
+      if (combined.length > 0) {
+        const localMap = new Map(tunggakanList.map((t) => [t.id, t]));
+        tunggakanList = combined.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            terbayar: local?.terbayar || s.terbayar || 0,
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+        db.tunggakanLama = tunggakanList;
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('Gagal fetch live tunggakan dari sheet:', e);
+    }
+
     return NextResponse.json({
       success: true,
-      data: db.tunggakanLama || [],
+      data: tunggakanList,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

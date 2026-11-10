@@ -325,7 +325,7 @@ export default function AdminPage() {
       const periodParam = overridePeriod || selectedTargetPeriod || '2026-11';
       const opts = { cache: 'no-store' as RequestCache };
 
-      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes] = await Promise.all([
+      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes, kasbonRes, tunggakanRes] = await Promise.all([
         fetch(`/api/admin/dashboard?targetPeriod=${periodParam}&year=${matrixYear}&_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/proofs?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/expenses?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
@@ -333,13 +333,23 @@ export default function AdminPage() {
         fetch(`/api/admin/residents?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/billing-matrix?year=${matrixYear}&_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/settings?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
+        fetch(`/api/admin/kasbon?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
+        fetch(`/api/admin/tunggakan?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
       ]);
 
       if (dashRes?.success) {
         setDashboardData(dashRes);
-        if (dashRes.tunggakanLama) setTunggakanLama(dashRes.tunggakanLama);
-        if (dashRes.kasbon) setKasbon(dashRes.kasbon);
         if (dashRes.saldoAwalHistory) setSaldoAwalHistory(dashRes.saldoAwalHistory);
+      }
+      if (kasbonRes?.success && Array.isArray(kasbonRes.data)) {
+        setKasbon(kasbonRes.data);
+      } else if (dashRes?.kasbon) {
+        setKasbon(dashRes.kasbon);
+      }
+      if (tunggakanRes?.success && Array.isArray(tunggakanRes.data)) {
+        setTunggakanLama(tunggakanRes.data);
+      } else if (dashRes?.tunggakanLama) {
+        setTunggakanLama(dashRes.tunggakanLama);
       }
       if (proofsRes?.success) setProofs(proofsRes.data);
       if (expRes?.success) {

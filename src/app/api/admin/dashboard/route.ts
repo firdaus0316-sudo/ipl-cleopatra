@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, saveDb } from '@/lib/db';
 import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident } from '@/lib/format';
+import {
+  fetchKasbonFromSheet,
+  fetchTunggakanLamaFromSheet,
+  fetchTunggakanNonWargaFromSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,6 +35,41 @@ export async function GET(req: NextRequest) {
     const requestedYear = Number(searchParams.get('year')) || (requestedTargetPeriod && requestedTargetPeriod.startsWith('20') ? Number(requestedTargetPeriod.slice(0, 4)) : 2026);
 
     const db = getDb();
+
+    // Auto-sync kasbon live dari Google Sheet DataKasbon
+    try {
+      const kasbonRes = await fetchKasbonFromSheet();
+      if (kasbonRes.success && kasbonRes.kasbon.length > 0) {
+        const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
+        db.kasbon = kasbonRes.kasbon.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+      }
+    } catch {}
+
+    // Auto-sync tunggakan live dari Google Sheet TunggakanLama & TunggakanNonWarga
+    try {
+      const [wRes, nwRes] = await Promise.all([
+        fetchTunggakanLamaFromSheet(),
+        fetchTunggakanNonWargaFromSheet(),
+      ]);
+      const combinedTung = [...(wRes.tunggakan || []), ...(nwRes.tunggakan || [])];
+      if (combinedTung.length > 0) {
+        const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
+        db.tunggakanLama = combinedTung.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            terbayar: local?.terbayar || s.terbayar || 0,
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+      }
+    } catch {}
 
     const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');

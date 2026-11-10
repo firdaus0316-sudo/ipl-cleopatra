@@ -3366,6 +3366,19 @@
       "kasbonId": "cac91796-641d-4dae-97a7-759bd77297ac",
       "terbayar": 0,
       "riwayatPembayaran": []
+    },
+    {
+      "id": "KSB-1794321823502",
+      "timestamp": "11/10/2026 14:43:43",
+      "namaPeminjam": "Muyadi/Dede Maulana",
+      "nominal": 1600000,
+      "nominalAwal": 1600000,
+      "keterangan": "Keperluan Armada Angkut",
+      "status": "Belum Lunas",
+      "tglBackdate": "2026-11-10",
+      "kasbonId": "KSB-1794321823502",
+      "terbayar": 0,
+      "riwayatPembayaran": []
     }
   ],
   "saldoAwalHistory": [
