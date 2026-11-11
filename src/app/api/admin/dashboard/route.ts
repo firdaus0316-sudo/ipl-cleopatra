@@ -103,11 +103,6 @@ export async function GET(req: NextRequest) {
           const local = localMap.get(s.id);
           return { ...s, buktiId: local?.buktiId || s.buktiId };
         });
-        for (const [id, loc] of localMap.entries()) {
-          if (!sheetIncMap.has(id) && !db.deletedIncomeIds?.includes(id)) {
-            mergedInc.unshift(loc);
-          }
-        }
         db.incomes = mergedInc;
       }
     } catch {}

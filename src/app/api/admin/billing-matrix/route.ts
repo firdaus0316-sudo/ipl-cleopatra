@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchIncomeToResident, matchProofToResident } from '@/lib/format';
+import { fetchIncomesFromSheet } from '@/lib/googleSheet';
 
 const MONTH_NAMES = [
   'Januari',
@@ -53,6 +54,19 @@ export async function GET(req: NextRequest) {
     const year = Number(searchParams.get('year')) || 2026;
 
     const db = getDb();
+
+    // Auto-sync live incomes dari Google Sheet DataIuran
+    try {
+      const incRes = await fetchIncomesFromSheet();
+      if (incRes.success && incRes.incomes.length > 0) {
+        const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
+        db.incomes = incRes.incomes.map((s) => {
+          const local = localMap.get(s.id);
+          return { ...s, buktiId: local?.buktiId || s.buktiId };
+        });
+      }
+    } catch {}
+
     const activeResidents = (db.residents || []).filter((r) => r.status === 'Aktif');
     const validIncomes = (db.incomes || []).filter((i) => i.status !== 'Dibatalkan');
     const pendingProofs = (db.proofs || []).filter((p) => p.status === 'Menunggu Verifikasi');

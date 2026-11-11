@@ -34,12 +34,6 @@ export async function GET() {
           };
         });
 
-        for (const [id, loc] of localMap.entries()) {
-          if (!sheetIncMap.has(id) && !db.deletedIncomeIds?.includes(id)) {
-            incomes.unshift(loc);
-          }
-        }
-
         db.incomes = incomes;
         saveDb(db);
       }

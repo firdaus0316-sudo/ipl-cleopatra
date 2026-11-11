@@ -142,9 +142,18 @@ export default function PublicPage() {
 
   // Status Search State
   const [searchQuery, setSearchQuery] = useState('');
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [proofList, setProofList] = useState<PublicProof[]>([]);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [selectedProofPreview, setSelectedProofPreview] = useState<PublicProof | null>(null);
+
+  const statusSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return (residents || [])
+      .filter((r) => r.nama.toLowerCase().includes(q) || r.blok.toLowerCase().includes(q))
+      .slice(0, 10);
+  }, [residents, searchQuery]);
 
   // Transparency State
   const [transparencyData, setTransparencyData] = useState<any>(null);
@@ -1274,18 +1283,79 @@ export default function PublicPage() {
             </div>
 
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchStatus(searchQuery)}
-                placeholder="Ketik nama atau blok (contoh: H-1/15)..."
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              <div className="relative flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsStatusDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      if (searchQuery.trim()) setIsStatusDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setIsStatusDropdownOpen(false), 200);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setIsStatusDropdownOpen(false);
+                        fetchStatus(searchQuery);
+                      }
+                    }}
+                    placeholder="Ketik nama atau blok (contoh: Eri atau E-1/32)..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-9"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setIsStatusDropdownOpen(false);
+                        fetchStatus('');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {isStatusDropdownOpen && statusSuggestions.length > 0 && (
+                  <div className="absolute z-30 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                    <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Pilih Nama Warga ({statusSuggestions.length} ditemukan)
+                    </div>
+                    {statusSuggestions.map((r) => (
+                      <div
+                        key={r.id}
+                        onMouseDown={() => {
+                          setSearchQuery(r.nama);
+                          setIsStatusDropdownOpen(false);
+                          fetchStatus(r.nama);
+                        }}
+                        className="px-3.5 py-2.5 hover:bg-emerald-50 cursor-pointer flex items-center justify-between border-b border-slate-50 transition"
+                      >
+                        <div>
+                          <span className="font-bold text-slate-900 text-xs">{r.nama}</span>
+                          <span className="ml-2 font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">
+                            Blok {r.blok}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-emerald-600 font-semibold">Pilih &rarr;</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => fetchStatus(searchQuery)}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm"
+                onClick={() => {
+                  setIsStatusDropdownOpen(false);
+                  fetchStatus(searchQuery);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm self-start"
               >
                 Cari
               </button>
