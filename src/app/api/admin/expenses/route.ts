@@ -134,7 +134,17 @@ export async function PUT(req: NextRequest) {
     }
 
     const db = getDb();
-    const exp = db.expenses.find((e) => e.id === id);
+    let exp = db.expenses.find((e) => e.id === id);
+
+    if (!exp) {
+      try {
+        const sheetRes = await fetchExpensesFromSheet();
+        if (sheetRes.success && sheetRes.expenses.length > 0) {
+          db.expenses = sheetRes.expenses;
+          exp = db.expenses.find((e) => e.id === id);
+        }
+      } catch {}
+    }
 
     if (!exp) {
       return NextResponse.json({ success: false, error: 'Transaksi pengeluaran tidak ditemukan.' }, { status: 404 });

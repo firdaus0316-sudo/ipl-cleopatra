@@ -875,15 +875,69 @@ export async function updateRowInSheet(
     if (webhookUrl && webhookUrl.startsWith('http')) {
       const res = await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update_row', sheetName, rowId, idColIndex, updates }),
       });
-      if (res.ok) return { success: true };
+      if (res.ok) {
+        try {
+          const json = await res.json();
+          if (json.updated === false) {
+            console.warn(`updateRowInSheet [${sheetName}] row not updated:`, json.message);
+            return { success: false, error: json.message || 'Baris tidak ditemukan di Google Sheets.' };
+          }
+          return { success: true };
+        } catch {
+          return { success: true };
+        }
+      }
     }
 
     return { success: false, error: 'Gagal memperbarui data Google Sheet (Webhook belum terhubung).' };
   } catch (err: any) {
     console.error(`updateRowInSheet [${sheetName}] error:`, err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function updateResidentInSheet(
+  r: Resident,
+  oldBlok?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Coba update via Warga ID (kolom 10 di sheet MasterWarga)
+    let res = await updateRowInSheet('MasterWarga', 10, r.id, {
+      1: r.nama,
+      2: r.blok,
+      3: r.hp || '',
+      4: r.tarif || 150000,
+      11: r.status || 'Aktif',
+    });
+
+    // 2. Jika via ID belum berhasil, coba via Blok (kolom 2)
+    if (!res.success && (oldBlok || r.blok)) {
+      res = await updateRowInSheet('MasterWarga', 2, oldBlok || r.blok, {
+        1: r.nama,
+        2: r.blok,
+        3: r.hp || '',
+        4: r.tarif || 150000,
+        11: r.status || 'Aktif',
+      });
+    }
+
+    // 3. Jika masih belum berhasil, coba via Nama (kolom 1)
+    if (!res.success && r.nama) {
+      res = await updateRowInSheet('MasterWarga', 1, r.nama, {
+        1: r.nama,
+        2: r.blok,
+        3: r.hp || '',
+        4: r.tarif || 150000,
+        11: r.status || 'Aktif',
+      });
+    }
+
+    return res;
+  } catch (err: any) {
+    console.error('updateResidentInSheet error:', err);
     return { success: false, error: err.message };
   }
 }

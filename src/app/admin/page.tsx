@@ -1357,7 +1357,10 @@ export default function AdminPage() {
       if (d.success) {
         setShowResidentModal(false);
         setEditingResident(null);
-        refreshAll();
+        alert('Data warga berhasil diperbarui!');
+        refreshAll(true);
+      } else {
+        alert(d.error || 'Gagal memperbarui data warga.');
       }
     } else {
       const res = await fetch('/api/admin/residents', {
@@ -1374,7 +1377,10 @@ export default function AdminPage() {
       const d = await res.json();
       if (d.success) {
         setShowResidentModal(false);
-        refreshAll();
+        alert('Data warga baru berhasil ditambahkan!');
+        refreshAll(true);
+      } else {
+        alert(d.error || 'Gagal menambahkan data warga.');
       }
     }
   };
