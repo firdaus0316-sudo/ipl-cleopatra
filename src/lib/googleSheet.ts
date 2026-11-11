@@ -351,14 +351,37 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       }
     }
 
-    // Deduplikasi transaksi pemasukan berdasarkan ID agar tidak ada double transaksi
+    // Deduplikasi transaksi pemasukan:
+    // 1. Berdasarkan ID transaksi unik
+    // 2. Berdasarkan kombinasi (Blok/Warga + Bulan Tagihan) agar tidak pernah ada pembayaran ganda/ghosting untuk bulan yang sama
     const seenIncIds = new Set<string>();
+    const seenBlockMonth = new Map<string, IncomeTransaction>();
     const uniqueIncomes: IncomeTransaction[] = [];
+
     for (const inc of incomes) {
-      if (!seenIncIds.has(inc.id)) {
-        seenIncIds.add(inc.id);
-        uniqueIncomes.push(inc);
+      if (seenIncIds.has(inc.id)) continue;
+      seenIncIds.add(inc.id);
+
+      const parsed = extractNameAndBlok(inc.sumber || '');
+      const blockKey = (parsed.blok || inc.residentId || inc.sumber || '').toUpperCase().replace(/\s+/g, '');
+      const monthKey = Array.isArray(inc.bulan) ? inc.bulan.join(',') : inc.bulan || '';
+      const comboKey = `${blockKey}_${monthKey}`;
+
+      if (blockKey && monthKey && !inc.catatan?.toLowerCase().includes('angsuran') && !inc.catatan?.toLowerCase().includes('cicil')) {
+        const existing = seenBlockMonth.get(comboKey);
+        if (existing) {
+          // Jika salah satu memiliki buktiId (hasil verifikasi resmi), prioritaskan yang berbukti resmi
+          if (!existing.buktiId && inc.buktiId) {
+            const idx = uniqueIncomes.indexOf(existing);
+            if (idx !== -1) uniqueIncomes[idx] = inc;
+            seenBlockMonth.set(comboKey, inc);
+          }
+          continue;
+        }
+        seenBlockMonth.set(comboKey, inc);
       }
+
+      uniqueIncomes.push(inc);
     }
 
     return { success: true, incomes: uniqueIncomes };
