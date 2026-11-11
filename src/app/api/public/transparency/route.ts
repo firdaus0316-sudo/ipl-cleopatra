@@ -129,9 +129,9 @@ export async function GET() {
     const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');
 
-    const totalIncomes = validIncomes.reduce((sum, i) => sum + i.nominal, 0);
-    const totalExpenses = validExpenses.reduce((sum, e) => sum + e.nominal, 0);
-    const saldoAkhir = db.settings.saldoAwal + totalIncomes - totalExpenses;
+    const totalIncomes = validIncomes.reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
+    const totalExpenses = validExpenses.reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
+    const saldoAkhir = (Number(db.settings.saldoAwal) || 0) + totalIncomes - totalExpenses;
 
     // Breakdown expense by category
     const expenseByCategory: Record<string, number> = {};

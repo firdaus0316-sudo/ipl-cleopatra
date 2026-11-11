@@ -204,22 +204,22 @@ export async function GET(req: NextRequest) {
     const activePeriodCode = requestedTargetPeriod || defaultPeriodCode;
     const isAll = activePeriodCode === 'ALL';
 
-    // Hitung Pemasukan & Pengeluaran Berdasarkan Tahun Berjalan & Periode Pilihan
+    // Hitung Pemasukan & Pengeluaran Berdasarkan Tahun Berjalan & Periode Pilihan (Dengan Proteksi Anti-NaN & Anti-Error)
     const periodIncomes = validIncomes.filter((i) => isIncomeInPeriod(i, activePeriodCode, requestedYear));
-    const totalPemasukanPeriode = periodIncomes.reduce((sum, i) => sum + i.nominal, 0);
+    const totalPemasukanPeriode = periodIncomes.reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
 
     const yearIncomes = validIncomes.filter((i) => isIncomeInPeriod(i, 'ALL', requestedYear));
-    const totalPemasukanTahun = yearIncomes.reduce((sum, i) => sum + i.nominal, 0);
+    const totalPemasukanTahun = yearIncomes.reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
 
     const periodExpenses = validExpenses.filter((e) => isExpenseInPeriod(e, activePeriodCode, requestedYear));
-    const totalPengeluaranPeriode = periodExpenses.reduce((sum, e) => sum + e.nominal, 0);
+    const totalPengeluaranPeriode = periodExpenses.reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
 
     const yearExpenses = validExpenses.filter((e) => isExpenseInPeriod(e, 'ALL', requestedYear));
-    const totalPengeluaranTahun = yearExpenses.reduce((sum, e) => sum + e.nominal, 0);
+    const totalPengeluaranTahun = yearExpenses.reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
 
-    const totalIncomesAllTime = validIncomes.reduce((sum, i) => sum + i.nominal, 0);
-    const totalExpensesAllTime = validExpenses.reduce((sum, e) => sum + e.nominal, 0);
-    const saldoKas = db.settings.saldoAwal + totalIncomesAllTime - totalExpensesAllTime;
+    const totalIncomesAllTime = validIncomes.reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
+    const totalExpensesAllTime = validExpenses.reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
+    const saldoKas = (Number(db.settings.saldoAwal) || 0) + totalIncomesAllTime - totalExpensesAllTime;
 
     const periodePemasukanLabel = isAll ? `Semua Bulan (${requestedYear})` : getPeriodLabel(normalizePeriodCode(activePeriodCode));
 

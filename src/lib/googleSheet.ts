@@ -109,17 +109,31 @@ export function parseDateFlexible(str?: string): string {
 
 export async function fetchCsvByGid(gid: string): Promise<string> {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
-  const res = await fetch(url, { cache: 'no-store' });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 9500);
 
-  if (res.status === 401 || res.status === 403) {
-    throw new Error('Spreadsheet masih dikunci (Private). Ubah akses di Google Sheets menjadi "Siapa saja yang memiliki link" -> "Pelihat (Viewer)".');
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Spreadsheet masih dikunci (Private). Ubah akses di Google Sheets menjadi "Siapa saja yang memiliki link" -> "Pelihat (Viewer)".');
+    }
+
+    if (!res.ok) {
+      throw new Error(`Gagal membaca Google Sheets GID ${gid}: status ${res.status} ${res.statusText}`);
+    }
+
+    const text = await res.text();
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      throw new Error(`Google Sheets mengembalikan halaman HTML alih-alih data CSV untuk GID ${gid}.`);
+    }
+
+    return text;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-
-  if (!res.ok) {
-    throw new Error(`Gagal membaca Google Sheets GID ${gid}: status ${res.status} ${res.statusText}`);
-  }
-
-  return await res.text();
 }
 
 /**
@@ -440,14 +454,23 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
       });
     }
 
-    // Deduplikasi transaksi pengeluaran berdasarkan ID agar tidak pernah ada double transaksi
+    // Deduplikasi transaksi pengeluaran:
+    // 1. Berdasarkan ID transaksi unik
+    // 2. Berdasarkan fingerprint (keterangan + nominal + tanggal) agar tidak pernah ada double transaksi pengeluaran
     const seenIds = new Set<string>();
+    const seenExpFingerprint = new Set<string>();
     const uniqueExpenses: ExpenseTransaction[] = [];
     for (const exp of expenses) {
-      if (!seenIds.has(exp.id)) {
-        seenIds.add(exp.id);
-        uniqueExpenses.push(exp);
+      if (seenIds.has(exp.id)) continue;
+      seenIds.add(exp.id);
+
+      const fp = `${(exp.keterangan || '').trim().toLowerCase()}_${exp.nominal}_${exp.tanggal}_${exp.status}`;
+      if (seenExpFingerprint.has(fp)) {
+        continue;
       }
+      seenExpFingerprint.add(fp);
+
+      uniqueExpenses.push(exp);
     }
 
     return { success: true, expenses: uniqueExpenses };
@@ -593,7 +616,17 @@ export async function fetchKasbonFromSheet(): Promise<{ success: boolean; kasbon
       });
     }
 
-    return { success: true, kasbon };
+    // Deduplikasi kasbon berdasarkan ID unik
+    const seenKasbonIds = new Set<string>();
+    const uniqueKasbon: KasbonEntry[] = [];
+    for (const k of kasbon) {
+      if (!seenKasbonIds.has(k.id)) {
+        seenKasbonIds.add(k.id);
+        uniqueKasbon.push(k);
+      }
+    }
+
+    return { success: true, kasbon: uniqueKasbon };
   } catch (err: any) {
     return { success: false, kasbon: [], error: err.message };
   }
@@ -713,7 +746,17 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
       });
     }
 
-    return { success: true, proofs };
+    // Deduplikasi bukti transfer berdasarkan ID unik
+    const seenProofIds = new Set<string>();
+    const uniqueProofs: ProofSubmission[] = [];
+    for (const p of proofs) {
+      if (!seenProofIds.has(p.id)) {
+        seenProofIds.add(p.id);
+        uniqueProofs.push(p);
+      }
+    }
+
+    return { success: true, proofs: uniqueProofs };
   } catch (err: any) {
     return { success: false, proofs: [], error: err.message };
   }

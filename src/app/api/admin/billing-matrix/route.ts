@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
             metode: matchedIncome.kategori || 'Iuran Bulanan',
           };
           monthlyStats[m].lunas++;
-          monthlyStats[m].nominal += matchedIncome.nominal;
+          monthlyStats[m].nominal += Number(matchedIncome.nominal) || 0;
           continue;
         }
 
