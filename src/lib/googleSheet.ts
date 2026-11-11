@@ -900,6 +900,33 @@ export async function deleteExpenseByRefIdFromSheet(refId: string): Promise<{ su
   return deleteRowFromSheet('DataPengeluaran', 7, refId, SHEET_GIDS.datapengeluaran);
 }
 
+export async function updateExpenseInSheet(
+  e: ExpenseTransaction,
+  refId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedTime = formatGoogleSheetTimestamp(e.tanggal ? new Date(e.tanggal) : new Date());
+    // Coba update via webhook
+    const webhookRes = await updateRowInSheet('DataPengeluaran', 5, e.id, {
+      1: formattedTime,
+      2: e.keterangan || `${e.kategori} - ${e.penerima}`,
+      3: e.nominal || 0,
+      4: e.kategori,
+      6: e.status === 'Dibatalkan' ? 'Dibatalkan' : 'Aktif',
+    });
+
+    if (!webhookRes.success) {
+      // Fallback: hapus baris lama dan tambahkan baris baru yang telah diperbarui
+      await deleteExpenseFromSheet(e.id);
+      await appendExpenseToSheet(e, refId);
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('updateExpenseInSheet error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function deleteKasbonFromSheet(kasbonId: string): Promise<{ success: boolean; error?: string }> {
   return deleteRowFromSheet('DataKasbon', 7, kasbonId, SHEET_GIDS.kasbon);
 }

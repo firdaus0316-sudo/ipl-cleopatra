@@ -7,6 +7,7 @@ import {
   appendBuktiStrukToSheet,
   deleteExpenseFromSheet,
   fetchExpensesFromSheet,
+  updateExpenseInSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -128,6 +129,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { id, action } = body;
 
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID pengeluaran wajib diisi.' }, { status: 400 });
+    }
+
     const db = getDb();
     const exp = db.expenses.find((e) => e.id === id);
 
@@ -135,9 +140,68 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Transaksi pengeluaran tidak ditemukan.' }, { status: 404 });
     }
 
+    // Aksi: Edit Transaksi Pengeluaran
+    if (action === 'edit' || (!action && (body.nominal !== undefined || body.keterangan !== undefined || body.kategori !== undefined))) {
+      const { tanggal, kategori, nominal, penerima, keterangan, buktiUrl } = body;
+
+      let finalBuktiUrl = exp.buktiUrl;
+      let finalDriveUrl = exp.driveUrl;
+
+      // Upload ke Google Drive BuktiFoto jika ada bukti base64 baru
+      if (buktiUrl && (buktiUrl.startsWith('data:image') || buktiUrl.startsWith('data:application/pdf'))) {
+        const cleanCat = (kategori || exp.kategori).trim().replace(/[^a-zA-Z0-9]/g, '_');
+        const cleanRec = (penerima || exp.penerima).trim().replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `Struk_${exp.id}_${cleanCat}_${cleanRec}.jpg`;
+        const webhookUrl = db.settings.googleDriveWebhookUrl || db.settings.linkPenyimpananBuktiDrive;
+        const driveRes = await uploadToGoogleDrive(buktiUrl, filename, webhookUrl);
+        if (driveRes.success && driveRes.fileUrl) {
+          finalDriveUrl = driveRes.fileUrl;
+          finalBuktiUrl = driveRes.fileUrl;
+        }
+      } else if (buktiUrl === '') {
+        finalBuktiUrl = '';
+        finalDriveUrl = '';
+      }
+
+      if (tanggal) exp.tanggal = tanggal.slice(0, 10);
+      if (kategori) exp.kategori = kategori.trim();
+      if (nominal !== undefined && Number(nominal) > 0) exp.nominal = Number(nominal);
+      if (penerima) exp.penerima = penerima.trim();
+      if (keterangan !== undefined) exp.keterangan = keterangan.trim();
+      exp.buktiUrl = finalBuktiUrl;
+      exp.driveUrl = finalDriveUrl;
+
+      saveDb(db);
+
+      // Real-time auto sync ke Google Sheet DataPengeluaran & BuktiStruk
+      try {
+        await updateExpenseInSheet(exp);
+        if (exp.buktiUrl || exp.driveUrl) {
+          await appendBuktiStrukToSheet(exp);
+        }
+      } catch (sheetErr) {
+        console.error('Update expense in sheet error:', sheetErr);
+      }
+
+      addLog(
+        'Edit Pengeluaran',
+        `Memperbarui pengeluaran ${exp.id} (${exp.kategori}) menjadi Rp ${exp.nominal.toLocaleString('id-ID')} - ${exp.keterangan} (Penerima: ${exp.penerima})`,
+        'Admin'
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: 'Transaksi pengeluaran berhasil diperbarui.',
+        data: exp,
+      });
+    }
+
     if (action === 'void') {
       exp.status = 'Dibatalkan';
       saveDb(db);
+      try {
+        await updateExpenseInSheet(exp);
+      } catch {}
       addLog('Batalkan Pengeluaran', `Pengeluaran ${exp.id} dibatalkan / void`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dibatalkan.' });
     }
@@ -145,6 +209,9 @@ export async function PUT(req: NextRequest) {
     if (action === 'restore') {
       exp.status = 'Sah';
       saveDb(db);
+      try {
+        await updateExpenseInSheet(exp);
+      } catch {}
       addLog('Pulihkan Pengeluaran', `Pengeluaran ${exp.id} dipulihkan statusnya menjadi Sah`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dipulihkan.' });
     }

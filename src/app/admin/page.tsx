@@ -254,9 +254,10 @@ export default function AdminPage() {
 
   // Modal Expense
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [selectedExpenseReceipt, setSelectedExpenseReceipt] = useState<ExpenseTransaction | null>(null);
   const [newExpenseDate, setNewExpenseDate] = useState(new Date().toISOString().slice(0, 10));
-  const [newExpenseCategory, setNewExpenseCategory] = useState<'Fixed' | 'Variabel'>('Fixed');
+  const [newExpenseCategory, setNewExpenseCategory] = useState<string>('Fixed');
   const [newExpenseNominal, setNewExpenseNominal] = useState('');
   const [newExpenseRecipient, setNewExpenseRecipient] = useState('');
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
@@ -265,6 +266,7 @@ export default function AdminPage() {
   const expenseFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const resetExpenseForm = () => {
+    setEditingExpenseId(null);
     setNewExpenseDate(new Date().toISOString().slice(0, 10));
     setNewExpenseCategory('Fixed');
     setNewExpenseNominal('');
@@ -275,6 +277,18 @@ export default function AdminPage() {
     if (expenseFileInputRef.current) {
       expenseFileInputRef.current.value = '';
     }
+  };
+
+  const handleOpenEditExpense = (exp: ExpenseTransaction) => {
+    setEditingExpenseId(exp.id);
+    setNewExpenseDate(exp.tanggal ? exp.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setNewExpenseCategory(exp.kategori || 'Fixed');
+    setNewExpenseNominal(String(exp.nominal || ''));
+    setNewExpenseRecipient(exp.penerima || '');
+    setNewExpenseDesc(exp.keterangan || '');
+    setNewExpenseReceipt(exp.buktiUrl || exp.driveUrl || '');
+    setNewExpenseReceiptFileName(exp.buktiUrl || exp.driveUrl ? 'Foto struk tersimpan' : '');
+    setShowExpenseModal(true);
   };
 
   const handleClearExpenseReceipt = () => {
@@ -595,31 +609,44 @@ export default function AdminPage() {
   };
 
   // EXPENSE ACTIONS
-  const handleCreateExpense = async (e: React.FormEvent) => {
+  const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newExpenseNominal || Number(newExpenseNominal) <= 0) {
       alert('Nominal pengeluaran wajib diisi.');
       return;
     }
-    const res = await fetch('/api/admin/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tanggal: newExpenseDate,
-        kategori: newExpenseCategory,
-        nominal: Number(newExpenseNominal),
-        penerima: newExpenseRecipient,
-        keterangan: newExpenseDesc,
-        buktiUrl: newExpenseReceipt,
-      }),
-    });
+
+    const payload = {
+      tanggal: newExpenseDate,
+      kategori: newExpenseCategory,
+      nominal: Number(newExpenseNominal),
+      penerima: newExpenseRecipient,
+      keterangan: newExpenseDesc,
+      buktiUrl: newExpenseReceipt,
+    };
+
+    let res;
+    if (editingExpenseId) {
+      res = await fetch('/api/admin/expenses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingExpenseId, action: 'edit', ...payload }),
+      });
+    } else {
+      res = await fetch('/api/admin/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const d = await res.json();
     if (d.success) {
       setShowExpenseModal(false);
       resetExpenseForm();
-      refreshAll();
+      refreshAll(true);
     } else {
-      alert(d.error || 'Gagal menyimpan pengeluaran.');
+      alert(d.error || 'Gagal menyimpan transaksi pengeluaran.');
     }
   };
 
@@ -3023,15 +3050,14 @@ export default function AdminPage() {
                         </td>
                         <td className="py-3 px-4 text-center w-40 min-w-[160px]">
                           <div className="flex items-center justify-center gap-1.5 mx-auto">
-                            {exp.status === 'Sah' && (
-                              <button
-                                onClick={() => handleVoidExpense(exp.id)}
-                                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition border border-amber-200/60"
-                                title="Batalkan transaksi ini"
-                              >
-                                Batalkan
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleOpenEditExpense(exp)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition border border-blue-200/60"
+                              title="Edit rincian transaksi pengeluaran ini"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
                             <button
                               onClick={() => handleDeleteExpense(exp.id, exp.nominal, exp.keterangan)}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition border border-red-200/60"
@@ -5184,12 +5210,16 @@ export default function AdminPage() {
               ✕
             </button>
 
-            <h3 className="font-extrabold text-slate-900 text-base mb-1">Catat Pengeluaran Kas RT</h3>
+            <h3 className="font-extrabold text-slate-900 text-base mb-1">
+              {editingExpenseId ? 'Edit Transaksi Pengeluaran' : 'Catat Pengeluaran Kas RT'}
+            </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Pengeluaran yang dicatat di sini otomatis mengurangi total saldo kas RT.
+              {editingExpenseId
+                ? 'Perubahan rincian pengeluaran akan langsung diperbarui ke kas RT dan Google Sheets secara real-time.'
+                : 'Pengeluaran yang dicatat di sini otomatis mengurangi total saldo kas RT.'}
             </p>
 
-            <form onSubmit={handleCreateExpense} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveExpense} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tanggal</label>
@@ -5205,11 +5235,14 @@ export default function AdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Kategori</label>
                   <select
                     value={newExpenseCategory}
-                    onChange={(e) => setNewExpenseCategory(e.target.value as 'Fixed' | 'Variabel')}
+                    onChange={(e) => setNewExpenseCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold text-slate-800"
                   >
-                    <option value="Fixed">Fixed</option>
+                    <option value="Tetap">Tetap (Fixed)</option>
+                    <option value="Fixed">Tetap / Fixed</option>
                     <option value="Variabel">Variabel</option>
+                    <option value="Kasbon">Kasbon</option>
+                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
               </div>
@@ -5368,7 +5401,7 @@ export default function AdminPage() {
                 type="submit"
                 className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition mt-2 shadow-sm"
               >
-                Simpan Transaksi Pengeluaran
+                {editingExpenseId ? 'Simpan Perubahan Pengeluaran' : 'Simpan Transaksi Pengeluaran'}
               </button>
             </form>
           </div>
