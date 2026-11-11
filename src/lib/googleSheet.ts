@@ -987,6 +987,7 @@ export async function updateIncomeInSheet(
       5: inc.nominal,
       6: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Lunas',
       7: inc.kategori || 'Iuran Bulanan',
+      10: inc.residentId || '',
     });
 
     // 2. Fallback: hapus baris lama dan tambahkan baris baru yang diperbarui

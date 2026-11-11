@@ -152,6 +152,28 @@ export async function GET(req: NextRequest) {
       }
     } catch {}
 
+    // Pastikan seluruh data transaksi dan bukti selalu tersinkronisasi dengan nama resmi Master Warga
+    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
+    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
+
+    db.incomes = (db.incomes || []).map((inc) => {
+      const cleanBlok = (inc.sumber || '').replace(/.*\(|\).*/g, '').toUpperCase().replace(/\s+/g, '');
+      const res = (inc.residentId && residentMapById.get(inc.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return { ...inc, residentId: res.id, sumber: `${res.nama} (${res.blok})` };
+      }
+      return inc;
+    });
+
+    db.proofs = (db.proofs || []).map((p) => {
+      const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+      const res = (p.residentId && residentMapById.get(p.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return { ...p, residentName: res.nama, blok: res.blok, residentId: res.id };
+      }
+      return p;
+    });
+
     const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');
 

@@ -113,6 +113,19 @@ export async function GET() {
       console.warn('Transparency sheet sync error:', e);
     }
     
+    // Pastikan transaksi pendapatan selalu menggunakan nama resmi terkini dari Master Warga
+    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
+    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
+
+    db.incomes = (db.incomes || []).map((inc) => {
+      const cleanBlok = (inc.sumber || '').replace(/.*\(|\).*/g, '').toUpperCase().replace(/\s+/g, '');
+      const res = (inc.residentId && residentMapById.get(inc.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return { ...inc, residentId: res.id, sumber: `${res.nama} (${res.blok})` };
+      }
+      return inc;
+    });
+
     const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');
 

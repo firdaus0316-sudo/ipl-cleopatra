@@ -121,15 +121,21 @@ export async function PUT(req: NextRequest) {
     }
 
     // 2. Cascade update ke semua transaksi & catatan terkait jika nama atau blok berubah
-    const nameChanged = oldNama && resident.nama.toLowerCase() !== oldNama.toLowerCase();
-    const blokChanged = oldBlok && resident.blok.toUpperCase() !== oldBlok.toUpperCase();
+    const nameChanged = Boolean(oldNama && resident.nama.toLowerCase() !== oldNama.toLowerCase());
+    const blokChanged = Boolean(oldBlok && resident.blok.toUpperCase() !== oldBlok.toUpperCase());
 
     if (nameChanged || blokChanged) {
       const newSumber = `${resident.nama} (${resident.blok})`;
+      const oldBlokClean = (oldBlok || '').toUpperCase().replace(/\s+/g, '');
+      const oldNamaClean = (oldNama || '').toLowerCase().trim();
 
       // Update di db.incomes & Google Sheet DataIuran
       for (const inc of db.incomes || []) {
-        const isMatched = inc.residentId === resident.id || inc.sumber?.toLowerCase().includes(oldNama.toLowerCase());
+        const incBlokClean = (inc.sumber || '').replace(/.*\(|\).*/g, '').toUpperCase().replace(/\s+/g, '');
+        const isMatched =
+          inc.residentId === resident.id ||
+          (oldBlokClean && incBlokClean === oldBlokClean) ||
+          (oldNamaClean && inc.sumber?.toLowerCase().includes(oldNamaClean));
         if (isMatched) {
           inc.sumber = newSumber;
           inc.residentId = resident.id;
@@ -141,33 +147,79 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.proofs & Google Sheet BuktiTransfer
       for (const p of db.proofs || []) {
-        const isMatched = p.residentId === resident.id || p.residentName?.toLowerCase().includes(oldNama.toLowerCase());
+        const pBlokClean = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+        const isMatched =
+          p.residentId === resident.id ||
+          (oldBlokClean && pBlokClean === oldBlokClean) ||
+          (oldNamaClean && p.residentName?.toLowerCase().includes(oldNamaClean));
         if (isMatched) {
           p.residentName = resident.nama;
           p.blok = resident.blok;
           p.residentId = resident.id;
           try {
-            await updateRowInSheet('BuktiTransfer', 9, p.id, { 2: resident.nama, 11: resident.blok });
+            await updateRowInSheet('BuktiTransfer', 9, p.id, { 2: resident.nama, 10: resident.id, 11: resident.blok });
           } catch {}
         }
       }
 
       // Update di db.kasbon & Google Sheet DataKasbon
       for (const k of db.kasbon || []) {
-        if (k.wargaId === resident.id || k.namaPeminjam?.toLowerCase().includes(oldNama.toLowerCase())) {
+        const isMatched =
+          k.wargaId === resident.id ||
+          (oldNamaClean && k.namaPeminjam?.toLowerCase().includes(oldNamaClean));
+        if (isMatched) {
           k.namaPeminjam = resident.nama;
+          k.wargaId = resident.id;
           try {
-            await updateRowInSheet('DataKasbon', 7, k.id, { 2: resident.nama });
+            await updateRowInSheet('DataKasbon', 7, k.id, { 2: resident.nama, 8: resident.id });
           } catch {}
         }
       }
 
-      // Update di db.tunggakanLama & Google Sheet TunggakanLama
-      for (const t of db.tunggakanLama || []) {
-        if (t.wargaId === resident.id || t.namaWarga?.toLowerCase().includes(oldNama.toLowerCase())) {
-          t.namaWarga = resident.nama;
+      // Update di db.expenses & Google Sheet DataPengeluaran jika mencantumkan nama warga
+      for (const e of db.expenses || []) {
+        const isMatched =
+          (oldNamaClean && e.penerima?.toLowerCase().includes(oldNamaClean)) ||
+          (oldNamaClean && e.keterangan?.toLowerCase().includes(oldNamaClean));
+        if (isMatched) {
+          if (oldNamaClean && e.penerima?.toLowerCase().includes(oldNamaClean)) {
+            e.penerima = resident.nama;
+          }
+          if (oldNamaClean && e.keterangan) {
+            e.keterangan = e.keterangan.replace(new RegExp(oldNama, 'gi'), resident.nama);
+          }
           try {
-            await updateRowInSheet('TunggakanLama', 1, oldNama, { 1: resident.nama, 2: resident.blok });
+            await updateRowInSheet('DataPengeluaran', 5, e.id, { 2: e.keterangan, 4: e.kategori });
+          } catch {}
+        }
+      }
+
+      // Update di db.tunggakanLama & Google Sheet TunggakanLama / TunggakanNonWarga
+      for (const t of db.tunggakanLama || []) {
+        const isMatched =
+          t.wargaId === resident.id ||
+          (oldNamaClean && t.namaWarga?.toLowerCase().includes(oldNamaClean)) ||
+          (oldBlokClean && t.keterangan?.toUpperCase().replace(/\s+/g, '').includes(oldBlokClean));
+        if (isMatched) {
+          t.namaWarga = resident.nama;
+          t.wargaId = resident.id;
+          try {
+            await updateRowInSheet('TunggakanLama', 6, t.id, { 2: resident.nama, 7: resident.id });
+            await updateRowInSheet('TunggakanNonWarga', 8, t.id, { 2: resident.nama, 3: resident.blok, 9: resident.id });
+          } catch {}
+        }
+      }
+
+      // Update di db.pelunasanHistory & Google Sheet RiwayatPelunasan
+      for (const pel of db.pelunasanHistory || []) {
+        const isMatched =
+          pel.wargaId === resident.id ||
+          (oldNamaClean && pel.namaWarga?.toLowerCase().includes(oldNamaClean));
+        if (isMatched) {
+          pel.namaWarga = resident.nama;
+          pel.wargaId = resident.id;
+          try {
+            await updateRowInSheet('RiwayatPelunasan', 7, pel.id, { 2: resident.nama, 8: resident.id });
           } catch {}
         }
       }

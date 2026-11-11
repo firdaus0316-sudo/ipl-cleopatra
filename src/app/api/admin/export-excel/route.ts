@@ -43,8 +43,20 @@ export async function GET(req: NextRequest) {
     const todayStr = new Date().toISOString().slice(0, 10);
     const tanggalCetakIndo = formatDateIndo(todayStr);
 
+    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
+    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
+
+    const mappedIncomes = (db.incomes || []).map((inc) => {
+      const cleanBlok = (inc.sumber || '').replace(/.*\(|\).*/g, '').toUpperCase().replace(/\s+/g, '');
+      const res = (inc.residentId && residentMapById.get(inc.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return { ...inc, residentId: res.id, sumber: `${res.nama} (${res.blok})` };
+      }
+      return inc;
+    });
+
     // Filter valid incomes & expenses
-    const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
+    const validIncomes = mappedIncomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');
 
     // Filter per selected period

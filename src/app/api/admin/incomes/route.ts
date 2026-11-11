@@ -42,6 +42,23 @@ export async function GET() {
       console.warn('Gagal fetch live incomes dari sheet:', e);
     }
 
+    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
+    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
+
+    incomes = incomes.map((inc) => {
+      const parsed = extractNameAndBlok(inc.sumber || '');
+      const cleanBlok = (parsed.blok || '').toUpperCase().replace(/\s+/g, '');
+      const res = (inc.residentId && residentMapById.get(inc.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return {
+          ...inc,
+          residentId: res.id,
+          sumber: `${res.nama} (${res.blok})`,
+        };
+      }
+      return inc;
+    });
+
     incomes.sort((a, b) => {
       const timeB = new Date(b.createdAt || b.tanggal).getTime();
       const timeA = new Date(a.createdAt || a.tanggal).getTime();
