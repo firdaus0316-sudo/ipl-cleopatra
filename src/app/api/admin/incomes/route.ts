@@ -10,6 +10,7 @@ import {
   updateKasbonInSheet,
   updateTunggakanInSheet,
   fetchIncomesFromSheet,
+  updateIncomeInSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -272,6 +273,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { id, action } = body;
 
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID transaksi wajib diisi.' }, { status: 400 });
+    }
+
     const db = getDb();
     const inc = db.incomes.find((i) => i.id === id);
 
@@ -279,9 +284,59 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Transaksi tidak ditemukan.' }, { status: 404 });
     }
 
+    // Aksi: Edit Transaksi Kas Masuk
+    if (action === 'edit' || (!action && (body.nominal !== undefined || body.sumber !== undefined || body.kategori !== undefined))) {
+      const { tanggal, sumber, residentId, kategori, bulan, nominal, catatan } = body;
+
+      if (tanggal) inc.tanggal = tanggal.slice(0, 10);
+      if (sumber) inc.sumber = sumber.trim();
+      if (residentId !== undefined) inc.residentId = residentId || undefined;
+      if (kategori) inc.kategori = kategori.trim();
+      if (nominal !== undefined && Number(nominal) > 0) inc.nominal = Number(nominal);
+      if (catatan !== undefined) inc.catatan = catatan.trim();
+
+      if (bulan) {
+        let bList: string[] = [];
+        if (Array.isArray(bulan)) {
+          bList = bulan.map(normalizePeriodCode).filter(Boolean);
+        } else if (typeof bulan === 'string') {
+          bList = [normalizePeriodCode(bulan)].filter(Boolean);
+        }
+        if (bList.length > 0) {
+          inc.bulan = bList;
+        }
+      }
+
+      saveDb(db);
+
+      // Auto sync update ke Google Sheet DataIuran
+      const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
+      try {
+        await updateIncomeInSheet(inc, rNama, rBlok);
+      } catch (err) {
+        console.error('Update income in sheet error:', err);
+      }
+
+      addLog(
+        'Edit Pemasukan',
+        `Memperbarui transaksi pemasukan ${inc.id} (${inc.kategori}) atas nama ${inc.sumber} menjadi Rp ${inc.nominal.toLocaleString('id-ID')} (${inc.bulan?.join(', ') || '-'})`,
+        'Admin'
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: 'Transaksi kas masuk berhasil diperbarui.',
+        data: inc,
+      });
+    }
+
     if (action === 'void') {
       inc.status = 'Dibatalkan';
       saveDb(db);
+      try {
+        const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
+        await updateIncomeInSheet(inc, rNama, rBlok);
+      } catch {}
       addLog('Batalkan Pemasukan', `Pemasukan ${inc.id} dibatalkan / void`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dibatalkan.' });
     }
@@ -289,6 +344,10 @@ export async function PUT(req: NextRequest) {
     if (action === 'restore') {
       inc.status = 'Sah';
       saveDb(db);
+      try {
+        const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
+        await updateIncomeInSheet(inc, rNama, rBlok);
+      } catch {}
       addLog('Pulihkan Pemasukan', `Pemasukan ${inc.id} dipulihkan statusnya menjadi Sah`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dipulihkan.' });
     }

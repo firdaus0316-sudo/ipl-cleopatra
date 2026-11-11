@@ -892,6 +892,54 @@ export async function deleteIncomeFromSheet(txId: string): Promise<{ success: bo
   return deleteRowFromSheet('DataIuran', 9, txId, SHEET_GIDS.dataiuran);
 }
 
+export async function updateIncomeInSheet(
+  inc: IncomeTransaction,
+  namaWarga: string,
+  blok: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedTime = formatGoogleSheetTimestamp(inc.tanggal ? new Date(inc.tanggal) : new Date());
+    const bulanStr = Array.isArray(inc.bulan) ? inc.bulan.join('; ') : inc.bulan || '';
+
+    // 1. Coba update via webhook
+    const webhookRes = await updateRowInSheet('DataIuran', 9, inc.id, {
+      1: formattedTime,
+      2: namaWarga,
+      3: blok,
+      4: bulanStr,
+      5: inc.nominal,
+      6: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Lunas',
+      7: inc.kategori || 'Iuran Bulanan',
+    });
+
+    // 2. Fallback: hapus baris lama dan tambahkan baris baru yang diperbarui
+    if (!webhookRes.success) {
+      await deleteIncomeFromSheet(inc.id);
+      await appendIncomesToSheet({
+        waktu: formattedTime,
+        namaWarga,
+        blok,
+        bulanIuran: bulanStr,
+        jumlah: inc.nominal,
+        status: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Lunas',
+        kategori: inc.kategori || 'Iuran Bulanan',
+        tarif: inc.nominal,
+        transaksiId: inc.id,
+        wargaId: inc.residentId || '',
+        statusTransaksi: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Aktif',
+        buktiId: inc.buktiId || '',
+        bulanAwal: Array.isArray(inc.bulan) ? inc.bulan[0] : bulanStr,
+        bulanAkhir: Array.isArray(inc.bulan) ? inc.bulan[inc.bulan.length - 1] : bulanStr,
+        jumlahBulan: Array.isArray(inc.bulan) ? inc.bulan.length : 1,
+      });
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('updateIncomeInSheet error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function deleteExpenseFromSheet(expId: string): Promise<{ success: boolean; error?: string }> {
   return deleteRowFromSheet('DataPengeluaran', 5, expId, SHEET_GIDS.datapengeluaran);
 }

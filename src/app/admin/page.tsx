@@ -301,6 +301,7 @@ export default function AdminPage() {
 
   // Modal Manual Income States
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [newIncomeDate, setNewIncomeDate] = useState(new Date().toISOString().slice(0, 10));
   const [newIncomeCategory, setNewIncomeCategory] = useState('Iuran Bulanan');
   const [newIncomeResidentId, setNewIncomeResidentId] = useState('');
@@ -314,6 +315,56 @@ export default function AdminPage() {
   const [newIncomeMonths, setNewIncomeMonths] = useState<string[]>(['November 2026']);
   const [newIncomeNominal, setNewIncomeNominal] = useState('150000');
   const [newIncomeNote, setNewIncomeNote] = useState('');
+
+  const handleOpenEditIncome = (inc: IncomeTransaction) => {
+    setEditingIncomeId(inc.id);
+    setNewIncomeDate(inc.tanggal ? inc.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setNewIncomeCategory(inc.kategori || 'Iuran Bulanan');
+
+    const m = inc.sumber ? inc.sumber.match(/^(.+?)\s*\((.+?)\)$/) : null;
+    const rawNama = m ? m[1].trim() : inc.sumber || '';
+    const rawBlok = m ? m[2].trim() : '';
+
+    const matchedRes = residents.find(
+      (r) => r.id === inc.residentId || r.nama.toLowerCase() === rawNama.toLowerCase()
+    );
+
+    if (matchedRes) {
+      setIsManualNonWarga(false);
+      setNewIncomeResidentId(matchedRes.id);
+      setNewIncomeNama(matchedRes.nama);
+      setNewIncomeBlok(matchedRes.blok);
+      setWargaIncomeSearch(matchedRes.nama);
+      setNewIncomeTarif(matchedRes.tarif || 150000);
+    } else {
+      setIsManualNonWarga(true);
+      setNewIncomeResidentId('');
+      setNewIncomeNama(rawNama);
+      setNewIncomeBlok(rawBlok);
+      setWargaIncomeSearch(rawNama);
+      setNewIncomeTarif(inc.nominal || 150000);
+    }
+
+    const bList = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [inc.bulan] : [];
+    const formattedMonths = bList.map((b) => {
+      const match = b.match(/^(\d{4})-(\d{2})$/);
+      if (match) {
+        const y = match[1];
+        const mIdx = parseInt(match[2], 10) - 1;
+        const mNames = [
+          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        if (mNames[mIdx]) return `${mNames[mIdx]} ${y}`;
+      }
+      return b;
+    });
+
+    setNewIncomeMonths(formattedMonths.length > 0 ? formattedMonths : ['November 2026']);
+    setNewIncomeNominal(String(inc.nominal || ''));
+    setNewIncomeNote(inc.catatan || '');
+    setShowIncomeModal(true);
+  };
 
   // Modal Warga
   const [showResidentModal, setShowResidentModal] = useState(false);
@@ -783,7 +834,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleCreateIncome = async (e: React.FormEvent) => {
+  const handleSaveIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalSumber = isManualNonWarga
       ? newIncomeNama.trim()
@@ -800,26 +851,39 @@ export default function AdminPage() {
       return;
     }
 
-    const res = await fetch('/api/admin/incomes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tanggal: newIncomeDate,
-        sumber: finalSumber,
-        residentId: !isManualNonWarga && newIncomeResidentId ? newIncomeResidentId : undefined,
-        kategori: newIncomeCategory,
-        bulan: newIncomeCategory === 'Iuran Bulanan' ? newIncomeMonths : undefined,
-        nominal: Number(newIncomeNominal),
-        catatan: newIncomeNote || `${newIncomeCategory} - ${finalSumber}`,
-      }),
-    });
+    const payload = {
+      tanggal: newIncomeDate,
+      sumber: finalSumber,
+      residentId: !isManualNonWarga && newIncomeResidentId ? newIncomeResidentId : undefined,
+      kategori: newIncomeCategory,
+      bulan: newIncomeCategory === 'Iuran Bulanan' ? newIncomeMonths : undefined,
+      nominal: Number(newIncomeNominal),
+      catatan: newIncomeNote || `${newIncomeCategory} - ${finalSumber}`,
+    };
+
+    let res;
+    if (editingIncomeId) {
+      res = await fetch('/api/admin/incomes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingIncomeId, action: 'edit', ...payload }),
+      });
+    } else {
+      res = await fetch('/api/admin/incomes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const d = await res.json();
     if (d.success) {
-      alert('Transaksi kas masuk berhasil dicatat!');
+      alert(editingIncomeId ? 'Transaksi kas masuk berhasil diperbarui!' : 'Transaksi kas masuk berhasil dicatat!');
       setShowIncomeModal(false);
+      setEditingIncomeId(null);
       refreshAll(true);
     } else {
-      alert(d.error || 'Gagal menyimpan pemasukan.');
+      alert(d.error || 'Gagal menyimpan transaksi kas masuk.');
     }
   };
 
@@ -3262,15 +3326,14 @@ export default function AdminPage() {
                             </td>
                             <td className="py-3 px-4 text-center w-40 min-w-[160px]">
                               <div className="flex items-center justify-center gap-1.5 mx-auto">
-                                {inc.status === 'Sah' && (
-                                  <button
-                                    onClick={() => handleVoidIncome(inc.id)}
-                                    className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition border border-amber-200/60"
-                                    title="Batalkan transaksi ini"
-                                  >
-                                    Batalkan
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => handleOpenEditIncome(inc)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition border border-blue-200/60"
+                                  title="Edit rincian transaksi kas masuk ini"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                  <span>Edit</span>
+                                </button>
                                 <button
                                   onClick={() => handleDeleteIncome(inc.id, inc.nominal, inc.sumber)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold transition border border-red-200/60"
@@ -5524,7 +5587,10 @@ export default function AdminPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
             <button
-              onClick={() => setShowIncomeModal(false)}
+              onClick={() => {
+                setShowIncomeModal(false);
+                setEditingIncomeId(null);
+              }}
               className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
               title="Tutup"
             >
@@ -5532,13 +5598,17 @@ export default function AdminPage() {
             </button>
 
             <div className="mb-4">
-              <h3 className="font-extrabold text-slate-900 text-base">Catat Kas Masuk Manual</h3>
+              <h3 className="font-extrabold text-slate-900 text-base">
+                {editingIncomeId ? 'Edit Transaksi Kas Masuk' : 'Catat Kas Masuk Manual'}
+              </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Gunakan formulir ini untuk mencatat pembayaran iuran tunai warga, THR, kegiatan, atau donasi langsung.
+                {editingIncomeId
+                  ? 'Perubahan rincian transaksi kas masuk akan langsung disinkronkan ke kas RT dan Google Sheets secara real-time.'
+                  : 'Gunakan formulir ini untuk mencatat pembayaran iuran tunai warga, THR, kegiatan, atau donasi langsung.'}
               </p>
             </div>
 
-            <form onSubmit={handleCreateIncome} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveIncome} className="space-y-4 text-xs">
               {/* BARIS 1: TANGGAL & KATEGORI IURAN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -5788,7 +5858,7 @@ export default function AdminPage() {
                   className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Simpan Transaksi Kas Masuk</span>
+                  <span>{editingIncomeId ? 'Simpan Perubahan Kas Masuk' : 'Simpan Transaksi Kas Masuk'}</span>
                 </button>
               </div>
             </form>
