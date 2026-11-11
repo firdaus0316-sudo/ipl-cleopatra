@@ -57,7 +57,22 @@ export async function GET(req: NextRequest) {
       console.error('Error auto-sync proofs from sheet:', e);
     }
 
-    let proofs = db.proofs || [];
+    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
+    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
+
+    let proofs = (db.proofs || []).map((p) => {
+      const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+      const res = (p.residentId && residentMapById.get(p.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
+      if (res && res.nama) {
+        return {
+          ...p,
+          residentName: res.nama,
+          blok: res.blok,
+          residentId: res.id,
+        };
+      }
+      return p;
+    });
 
     if (status && status !== 'Semua') {
       proofs = proofs.filter((p) => p.status === status);
