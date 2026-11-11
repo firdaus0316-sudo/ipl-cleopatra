@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import {
+  fetchIncomesFromSheet,
+  fetchExpensesFromSheet,
+  fetchKasbonFromSheet,
+  fetchTunggakanLamaFromSheet,
+  fetchTunggakanNonWargaFromSheet,
+  fetchSaldoAwalFromSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,6 +17,68 @@ const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu
 export async function GET() {
   try {
     const db = getDb();
+
+    // Auto-sync live data dari Google Sheets secara real-time
+    try {
+      const [kasbonRes, tungWRes, tungNWRes, expRes, incRes, saldoRes] = await Promise.all([
+        fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] })),
+        fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
+        fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
+        fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
+        fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
+      ]);
+
+      if (kasbonRes.success && kasbonRes.kasbon.length > 0) {
+        const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
+        db.kasbon = kasbonRes.kasbon.map((s) => {
+          const local = localMap.get(s.id);
+          return { ...s, riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [] };
+        });
+      }
+
+      const combinedTung = [...(tungWRes.tunggakan || []), ...(tungNWRes.tunggakan || [])];
+      if (combinedTung.length > 0) {
+        const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
+        db.tunggakanLama = combinedTung.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            terbayar: local?.terbayar || s.terbayar || 0,
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+      }
+
+      if (expRes.success && expRes.expenses.length > 0) {
+        const deletedSet = new Set(db.deletedExpenseIds || []);
+        const localMap = new Map((db.expenses || []).map((e) => [e.id, e]));
+        db.expenses = expRes.expenses
+          .filter((s) => !deletedSet.has(s.id))
+          .map((s) => {
+            const local = localMap.get(s.id);
+            return {
+              ...s,
+              buktiUrl: local?.buktiUrl || s.buktiUrl,
+              driveUrl: local?.driveUrl || s.driveUrl,
+            };
+          });
+      }
+
+      if (incRes.success && incRes.incomes.length > 0) {
+        const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
+        db.incomes = incRes.incomes.map((s) => {
+          const local = localMap.get(s.id);
+          return { ...s, buktiId: local?.buktiId || s.buktiId };
+        });
+      }
+
+      if (saldoRes.success && saldoRes.saldoAwal) {
+        db.settings.saldoAwal = saldoRes.saldoAwal;
+      }
+    } catch (e) {
+      console.warn('Transparency sheet sync error:', e);
+    }
     
     const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
     const validExpenses = db.expenses.filter((e) => e.status === 'Sah');

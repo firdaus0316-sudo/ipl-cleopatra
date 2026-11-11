@@ -1734,6 +1734,26 @@
   ],
   "expenses": [
     {
+      "id": "EXP-1794378620834",
+      "tanggal": "2026-11-03",
+      "kategori": "Variabel",
+      "nominal": 200000,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Pembuatan ATM BCA",
+      "status": "Sah",
+      "createdAt": "2026-11-11T10:28:25.720Z"
+    },
+    {
+      "id": "EXP-1794378878245",
+      "tanggal": "2026-11-11",
+      "kategori": "Variabel",
+      "nominal": 2500,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Transfer antar Bank - Kasbon Pa Agus",
+      "status": "Sah",
+      "createdAt": "2026-11-11T10:28:25.719Z"
+    },
+    {
       "id": "7f0baf8e-5804-4921-be31-ed2f3e404530",
       "tanggal": "2026-11-07",
       "kategori": "Kasbon",

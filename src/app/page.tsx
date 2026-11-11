@@ -231,13 +231,14 @@ export default function PublicPage() {
 
   const loadData = () => {
     setIsSyncing(true);
-    fetch('/api/public/data')
+    const ts = Date.now();
+    fetch(`/api/public/data?t=${ts}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setSettings(data.settings);
           setResidents(data.residents);
-          setSaldoKas(data.saldoKas);
+          if (data.saldoKas !== undefined) setSaldoKas(data.saldoKas);
           setIsSheetLocked(Boolean(data.isSheetLocked));
         }
       })
@@ -245,10 +246,15 @@ export default function PublicPage() {
       .finally(() => setIsSyncing(false));
 
     // Also fetch transparency data for Dashboard & Pos Piutang
-    fetch('/api/public/transparency')
+    fetch(`/api/public/transparency?t=${ts}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setTransparencyData(data);
+        if (data.success) {
+          setTransparencyData(data);
+          if (data.summary?.saldoAkhir !== undefined) {
+            setSaldoKas(data.summary.saldoAkhir);
+          }
+        }
       })
       .catch((err) => console.error(err));
 
