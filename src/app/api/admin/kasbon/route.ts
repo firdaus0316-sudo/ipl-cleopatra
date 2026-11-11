@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       const newExpense: ExpenseTransaction = {
         id: expId,
         tanggal: tgl,
-        kategori: 'Variabel',
+        kategori: 'Kasbon',
         keterangan: `Kasbon: ${namaPeminjam} - ${desc}`,
         penerima: namaPeminjam,
         nominal: pinjamNominal,
@@ -301,12 +301,17 @@ export async function DELETE(req: NextRequest) {
     db.kasbon = (db.kasbon || []).filter((k) => k.id !== id && k.kasbonId !== id);
 
     // 2. OTOMATIS HAPUS PENGELUARAN KAS TERKAIT (Pencairan Kasbon)
+    const targetNominal = itemToDelete.nominalAwal || itemToDelete.nominal || 0;
+    const targetDesc = (itemToDelete.keterangan || '').toLowerCase().trim();
     const linkedExp = (db.expenses || []).find(
       (e) =>
         e.id === `EXP-${kasbonTargetId}` ||
         e.id === `EXP-KSB-${kasbonTargetId.replace(/^KSB-/, '')}` ||
+        e.id === kasbonTargetId ||
         e.id.includes(kasbonTargetId) ||
-        (e.kategori === 'Kasbon' && e.penerima?.toLowerCase() === itemToDelete.namaPeminjam?.toLowerCase())
+        (e.kategori === 'Kasbon' &&
+          e.penerima?.toLowerCase() === itemToDelete.namaPeminjam?.toLowerCase() &&
+          (e.nominal === targetNominal || (targetDesc && e.keterangan?.toLowerCase().includes(targetDesc))))
     );
 
     let deletedExpId = '';

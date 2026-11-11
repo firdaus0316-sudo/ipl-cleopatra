@@ -7,6 +7,7 @@ import {
   appendBuktiStrukToSheet,
   deleteExpenseFromSheet,
   fetchExpensesFromSheet,
+  fetchKasbonFromSheet,
   updateExpenseInSheet,
 } from '@/lib/googleSheet';
 
@@ -41,6 +42,55 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('Gagal fetch live expenses dari sheet:', e);
+    }
+
+    // Auto-reconciliation: Pastikan setiap kasbon yang ada di DataKasbon tercatat di pengeluaran kas
+    try {
+      if (!db.kasbon || db.kasbon.length === 0) {
+        const ksbRes = await fetchKasbonFromSheet();
+        if (ksbRes.success && ksbRes.kasbon.length > 0) {
+          db.kasbon = ksbRes.kasbon;
+        }
+      }
+
+      const activeKasbonList = db.kasbon || [];
+      let updated = false;
+      for (const ksb of activeKasbonList) {
+        if (!ksb.nominal || ksb.nominal <= 0) continue;
+        const exists = expenses.some(
+          (e) =>
+            e.id === `EXP-${ksb.id}` ||
+            e.id === `EXP-KSB-${ksb.id.replace(/^KSB-/, '')}` ||
+            e.id === ksb.id ||
+            e.id.includes(ksb.id) ||
+            (e.kategori === 'Kasbon' &&
+              e.penerima?.toLowerCase() === ksb.namaPeminjam?.toLowerCase() &&
+              e.nominal === (ksb.nominalAwal || ksb.nominal))
+        );
+        if (!exists) {
+          const missingExpense: ExpenseTransaction = {
+            id: `EXP-KSB-${ksb.id}`,
+            tanggal: ksb.tglBackdate || (ksb.timestamp ? ksb.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+            kategori: 'Kasbon',
+            keterangan: `Kasbon: ${ksb.namaPeminjam} - ${ksb.keterangan || 'Pinjaman Petugas'}`,
+            penerima: ksb.namaPeminjam,
+            nominal: ksb.nominalAwal || ksb.nominal,
+            status: 'Sah',
+            createdAt: new Date().toISOString(),
+          };
+          expenses.unshift(missingExpense);
+          updated = true;
+          try {
+            appendExpenseToSheet(missingExpense, ksb.id);
+          } catch {}
+        }
+      }
+      if (updated) {
+        db.expenses = expenses;
+        saveDb(db);
+      }
+    } catch (err) {
+      console.warn('Kasbon reconciliation error:', err);
     }
 
     expenses.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());

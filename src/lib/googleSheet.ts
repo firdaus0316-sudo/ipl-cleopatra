@@ -351,7 +351,17 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       }
     }
 
-    return { success: true, incomes };
+    // Deduplikasi transaksi pemasukan berdasarkan ID agar tidak ada double transaksi
+    const seenIncIds = new Set<string>();
+    const uniqueIncomes: IncomeTransaction[] = [];
+    for (const inc of incomes) {
+      if (!seenIncIds.has(inc.id)) {
+        seenIncIds.add(inc.id);
+        uniqueIncomes.push(inc);
+      }
+    }
+
+    return { success: true, incomes: uniqueIncomes };
   } catch (err: any) {
     return { success: false, incomes: [], error: err.message };
   }
@@ -385,9 +395,12 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
 
       // Tentukan penerima dari keterangan jika format "Kasbon: Nama - Ket"
       let penerima = 'Pihak Terkait / Toko';
+      let resolvedKategori = kategori;
       if (keterangan.toLowerCase().includes('kasbon:')) {
         const parts = keterangan.split(':')[1]?.split('-');
         penerima = parts ? parts[0].trim() : 'Petugas / Security';
+        // Pastikan setiap transaksi pencairan kasbon selalu berkategori 'Kasbon'
+        resolvedKategori = 'Kasbon';
       } else if (keterangan.toLowerCase().includes('gaji')) {
         penerima = 'Satpam / Petugas Kebersihan';
       }
@@ -395,7 +408,7 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
       expenses.push({
         id: transaksiId,
         tanggal,
-        kategori,
+        kategori: resolvedKategori,
         nominal,
         penerima,
         keterangan,
@@ -404,7 +417,17 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
       });
     }
 
-    return { success: true, expenses };
+    // Deduplikasi transaksi pengeluaran berdasarkan ID agar tidak pernah ada double transaksi
+    const seenIds = new Set<string>();
+    const uniqueExpenses: ExpenseTransaction[] = [];
+    for (const exp of expenses) {
+      if (!seenIds.has(exp.id)) {
+        seenIds.add(exp.id);
+        uniqueExpenses.push(exp);
+      }
+    }
+
+    return { success: true, expenses: uniqueExpenses };
   } catch (err: any) {
     return { success: false, expenses: [], error: err.message };
   }

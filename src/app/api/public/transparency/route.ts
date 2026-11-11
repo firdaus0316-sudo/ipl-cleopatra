@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
+  appendExpenseToSheet,
   fetchKasbonFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
@@ -63,6 +64,38 @@ export async function GET() {
               driveUrl: local?.driveUrl || s.driveUrl,
             };
           });
+      }
+
+      // Auto-reconciliation: Pastikan setiap kasbon aktif di DataKasbon tercatat di pengeluaran
+      const activeKasbonList = db.kasbon || [];
+      for (const ksb of activeKasbonList) {
+        if (!ksb.nominal || ksb.nominal <= 0) continue;
+        const exists = (db.expenses || []).some(
+          (e) =>
+            e.id === `EXP-${ksb.id}` ||
+            e.id === `EXP-KSB-${ksb.id.replace(/^KSB-/, '')}` ||
+            e.id === ksb.id ||
+            e.id.includes(ksb.id) ||
+            (e.kategori === 'Kasbon' &&
+              e.penerima?.toLowerCase() === ksb.namaPeminjam?.toLowerCase() &&
+              e.nominal === (ksb.nominalAwal || ksb.nominal))
+        );
+        if (!exists) {
+          const missingExpense = {
+            id: `EXP-KSB-${ksb.id}`,
+            tanggal: ksb.tglBackdate || (ksb.timestamp ? ksb.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+            kategori: 'Kasbon',
+            keterangan: `Kasbon: ${ksb.namaPeminjam} - ${ksb.keterangan || 'Pinjaman Petugas'}`,
+            penerima: ksb.namaPeminjam,
+            nominal: ksb.nominalAwal || ksb.nominal,
+            status: 'Sah' as const,
+            createdAt: new Date().toISOString(),
+          };
+          db.expenses.push(missingExpense);
+          try {
+            appendExpenseToSheet(missingExpense, ksb.id);
+          } catch {}
+        }
       }
 
       if (incRes.success && incRes.incomes.length > 0) {

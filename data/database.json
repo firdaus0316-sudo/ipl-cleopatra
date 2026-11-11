@@ -1734,24 +1734,14 @@
   ],
   "expenses": [
     {
-      "id": "EXP-1794378620834",
-      "tanggal": "2026-11-03",
-      "kategori": "Variabel",
-      "nominal": 200000,
-      "penerima": "Pihak Terkait / Toko",
-      "keterangan": "Pembuatan ATM BCA",
+      "id": "a6cfddda-5d0d-43d2-810d-66dd40ce969a",
+      "tanggal": "2026-11-05",
+      "kategori": "Kasbon",
+      "nominal": 400000,
+      "penerima": "Rahmat Security",
+      "keterangan": "Kasbon: Rahmat Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-11T10:28:25.720Z"
-    },
-    {
-      "id": "EXP-1794378878245",
-      "tanggal": "2026-11-11",
-      "kategori": "Variabel",
-      "nominal": 2500,
-      "penerima": "Pihak Terkait / Toko",
-      "keterangan": "Transfer antar Bank - Kasbon Pa Agus",
-      "status": "Sah",
-      "createdAt": "2026-11-11T10:28:25.719Z"
+      "createdAt": "2026-11-11T13:26:10.855Z"
     },
     {
       "id": "7f0baf8e-5804-4921-be31-ed2f3e404530",
@@ -1761,7 +1751,7 @@
       "penerima": "Pepen Security",
       "keterangan": "Kasbon: Pepen Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
+      "createdAt": "2026-11-11T13:26:10.856Z"
     },
     {
       "id": "926d8713-b6f4-4a29-af80-144c33477b16",
@@ -1771,7 +1761,7 @@
       "penerima": "Mulyadi Security",
       "keterangan": "Kasbon: Mulyadi Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
+      "createdAt": "2026-11-11T13:26:10.856Z"
     },
     {
       "id": "1ce9a1b5-5540-47f7-a49a-dbf8237cd0fd",
@@ -1781,7 +1771,7 @@
       "penerima": "Pihak Terkait / Toko",
       "keterangan": "Pembelian Lampu Taman 2 Pcs",
       "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.450Z"
+      "createdAt": "2026-11-11T13:26:10.856Z"
     },
     {
       "id": "af2c0a26-3c5b-4e13-99dc-82eb5d48270b",
@@ -1791,7 +1781,37 @@
       "penerima": "Pihak Terkait / Toko",
       "keterangan": "Pengeluaran Mingguan Security",
       "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.450Z"
+      "createdAt": "2026-11-11T13:26:10.856Z"
+    },
+    {
+      "id": "EXP-1794378620834",
+      "tanggal": "2026-11-03",
+      "kategori": "Variabel",
+      "nominal": 20000,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Pembuatan ATM BCA",
+      "status": "Sah",
+      "createdAt": "2026-11-11T13:26:10.856Z"
+    },
+    {
+      "id": "EXP-1794378878245",
+      "tanggal": "2026-11-11",
+      "kategori": "Variabel",
+      "nominal": 2500,
+      "penerima": "Pihak Terkait / Toko",
+      "keterangan": "Transfer antar Bank - Kasbon Pa Agus",
+      "status": "Sah",
+      "createdAt": "2026-11-11T13:26:10.856Z"
+    },
+    {
+      "id": "EXP-KSB-1794402191518",
+      "tanggal": "2026-11-11",
+      "kategori": "Kasbon",
+      "nominal": 100000,
+      "penerima": "Agus Security",
+      "keterangan": "Kasbon: Agus Security - Ban Motor",
+      "status": "Sah",
+      "createdAt": "2026-11-11T13:26:10.856Z"
     },
     {
       "id": "61f3add9-786f-4bb0-9062-40ad3528e630",
@@ -1801,17 +1821,7 @@
       "penerima": "Agus Security",
       "keterangan": "Kasbon: Agus Security - Keluarga",
       "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
-    },
-    {
-      "id": "a6cfddda-5d0d-43d2-810d-66dd40ce969a",
-      "tanggal": "2026-11-05",
-      "kategori": "Kasbon",
-      "nominal": 400000,
-      "penerima": "Rahmat Security",
-      "keterangan": "Kasbon: Rahmat Security - Keluarga",
-      "status": "Sah",
-      "createdAt": "2026-11-10T04:48:47.449Z"
+      "createdAt": "2026-11-11T13:26:10.856Z"
     }
   ],
   "logs": [
