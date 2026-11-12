@@ -6,6 +6,7 @@ import {
   appendPelunasanToSheet,
   extractNameAndBlok,
   fetchProofsFromSheet,
+  fetchResidentsFromSheet,
   updateProofInSheet,
   deleteProofFromSheet,
   deleteIncomeFromSheet,
@@ -23,10 +24,18 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Auto-sync live dari Google Sheet BuktiTransfer (Sumber Kebenaran Utama)
+    // Auto-sync live dari Google Sheet BuktiTransfer & MasterWarga (Sumber Kebenaran Utama)
     try {
-      const sheetProofsRes = await fetchProofsFromSheet();
-      if (sheetProofsRes.success && sheetProofsRes.proofs.length > 0) {
+      const [sheetProofsRes, sheetResidentsRes] = await Promise.all([
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
+      ]);
+
+      if (sheetResidentsRes.success && sheetResidentsRes.residents && sheetResidentsRes.residents.length > 0) {
+        db.residents = sheetResidentsRes.residents;
+      }
+
+      if (sheetProofsRes.success && sheetProofsRes.proofs && sheetProofsRes.proofs.length > 0) {
         const localMap = new Map((db.proofs || []).map((p) => [p.id, p]));
         const mergedProofs = sheetProofsRes.proofs.map((sheetProof) => {
           const local = localMap.get(sheetProof.id);
@@ -51,8 +60,8 @@ export async function GET(req: NextRequest) {
         const localOnly = (db.proofs || []).filter((p) => !sheetIdSet.has(p.id));
 
         db.proofs = [...mergedProofs, ...localOnly];
-        saveDb(db);
       }
+      saveDb(db);
     } catch (e) {
       console.error('Error auto-sync proofs from sheet:', e);
     }

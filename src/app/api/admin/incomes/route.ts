@@ -10,6 +10,7 @@ import {
   updateKasbonInSheet,
   updateTunggakanInSheet,
   fetchIncomesFromSheet,
+  fetchResidentsFromSheet,
   updateIncomeInSheet,
 } from '@/lib/googleSheet';
 
@@ -22,8 +23,16 @@ export async function GET() {
     let incomes = db.incomes || [];
 
     try {
-      const sheetRes = await fetchIncomesFromSheet();
-      if (sheetRes.success && sheetRes.incomes.length > 0) {
+      const [sheetRes, sheetResidentsRes] = await Promise.all([
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
+      ]);
+
+      if (sheetResidentsRes.success && sheetResidentsRes.residents && sheetResidentsRes.residents.length > 0) {
+        db.residents = sheetResidentsRes.residents;
+      }
+
+      if (sheetRes.success && sheetRes.incomes && sheetRes.incomes.length > 0) {
         const sheetIncMap = new Map(sheetRes.incomes.map((i) => [i.id, i]));
         const localMap = new Map(incomes.map((i) => [i.id, i]));
 
@@ -36,8 +45,8 @@ export async function GET() {
         });
 
         db.incomes = incomes;
-        saveDb(db);
       }
+      saveDb(db);
     } catch (e) {
       console.warn('Gagal fetch live incomes dari sheet:', e);
     }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchIncomeToResident, matchProofToResident } from '@/lib/format';
-import { fetchIncomesFromSheet } from '@/lib/googleSheet';
+import { fetchIncomesFromSheet, fetchResidentsFromSheet } from '@/lib/googleSheet';
 
 const MONTH_NAMES = [
   'Januari',
@@ -55,10 +55,18 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Auto-sync live incomes dari Google Sheet DataIuran
+    // Auto-sync live residents & incomes dari Google Sheet
     try {
-      const incRes = await fetchIncomesFromSheet();
-      if (incRes.success && incRes.incomes.length > 0) {
+      const [incRes, resRes] = await Promise.all([
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
+      ]);
+
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
+
+      if (incRes.success && incRes.incomes && incRes.incomes.length > 0) {
         const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
         db.incomes = incRes.incomes.map((s) => {
           const local = localMap.get(s.id);

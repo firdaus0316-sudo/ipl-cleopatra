@@ -8,6 +8,7 @@ import {
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
   fetchSaldoAwalFromSheet,
+  fetchResidentsFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -21,14 +22,19 @@ export async function GET() {
 
     // Auto-sync live data dari Google Sheets secara real-time
     try {
-      const [kasbonRes, tungWRes, tungNWRes, expRes, incRes, saldoRes] = await Promise.all([
+      const [kasbonRes, tungWRes, tungNWRes, expRes, incRes, saldoRes, resRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] })),
         fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
         fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
         fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] })),
         fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
         fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
       ]);
+
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
 
       if (kasbonRes.success && kasbonRes.kasbon.length > 0) {
         const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));

@@ -9,6 +9,7 @@ import {
   appendExpenseToSheet,
   fetchIncomesFromSheet,
   fetchProofsFromSheet,
+  fetchResidentsFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -126,6 +127,14 @@ export async function GET(req: NextRequest) {
             appendExpenseToSheet(missingExpense, ksb.id);
           } catch {}
         }
+      }
+    } catch {}
+
+    // Auto-sync residents live dari Google Sheet masterwarga
+    try {
+      const resRes = await fetchResidentsFromSheet();
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
       }
     } catch {}
 
