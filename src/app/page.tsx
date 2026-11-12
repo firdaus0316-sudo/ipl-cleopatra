@@ -1212,7 +1212,7 @@ export default function PublicPage() {
                         type="text"
                         value={catatanWarga}
                         onChange={(e) => setCatatanWarga(e.target.value)}
-                        placeholder="Contoh: Titip tunai di pos ronda / bendahara"
+                        placeholder="Contoh: Langsung ke Bendahara"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                       />
                     </div>

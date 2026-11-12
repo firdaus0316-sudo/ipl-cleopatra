@@ -5850,7 +5850,7 @@ export default function AdminPage() {
                   <label className="block font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Titip tunai di pos ronda / bendahara"
+                    placeholder="Contoh: Langsung ke Bendahara"
                     value={newIncomeNote}
                     onChange={(e) => setNewIncomeNote(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
