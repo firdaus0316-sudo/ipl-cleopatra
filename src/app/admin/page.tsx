@@ -282,7 +282,7 @@ export default function AdminPage() {
   const handleOpenEditExpense = (exp: ExpenseTransaction) => {
     setEditingExpenseId(exp.id);
     setNewExpenseDate(exp.tanggal ? exp.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10));
-    setNewExpenseCategory(exp.kategori || 'Fixed');
+    setNewExpenseCategory(exp.kategori === 'Tetap' ? 'Fixed' : (exp.kategori || 'Fixed'));
     setNewExpenseNominal(String(exp.nominal || ''));
     setNewExpenseRecipient(exp.penerima || '');
     setNewExpenseDesc(exp.keterangan || '');
@@ -5307,11 +5307,9 @@ export default function AdminPage() {
                     onChange={(e) => setNewExpenseCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold text-slate-800"
                   >
-                    <option value="Tetap">Tetap (Fixed)</option>
-                    <option value="Fixed">Tetap / Fixed</option>
+                    <option value="Fixed">Fixed</option>
                     <option value="Variabel">Variabel</option>
                     <option value="Kasbon">Kasbon</option>
-                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
               </div>
