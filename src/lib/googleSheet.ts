@@ -423,6 +423,7 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
       const kategori = cols[3] || 'Variabel';
       const transaksiId = cols[4] || `EXP-${i}`;
       const statusTx = (cols[5] || 'Aktif').toLowerCase();
+      const sheetPenerima = (cols[7] || '').trim();
 
       const nominal = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       if (!keterangan || nominal <= 0) continue;
@@ -430,15 +431,17 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
       const tanggal = parseDateFlexible(waktu);
       const isVoid = statusTx.includes('batal');
 
-      // Tentukan penerima dari keterangan jika format "Kasbon: Nama - Ket"
-      let penerima = 'Pihak Terkait / Toko';
+      // Gunakan kolom Penerima dari sheet (kolom 8) jika tersedia, atau ekstrak dari keterangan
+      let penerima = sheetPenerima || 'Pihak Terkait / Toko';
       let resolvedKategori = kategori;
       if (keterangan.toLowerCase().includes('kasbon:')) {
-        const parts = keterangan.split(':')[1]?.split('-');
-        penerima = parts ? parts[0].trim() : 'Petugas / Security';
+        if (!sheetPenerima) {
+          const parts = keterangan.split(':')[1]?.split('-');
+          penerima = parts ? parts[0].trim() : 'Petugas / Security';
+        }
         // Pastikan setiap transaksi pencairan kasbon selalu berkategori 'Kasbon'
         resolvedKategori = 'Kasbon';
-      } else if (keterangan.toLowerCase().includes('gaji')) {
+      } else if (!sheetPenerima && keterangan.toLowerCase().includes('gaji')) {
         penerima = 'Satpam / Petugas Kebersihan';
       }
 
@@ -1105,6 +1108,7 @@ export async function updateExpenseInSheet(
       3: e.nominal || 0,
       4: e.kategori,
       6: e.status === 'Dibatalkan' ? 'Dibatalkan' : 'Aktif',
+      8: escapeGsheetCell(e.penerima || 'Pihak Terkait / Toko'),
     });
 
     if (!webhookRes.success) {
@@ -1382,6 +1386,7 @@ export async function appendExpenseToSheet(e: ExpenseTransaction, refId?: string
     escapeGsheetCell(e.id),
     'Aktif',
     escapeGsheetCell(refId || ''),
+    escapeGsheetCell(e.penerima || 'Pihak Terkait / Toko'),
   ].join(',');
   return appendRowsToSheet('DataPengeluaran', [row]);
 }

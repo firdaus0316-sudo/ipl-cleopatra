@@ -87,6 +87,7 @@ export async function GET(req: NextRequest) {
             const local = localMap.get(s.id);
             return {
               ...s,
+              penerima: (s.penerima && s.penerima !== 'Pihak Terkait / Toko') ? s.penerima : (local?.penerima || s.penerima),
               buktiUrl: local?.buktiUrl || s.buktiUrl,
               driveUrl: local?.driveUrl || s.driveUrl,
             };
