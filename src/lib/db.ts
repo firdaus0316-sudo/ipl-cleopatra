@@ -124,6 +124,31 @@ const INITIAL_INCOMES: IncomeTransaction[] = [
   },
 ];
 
+function normalizePeriod(p: string): string {
+  if (!p) return '2026-11';
+  const trimmed = p.trim();
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
+  const monthMap: Record<string, string> = {
+    januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06',
+    juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12',
+    jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', agu: '08', aug: '08',
+    sep: '09', okt: '10', oct: '10', nov: '11', des: '12', dec: '12'
+  };
+  const parts = trimmed.split(/[\s-]+/);
+  if (parts.length >= 2) {
+    let m = '';
+    let y = '';
+    for (const part of parts) {
+      const lower = part.toLowerCase();
+      if (monthMap[lower]) m = monthMap[lower];
+      else if (/^\d{4}$/.test(part)) y = part;
+    }
+    if (m && y) return `${y}-${m}`;
+  }
+  return trimmed;
+}
+
 export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
   if (!db.proofs || !db.incomes) return false;
   const existingBuktiIds = new Set(db.incomes.map((i) => i.buktiId).filter(Boolean));
@@ -136,8 +161,8 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
       const monthsList: string[] = [];
       rawMonths.forEach((b) => {
         b.split(/[,;\n]+/).forEach((p) => {
-          const trimmed = p.trim();
-          if (trimmed && !monthsList.includes(trimmed)) monthsList.push(trimmed);
+          const norm = normalizePeriod(p);
+          if (norm && !monthsList.includes(norm)) monthsList.push(norm);
         });
       });
       if (monthsList.length === 0) monthsList.push('2026-11');

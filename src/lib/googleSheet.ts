@@ -379,12 +379,13 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       if (seenIncIds.has(inc.id)) continue;
       seenIncIds.add(inc.id);
 
+      const isRegularIuran = inc.kategori === 'Iuran Bulanan' || inc.kategori?.toLowerCase().includes('iuran');
       const parsed = extractNameAndBlok(inc.sumber || '');
       const blockKey = (parsed.blok || inc.residentId || inc.sumber || '').toUpperCase().replace(/\s+/g, '');
       const monthKey = Array.isArray(inc.bulan) ? inc.bulan.join(',') : inc.bulan || '';
       const comboKey = `${blockKey}_${monthKey}`;
 
-      if (blockKey && monthKey && !inc.catatan?.toLowerCase().includes('angsuran') && !inc.catatan?.toLowerCase().includes('cicil')) {
+      if (isRegularIuran && blockKey && monthKey && !inc.catatan?.toLowerCase().includes('angsuran') && !inc.catatan?.toLowerCase().includes('cicil')) {
         const existing = seenBlockMonth.get(comboKey);
         if (existing) {
           // Jika salah satu memiliki buktiId (hasil verifikasi resmi), prioritaskan yang berbukti resmi
