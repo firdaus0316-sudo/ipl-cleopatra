@@ -93,6 +93,7 @@ const BULAN_OPTIONS = [
 const EXPENSE_COLORS: Record<string, string> = {
   Kasbon: '#0284c7',
   Variabel: '#f59e0b',
+  Fixed: '#10b981',
   Tetap: '#10b981',
   'Keamanan / Satpam': '#8b5cf6',
   'Kebersihan / Sampah': '#ec4899',
@@ -1517,7 +1518,7 @@ export default function PublicPage() {
                         </div>
                       </div>
                       <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 text-cyan-900">
-                        {transparencyData?.posPiutang?.kasbon?.countBelumLunas ?? 4} Petugas Berjalan
+                        {transparencyData?.posPiutang?.kasbon?.countBelumLunas ?? 7} Petugas Berjalan
                       </span>
                     </div>
 
@@ -1526,13 +1527,13 @@ export default function PublicPage() {
                         Sisa Kasbon Belum Dikembalikan:
                       </div>
                       <div className="text-2xl sm:text-3xl font-black text-cyan-950 mt-0.5 tracking-tight">
-                        {formatRupiah(transparencyData?.posPiutang?.kasbon?.sisaBelumKembali ?? 1400000)}
+                        {formatRupiah(transparencyData?.posPiutang?.kasbon?.sisaBelumKembali ?? 2100000)}
                       </div>
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-cyan-100 flex items-center justify-between text-xs text-slate-600">
                       <span>
-                        Kasbon Awal: <strong className="font-bold text-slate-800">{formatRupiah(transparencyData?.posPiutang?.kasbon?.totalAwal ?? 1400000)}</strong>
+                        Kasbon Awal: <strong className="font-bold text-slate-800">{formatRupiah(transparencyData?.posPiutang?.kasbon?.totalAwal ?? 2100000)}</strong>
                       </span>
                       <span>
                         Sudah Kembali ke Kas: <strong className="font-bold text-emerald-700">{formatRupiah(transparencyData?.posPiutang?.kasbon?.totalTerbayar ?? 0)}</strong>
