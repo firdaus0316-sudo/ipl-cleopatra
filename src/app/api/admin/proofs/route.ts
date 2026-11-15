@@ -253,9 +253,9 @@ export async function POST(req: NextRequest) {
         wargaId: wargaId || proof.residentId,
         statusTransaksi: 'Aktif',
         buktiId: proof.id,
-        bulanAwal: monthsList[0],
-        bulanAkhir: monthsList[monthsList.length - 1],
-        jumlahBulan: monthsList.length,
+        bulanAwal: inc.bulan?.[0] || monthsList[0],
+        bulanAkhir: inc.bulan?.[0] || monthsList[monthsList.length - 1],
+        jumlahBulan: 1,
       }));
 
       try {

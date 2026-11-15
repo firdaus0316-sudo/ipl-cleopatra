@@ -464,6 +464,12 @@ export async function GET(req: NextRequest) {
         totalPemasukanPeriode,
         totalPemasukanTahun,
         totalPemasukanAllTime: totalIncomesAllTime,
+        pemasukanIuranBulanan: periodIncomes
+          .filter((i) => i.kategori === 'Iuran Bulanan' || i.kategori?.toLowerCase().includes('iuran'))
+          .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
+        pemasukanNonIuran: periodIncomes
+          .filter((i) => !(i.kategori === 'Iuran Bulanan' || i.kategori?.toLowerCase().includes('iuran')))
+          .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
         totalPengeluaran: totalPengeluaranPeriode,
         totalPengeluaranPeriode,
         totalPengeluaranTahun,

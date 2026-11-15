@@ -2151,6 +2151,16 @@ export default function AdminPage() {
                   <div className="text-2xl font-black text-slate-900 tracking-tight">
                     {formatRupiah(dashboardData.stats.totalPemasukan)}
                   </div>
+                  {dashboardData.stats.pemasukanNonIuran > 0 ? (
+                    <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-x-1.5">
+                      <span className="text-emerald-700 font-semibold">Iuran: {formatRupiah(dashboardData.stats.pemasukanIuranBulanan ?? dashboardData.targetRealisasiIuran?.realisasiNominal ?? 0)}</span>
+                      <span className="text-blue-700 font-semibold">+ Tunggakan/Lain: {formatRupiah(dashboardData.stats.pemasukanNonIuran)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      100% berasal dari Iuran Warga
+                    </div>
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
                   <span>Akumulasi Thn {matrixYear}:</span>

@@ -317,15 +317,18 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
           if (norm && !bulanList.includes(norm)) bulanList.push(norm);
         });
       }
-      const bulanAwal = (cols[12] || '').trim();
-      const bulanAkhir = (cols[13] || '').trim();
-      if (bulanAwal) {
-        const normAwal = normalizePeriodCode(bulanAwal);
-        if (normAwal && !bulanList.includes(normAwal)) bulanList.push(normAwal);
-      }
-      if (bulanAkhir) {
-        const normAkhir = normalizePeriodCode(bulanAkhir);
-        if (normAkhir && !bulanList.includes(normAkhir)) bulanList.push(normAkhir);
+      // Hanya gunakan bulanAwal / bulanAkhir jika kolom periode kosong
+      if (bulanList.length === 0) {
+        const bulanAwal = (cols[12] || '').trim();
+        const bulanAkhir = (cols[13] || '').trim();
+        if (bulanAwal) {
+          const normAwal = normalizePeriodCode(bulanAwal);
+          if (normAwal && !bulanList.includes(normAwal)) bulanList.push(normAwal);
+        }
+        if (bulanAkhir) {
+          const normAkhir = normalizePeriodCode(bulanAkhir);
+          if (normAkhir && !bulanList.includes(normAkhir)) bulanList.push(normAkhir);
+        }
       }
 
       if (bulanList.length > 1) {
