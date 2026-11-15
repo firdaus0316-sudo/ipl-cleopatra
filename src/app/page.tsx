@@ -291,16 +291,28 @@ export default function PublicPage() {
   };
 
   const handleQuickMonthSelect = (count: number) => {
-    const startIndex = BULAN_OPTIONS.indexOf('November 2026') >= 0 ? BULAN_OPTIONS.indexOf('November 2026') : 0;
-    let selected: string[] = [];
-    if (count === 12) {
-      selected = [...BULAN_OPTIONS];
-    } else {
-      selected = BULAN_OPTIONS.slice(startIndex, startIndex + count);
-      if (selected.length < count) {
-        selected = BULAN_OPTIONS.slice(0, count);
-      }
+    // Basis awal: bulan pertama yang sedang dipilih, atau 'November 2026'
+    const firstSelected = selectedMonths[0] || 'November 2026';
+    const norm = normalizePeriodCode(firstSelected) || '2026-11';
+    let [sY, sM] = norm.split('-').map(Number);
+    if (!sY || !sM) {
+      sY = 2026;
+      sM = 11;
     }
+
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const selected: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const d = new Date(sY, sM - 1 + i, 1);
+      const mName = monthNames[d.getMonth()];
+      const yStr = d.getFullYear();
+      selected.push(`${mName} ${yStr}`);
+    }
+
     setSelectedMonths(selected);
     setCustomNominal(String(currentResidentTarif * selected.length));
   };
@@ -1136,7 +1148,7 @@ export default function PublicPage() {
                       </label>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] text-slate-500 font-bold mr-0.5">Cepat:</span>
-                        {[1, 2, 3, 6, 12].map((cnt) => (
+                        {[1, 2, 3, 6, 9, 12].map((cnt) => (
                           <button
                             key={cnt}
                             type="button"
@@ -1153,9 +1165,9 @@ export default function PublicPage() {
                       </div>
                     </div>
 
-                    {/* Multi-Select Pills 12 Bulan (Grid 4 Kolom) */}
+                    {/* Multi-Select Pills (Mendukung Multi-Bulan & Lintas Tahun) */}
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
-                      {BULAN_OPTIONS.map((m) => {
+                      {Array.from(new Set([...BULAN_OPTIONS, ...selectedMonths])).map((m) => {
                         const isSelected = selectedMonths.includes(m);
                         const monthLabel = m.replace(' 2026', '');
                         return (
