@@ -218,9 +218,9 @@ export async function POST(req: NextRequest) {
         wargaId: wargaId,
         statusTransaksi: 'Aktif',
         buktiId: '',
-        bulanAwal: monthsList[0],
-        bulanAkhir: monthsList[monthsList.length - 1],
-        jumlahBulan: monthsList.length,
+        bulanAwal: inc.bulan?.[0] || '2026-11',
+        bulanAkhir: inc.bulan?.[0] || '2026-11',
+        jumlahBulan: 1,
       }));
       try {
         await appendIncomesToSheet(rowsToAppend);
@@ -274,8 +274,8 @@ export async function POST(req: NextRequest) {
       statusTransaksi: 'Aktif',
       buktiId: '',
       bulanAwal: monthsList[0] || normalizePeriodCode(tgl) || '2026-11',
-      bulanAkhir: monthsList[monthsList.length - 1] || monthsList[0] || '2026-11',
-      jumlahBulan: Math.max(1, monthsList.length),
+      bulanAkhir: monthsList[0] || normalizePeriodCode(tgl) || '2026-11',
+      jumlahBulan: 1,
     }).catch((e) => console.error('Auto-sync single income to sheet error:', e));
 
     addLog(
