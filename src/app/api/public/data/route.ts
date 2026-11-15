@@ -56,20 +56,20 @@ export async function GET() {
 
     const { adminPin, ...safeSettings } = db.settings;
 
-    const totalPemasukan = db.incomes
-      .filter((i) => i.status === 'Sah')
-      .reduce((sum, i) => sum + i.nominal, 0);
+    const totalPemasukan = (db.incomes || [])
+      .filter((i) => i && i.status === 'Sah')
+      .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
 
-    const totalPengeluaran = db.expenses
-      .filter((e) => e.status === 'Sah')
-      .reduce((sum, e) => sum + e.nominal, 0);
+    const totalPengeluaran = (db.expenses || [])
+      .filter((e) => e && e.status === 'Sah')
+      .reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
 
-    const saldoKas = db.settings.saldoAwal + totalPemasukan - totalPengeluaran;
+    const saldoKas = (Number(db.settings?.saldoAwal) || 0) + totalPemasukan - totalPengeluaran;
 
     return NextResponse.json({
       success: true,
       settings: safeSettings,
-      residents: db.residents.filter((r) => r.status === 'Aktif'),
+      residents: (db.residents || []).filter((r) => r && r.status === 'Aktif'),
       saldoKas,
       sheetStatus: `Tersinkron otomatis Google Sheets`,
       isSheetLocked: false,

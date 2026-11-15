@@ -1,38 +1,53 @@
-export function formatRupiah(value: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+export function formatRupiah(value: any): string {
+  try {
+    const num = typeof value === 'number' ? value : Number(value);
+    const safeNum = isNaN(num) || !isFinite(num) ? 0 : num;
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0,
+    }).format(safeNum);
+  } catch {
+    return 'Rp 0';
+  }
 }
 
-export function formatDateIndo(dateStr: string): string {
+export function formatDateIndo(dateStr: any): string {
   if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return String(dateStr || '-');
+  }
 }
 
-export function formatDateTimeIndo(dateStr: string): string {
+export function formatDateTimeIndo(dateStr: any): string {
   if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(dateStr || '-');
+  }
 }
 
-export function cleanPhone(phone: string): string {
+export function cleanPhone(phone: any): string {
   if (!phone) return '';
-  let cleaned = phone.replace(/[^0-9]/g, '');
+  const str = String(phone);
+  let cleaned = str.replace(/[^0-9]/g, '');
   if (cleaned.startsWith('0')) {
     cleaned = '62' + cleaned.slice(1);
   }
@@ -44,9 +59,9 @@ export function createWaLink(phone: string, text: string): string {
   return `https://wa.me/${p}?text=${encodeURIComponent(text)}`;
 }
 
-export function formatPeriodCode(input?: string): string {
+export function formatPeriodCode(input?: any): string {
   if (!input) return '-';
-  const trimmed = input.trim();
+  const trimmed = String(input).trim();
   if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
 
@@ -87,9 +102,9 @@ export const MONTH_NAMES_ID: Record<string, string> = {
   '12': 'Desember',
 };
 
-export function normalizePeriodCode(input?: string | null): string {
+export function normalizePeriodCode(input?: any): string {
   if (!input) return '';
-  const trimmed = input.trim();
+  const trimmed = String(input).trim();
   if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
 

@@ -133,12 +133,12 @@ export async function GET() {
       return inc;
     });
 
-    const validIncomes = db.incomes.filter((i) => i.status === 'Sah');
-    const validExpenses = db.expenses.filter((e) => e.status === 'Sah');
+    const validIncomes = (db.incomes || []).filter((i) => i && i.status === 'Sah');
+    const validExpenses = (db.expenses || []).filter((e) => e && e.status === 'Sah');
 
     const totalIncomes = validIncomes.reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
     const totalExpenses = validExpenses.reduce((sum, e) => sum + (Number(e.nominal) || 0), 0);
-    const saldoAkhir = (Number(db.settings.saldoAwal) || 0) + totalIncomes - totalExpenses;
+    const saldoAkhir = (Number(db.settings?.saldoAwal) || 0) + totalIncomes - totalExpenses;
 
     // Breakdown expense by category
     const expenseByCategory: Record<string, number> = {};
