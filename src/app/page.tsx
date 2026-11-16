@@ -41,6 +41,7 @@ import {
   Building2,
   Loader2,
   Printer,
+  Smartphone,
 } from 'lucide-react';
 import { formatRupiah, formatDateIndo, createWaLink, normalizePeriodCode } from '@/lib/format';
 
@@ -200,6 +201,11 @@ export default function PublicPage() {
   const [hoveredExpenseCat, setHoveredExpenseCat] = useState<string | null>(null);
   const [hoveredIncomeCat, setHoveredIncomeCat] = useState<string | null>(null);
 
+  // PWA Install State
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
+
   // Router & Admin PIN Modal State
   const router = useRouter();
   const [showAdminPinModal, setShowAdminPinModal] = useState(false);
@@ -276,7 +282,49 @@ export default function PublicPage() {
   useEffect(() => {
     localStorage.removeItem('cleo_admin_auth');
     loadData();
+
+    // Cek apakah sudah berjalan sebagai aplikasi standalone (PWA terpasang)
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      Boolean((window.navigator as any).standalone);
+    setIsStandaloneApp(standalone);
+
+    // Daftarkan Service Worker agar muncul opsi Install Aplikasi di HP Android
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setIsStandaloneApp(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
+
+  const handleInstallAppClick = async () => {
+    if (deferredInstallPrompt) {
+      try {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice?.outcome === 'accepted') {
+          setDeferredInstallPrompt(null);
+        }
+        return;
+      } catch {}
+    }
+    setShowInstallGuideModal(true);
+  };
 
   const filteredResidents = useMemo(() => {
     if (!wargaSearchQuery) return residents;
@@ -852,7 +900,18 @@ export default function PublicPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {!isStandaloneApp && (
+              <button
+                type="button"
+                onClick={handleInstallAppClick}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-xs"
+                title="Pasang sebagai aplikasi di layar utama HP"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Pasang Aplikasi</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={loadData}
@@ -2533,6 +2592,60 @@ export default function PublicPage() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PANDUAN INSTALL APLIKASI DI HP */}
+      {showInstallGuideModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <img src="/icon-192.png" alt="Logo" className="w-9 h-9 rounded-xl border border-slate-200" />
+                <div>
+                  <h3 className="font-black text-slate-900 text-sm">Pasang IPL Cleopatra di HP</h3>
+                  <p className="text-[11px] text-slate-500">Akses cepat langsung dari layar utama HP</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInstallGuideModal(false)}
+                className="text-slate-400 hover:text-slate-700 p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+                <div className="font-black text-emerald-900">1. Untuk HP Android (Google Chrome)</div>
+                <ol className="list-decimal list-inside space-y-1 text-slate-700 text-[11px]">
+                  <li>Buka <strong>iplcleopatra.vercel.app</strong> di browser <strong>Chrome</strong> (bukan dari dalam WhatsApp).</li>
+                  <li>Ketuk ikon titik tiga (<strong>⋮</strong>) di pojok kanan atas browser.</li>
+                  <li>Pilih <strong>Tambahkan ke layar utama</strong> / <strong>Instal aplikasi</strong>.</li>
+                  <li>Ketuk <strong>Instal</strong> — ikon IPL Cleopatra muncul di layar HP.</li>
+                </ol>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="font-black text-slate-900">2. Untuk iPhone / iPad (Safari)</div>
+                <ol className="list-decimal list-inside space-y-1 text-slate-700 text-[11px]">
+                  <li>Buka <strong>iplcleopatra.vercel.app</strong> menggunakan browser <strong>Safari</strong>.</li>
+                  <li>Ketuk ikon <strong>Bagikan / Share</strong> (kotak dengan panah ke atas) di bagian bawah layar.</li>
+                  <li>Pilih <strong>Tambahkan ke Layar Utama (Add to Home Screen)</strong>.</li>
+                  <li>Ketuk <strong>Tambah (Add)</strong> di pojok kanan atas.</li>
+                </ol>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInstallGuideModal(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
+            >
+              Mengerti
+            </button>
           </div>
         </div>
       )}

@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   description: "Portal resmi pembayaran dan transparansi keuangan kas warga RT 011 / RW 028 Cluster Cleopatra",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo-cleopatra.jpg",
-    apple: "/logo-cleopatra.jpg",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
   },
   appleWebApp: {
     capable: true,
