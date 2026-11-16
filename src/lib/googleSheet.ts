@@ -1182,11 +1182,15 @@ export function escapeGsheetCell(val: any): string {
 }
 
 async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][]): Promise<{ success: boolean; count: number; error?: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8500);
   try {
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
+    const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (!webhookUrl || !webhookUrl.startsWith('http')) {
+      clearTimeout(timeoutId);
       return { success: false, count: 0, error: 'Webhook URL belum dikonfigurasi' };
     }
 
@@ -1200,7 +1204,9 @@ async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][])
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -1211,6 +1217,7 @@ async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][])
     }
     return { success: false, count: 0, error: `Webhook HTTP ${res.status}` };
   } catch (err: any) {
+    clearTimeout(timeoutId);
     return { success: false, count: 0, error: err.message };
   }
 }
@@ -1222,49 +1229,54 @@ export async function appendRowsToSheet(
   if (rows.length === 0) return { success: true, count: 0 };
   const valuesArg = rows.join('|');
 
-  // 1. Coba via gsheets CLI (jika di environment lokal dengan CLI terpasang)
-  const cliPromise = new Promise<{ success: boolean; count: number; error?: string }>((resolve) => {
-    try {
-      const child = spawn(
-        'gsheets',
-        ['mutate', 'append', SHEET_ID, sheetTitle, valuesArg],
-        { shell: true }
-      );
+  // 1. Coba via gsheets CLI hanya di environment lokal (lewati di Vercel/production agar super cepat)
+  const isServerless = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
+  let cliError = '';
+  if (!isServerless) {
+    const cliPromise = new Promise<{ success: boolean; count: number; error?: string }>((resolve) => {
+      try {
+        const child = spawn(
+          'gsheets',
+          ['mutate', 'append', SHEET_ID, sheetTitle, valuesArg],
+          { shell: true }
+        );
 
-      let stderr = '';
-      let stdout = '';
-      child.stdout.on('data', (d) => (stdout += d.toString()));
-      child.stderr.on('data', (d) => (stderr += d.toString()));
+        let stderr = '';
+        let stdout = '';
+        child.stdout.on('data', (d) => (stdout += d.toString()));
+        child.stderr.on('data', (d) => (stderr += d.toString()));
 
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve({ success: true, count: rows.length });
-        } else {
-          resolve({ success: false, count: 0, error: stderr || stdout });
-        }
-      });
+        child.on('close', (code) => {
+          if (code === 0) {
+            resolve({ success: true, count: rows.length });
+          } else {
+            resolve({ success: false, count: 0, error: stderr || stdout });
+          }
+        });
 
-      child.on('error', (err) => {
-        resolve({ success: false, count: 0, error: err.message });
-      });
-    } catch (e: any) {
-      resolve({ success: false, count: 0, error: e.message });
+        child.on('error', (err) => {
+          resolve({ success: false, count: 0, error: err.message });
+        });
+      } catch (e: any) {
+        resolve({ success: false, count: 0, error: e.message });
+      }
+    });
+
+    const cliResult = await cliPromise;
+    if (cliResult.success) {
+      return cliResult;
     }
-  });
-
-  const cliResult = await cliPromise;
-  if (cliResult.success) {
-    return cliResult;
+    cliError = cliResult.error || '';
   }
 
-  // 2. Fallback Webhook jika CLI tidak ada (misalnya saat di Vercel/Cloud)
+  // 2. Langsung kirim via Webhook Google Apps Script
   const rowsArray = rows.map((r) => r.split(',').map((c) => c.trim()));
   const webhookResult = await appendViaWebhook(sheetTitle, rowsArray);
   if (webhookResult.success) {
     return webhookResult;
   }
 
-  return { success: false, count: 0, error: cliResult.error || webhookResult.error };
+  return { success: false, count: 0, error: cliError || webhookResult.error };
 }
 
 // 10.1 MasterWarga

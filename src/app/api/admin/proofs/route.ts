@@ -83,6 +83,16 @@ export async function GET(req: NextRequest) {
       return p;
     });
 
+    // Urutkan terbaru di atas, dan prioritaskan status "Menunggu Verifikasi" paling atas
+    proofs.reverse().sort((a, b) => {
+      const rank = (s: string) => (s === 'Menunggu Verifikasi' ? 0 : s === 'Ditolak' ? 1 : 2);
+      const diff = rank(a.status) - rank(b.status);
+      if (diff !== 0) return diff;
+      const tA = new Date(a.createdAt || 0).getTime();
+      const tB = new Date(b.createdAt || 0).getTime();
+      return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
+    });
+
     if (status && status !== 'Semua') {
       proofs = proofs.filter((p) => p.status === status);
     }

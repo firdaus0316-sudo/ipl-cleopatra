@@ -39,8 +39,9 @@ import {
   CalendarCheck,
   MessageCircle,
   Building2,
+  Loader2,
 } from 'lucide-react';
-import { formatRupiah, formatDateIndo, createWaLink } from '@/lib/format';
+import { formatRupiah, formatDateIndo, createWaLink, normalizePeriodCode } from '@/lib/format';
 
 interface SafeSettings {
   namaRt: string;
@@ -137,6 +138,8 @@ export default function PublicPage() {
   const [customNominal, setCustomNominal] = useState<string>('150000');
   const [catatanWarga, setCatatanWarga] = useState('');
   const [buktiImage, setBuktiImage] = useState<string>('');
+  const [buktiImageSizeKb, setBuktiImageSizeKb] = useState<number>(0);
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<PublicProof | null>(null);
   const [formError, setFormError] = useState('');
@@ -330,24 +333,120 @@ export default function PublicPage() {
     setCustomNominal(String(currentResidentTarif * Math.max(1, updated.length)));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          URL.revokeObjectURL(objectUrl);
+          const maxDim = 1200;
+          let width = img.naturalWidth || img.width;
+          let height = img.naturalHeight || img.height;
+
+          if (!width || !height) {
+            reject(new Error('Dimensi foto tidak valid'));
+            return;
+          }
+
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context tidak tersedia'));
+            return;
+          }
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+
+          // Jika masih di atas ~320KB (450k karakter base64), perkecil lagi agar upload HP instan
+          if (dataUrl.length > 450000) {
+            const scale = 900 / Math.max(width, height);
+            if (scale < 1) {
+              canvas.width = Math.round(width * scale);
+              canvas.height = Math.round(height * scale);
+              const ctx2 = canvas.getContext('2d');
+              if (ctx2) {
+                ctx2.fillStyle = '#ffffff';
+                ctx2.fillRect(0, 0, canvas.width, canvas.height);
+                ctx2.drawImage(img, 0, 0, canvas.width, canvas.height);
+              }
+            }
+            dataUrl = canvas.toDataURL('image/jpeg', 0.62);
+          }
+
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Format gambar tidak dapat diproses'));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert('Ukuran file maksimal 8 MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setFormError('Ukuran foto maksimal 15 MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setBuktiImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setFormError('');
+    setIsCompressingImage(true);
+    try {
+      const compressedDataUrl = await compressImageFile(file);
+      const sizeKb = Math.max(1, Math.round((compressedDataUrl.length * 0.75) / 1024));
+      setBuktiImage(compressedDataUrl);
+      setBuktiImageSizeKb(sizeKb);
+    } catch {
+      if (file.size <= 2.5 * 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const sizeKb = Math.max(1, Math.round((result.length * 0.75) / 1024));
+          setBuktiImage(result);
+          setBuktiImageSizeKb(sizeKb);
+        };
+        reader.onerror = () => {
+          setFormError('Gagal membaca file foto. Silakan pilih foto JPG/PNG atau screenshot.');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFormError('Foto kamera HP terlalu besar atau format tidak didukung. Gunakan screenshot atau foto JPG/PNG.');
+      }
+    } finally {
+      setIsCompressingImage(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isCompressingImage) return;
     setFormError('');
 
     if (!residentName || !blok) {
@@ -366,6 +465,9 @@ export default function PublicPage() {
     }
 
     setIsSubmitting(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
     try {
       const res = await fetch('/api/public/submit-proof', {
         method: 'POST',
@@ -381,18 +483,38 @@ export default function PublicPage() {
           buktiUrl: buktiImage,
           catatanWarga,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
-      const data = await res.json();
-      if (data.success) {
+      if (res.status === 413) {
+        setFormError('Ukuran foto bukti terlalu besar untuk dikirim. Silakan pilih ulang foto atau gunakan screenshot.');
+        return;
+      }
+
+      const rawText = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        // Response non-JSON (misalnya timeout gateway)
+      }
+
+      if (res.ok && data?.success) {
         setSubmitSuccess(data.data);
         setBuktiImage('');
+        setBuktiImageSizeKb(0);
         setCatatanWarga('');
       } else {
-        setFormError(data.error || 'Gagal mengirim bukti pembayaran.');
+        setFormError(data?.error || `Gagal mengirim bukti (HTTP ${res.status}). Silakan klik Kirim Bukti Pembayaran sekali lagi.`);
       }
-    } catch {
-      setFormError('Terjadi gangguan jaringan internet. Silakan coba kembali.');
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err?.name === 'AbortError') {
+        setFormError('Waktu koneksi habis saat mengirim bukti. Mohon pastikan sinyal stabil lalu klik Kirim ulang.');
+      } else {
+        setFormError('Terjadi gangguan jaringan internet saat mengirim bukti. Silakan coba kembali.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1237,26 +1359,47 @@ export default function PublicPage() {
                       Foto Bukti Transfer (M-Banking / Struk) <span className="text-rose-500">*</span>
                     </label>
 
-                    {buktiImage ? (
+                    {isCompressingImage ? (
+                      <div className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-emerald-300 rounded-xl bg-emerald-50/50 text-emerald-700">
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                        <span className="font-bold text-xs">Mengoptimalkan ukuran foto agar cepat diunggah...</span>
+                      </div>
+                    ) : buktiImage ? (
                       <div className="border border-slate-300 rounded-xl p-3 bg-slate-50 flex flex-col items-center">
                         <img
                           src={buktiImage}
                           alt="Bukti Transfer"
                           className="max-h-60 w-auto object-contain rounded-lg shadow-xs"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setBuktiImage('')}
-                          className="mt-2.5 text-xs font-bold text-rose-600 hover:underline"
-                        >
-                          Ganti Foto Bukti
-                        </button>
+                        <div className="mt-2.5 flex items-center gap-3">
+                          {buktiImageSizeKb > 0 && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              Siap dikirim ({buktiImageSizeKb} KB)
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() => {
+                              setBuktiImage('');
+                              setBuktiImageSizeKb(0);
+                            }}
+                            className="text-xs font-bold text-rose-600 hover:underline disabled:opacity-50"
+                          >
+                            Ganti Foto Bukti
+                          </button>
+                        </div>
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center gap-2.5 p-5 border border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-                        <Camera className="w-5 h-5 text-slate-500" />
-                        <span className="font-bold text-slate-700">
-                          Pilih / Ambil Foto Bukti Transfer
+                      <label className="flex flex-col items-center justify-center gap-1.5 p-5 border border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition text-center">
+                        <div className="flex items-center gap-2">
+                          <Camera className="w-5 h-5 text-slate-500" />
+                          <span className="font-bold text-slate-700">
+                            Pilih / Ambil Foto Bukti Transfer
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Otomatis dikompres di HP agar upload instan & tidak gagal
                         </span>
                         <input
                           type="file"
@@ -1271,11 +1414,14 @@ export default function PublicPage() {
                   {/* SUBMIT BUTTON */}
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm"
+                    disabled={isSubmitting || isCompressingImage}
+                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm"
                   >
                     {isSubmitting ? (
-                      <span>Mengirim Bukti...</span>
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Mengirim ke Verifikasi Admin...</span>
+                      </>
                     ) : (
                       <>
                         <span>Kirim Bukti Pembayaran</span>

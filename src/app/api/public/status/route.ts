@@ -41,6 +41,9 @@ export async function GET(req: NextRequest) {
       return p;
     });
 
+    // Urutkan terbaru di atas (reverse dari urutan baris Google Sheet) sebelum slice
+    proofs.reverse();
+
     if (q) {
       proofs = proofs.filter(
         (p) =>
@@ -51,8 +54,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Return safe projection for public view
-    const safeList = proofs.slice(0, 30).map((p) => ({
+    // Return safe projection for public view (prioritaskan Menunggu Verifikasi di paling atas)
+    proofs.sort((a, b) => {
+      const rank = (s: string) => (s === 'Menunggu Verifikasi' ? 0 : 1);
+      const diff = rank(a.status) - rank(b.status);
+      if (diff !== 0) return diff;
+      const tA = new Date(a.createdAt || 0).getTime();
+      const tB = new Date(b.createdAt || 0).getTime();
+      return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
+    });
+
+    const safeList = proofs.slice(0, 50).map((p) => ({
       id: p.id,
       residentName: p.residentName,
       blok: p.blok,

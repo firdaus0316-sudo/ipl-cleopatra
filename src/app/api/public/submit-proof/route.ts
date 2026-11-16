@@ -6,6 +6,7 @@ import { normalizePeriodCode, appendProofToSheet } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +34,10 @@ export async function POST(req: NextRequest) {
       const cleanBlok = blok.trim().replace(/[^a-zA-Z0-9]/g, '_');
       const filename = `Bukti_${proofId}_${cleanName}_${cleanBlok}.jpg`;
 
-      const webhookUrl = db.settings.googleDriveWebhookUrl || db.settings.linkPenyimpananBuktiDrive;
+      const webhookUrl =
+        db.settings.googleDriveWebhookUrl && db.settings.googleDriveWebhookUrl.includes('script.google.com')
+          ? db.settings.googleDriveWebhookUrl
+          : undefined;
       const driveRes = await uploadToGoogleDrive(buktiUrl, filename, webhookUrl);
       if (driveRes.success && driveRes.fileUrl) {
         driveUrl = driveRes.fileUrl;
@@ -81,11 +85,34 @@ export async function POST(req: NextRequest) {
     db.proofs.unshift(newProof);
     saveDb(db);
 
-    // Otomatis sinkronkan pengajuan bukti baru ke Google Sheet BuktiTransfer
+    // Otomatis sinkronkan pengajuan bukti baru ke Google Sheet BuktiTransfer (dengan 1x auto-retry)
+    let sheetSyncOk = false;
+    let sheetSyncError = '';
     try {
-      await appendProofToSheet(newProof);
-    } catch (e) {
+      const sheetRes = await appendProofToSheet(newProof);
+      sheetSyncOk = sheetRes.success;
+      if (!sheetRes.success) {
+        sheetSyncError = sheetRes.error || '';
+        const retryRes = await appendProofToSheet(newProof);
+        sheetSyncOk = retryRes.success;
+        if (!retryRes.success) {
+          sheetSyncError = retryRes.error || sheetSyncError;
+        }
+      }
+    } catch (e: any) {
+      sheetSyncError = e.message || 'Gagal sinkronisasi sheet';
       console.error('Auto-sync proof to BuktiTransfer sheet error:', e);
+    }
+
+    if (!sheetSyncOk) {
+      console.error('BuktiTransfer sheet append failed after retry:', sheetSyncError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Koneksi ke Google Sheets sedang sibuk. Mohon klik "Kirim Bukti Pembayaran" sekali lagi.',
+        },
+        { status: 503 }
+      );
     }
 
     addLog(
@@ -97,6 +124,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: newProof,
+      sheetSynced: true,
       message: 'Bukti pembayaran berhasil dikirim! Menunggu verifikasi dari bendahara/admin.',
     });
   } catch (error: any) {

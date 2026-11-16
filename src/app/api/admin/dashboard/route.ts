@@ -41,9 +41,18 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Auto-sync kasbon live dari Google Sheet DataKasbon
+    // Auto-sync seluruh data Google Sheets secara paralel agar sangat cepat
     try {
-      const kasbonRes = await fetchKasbonFromSheet();
+      const [kasbonRes, wRes, nwRes, expRes, resRes, incRes, proofsRes] = await Promise.all([
+        fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] as any[] })),
+        fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
+        fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
+        fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] as any[] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
+      ]);
+
       if (kasbonRes.success && kasbonRes.kasbon.length > 0) {
         const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
         db.kasbon = kasbonRes.kasbon.map((s) => {
@@ -54,14 +63,7 @@ export async function GET(req: NextRequest) {
           };
         });
       }
-    } catch {}
 
-    // Auto-sync tunggakan live dari Google Sheet TunggakanLama & TunggakanNonWarga
-    try {
-      const [wRes, nwRes] = await Promise.all([
-        fetchTunggakanLamaFromSheet(),
-        fetchTunggakanNonWargaFromSheet(),
-      ]);
       const combinedTung = [...(wRes.tunggakan || []), ...(nwRes.tunggakan || [])];
       if (combinedTung.length > 0) {
         const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
@@ -74,11 +76,7 @@ export async function GET(req: NextRequest) {
           };
         });
       }
-    } catch {}
 
-    // Auto-sync expenses live dari Google Sheet DataPengeluaran
-    try {
-      const expRes = await fetchExpensesFromSheet();
       if (expRes.success && expRes.expenses.length > 0) {
         const deletedSet = new Set(db.deletedExpenseIds || []);
         const localMap = new Map((db.expenses || []).map((e) => [e.id, e]));
@@ -93,6 +91,24 @@ export async function GET(req: NextRequest) {
               driveUrl: local?.driveUrl || s.driveUrl,
             };
           });
+      }
+
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
+
+      if (incRes.success && incRes.incomes.length > 0) {
+        const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
+        db.incomes = incRes.incomes.map((s) => {
+          const local = localMap.get(s.id);
+          return { ...s, buktiId: local?.buktiId || s.buktiId };
+        });
+      }
+
+      if (proofsRes.success && proofsRes.proofs.length > 0) {
+        const sheetProofMap = new Map(proofsRes.proofs.map((p) => [p.id, p]));
+        const localOnly = (db.proofs || []).filter((p) => !sheetProofMap.has(p.id));
+        db.proofs = [...proofsRes.proofs, ...localOnly];
       }
     } catch {}
 
@@ -127,38 +143,6 @@ export async function GET(req: NextRequest) {
             appendExpenseToSheet(missingExpense, ksb.id);
           } catch {}
         }
-      }
-    } catch {}
-
-    // Auto-sync residents live dari Google Sheet masterwarga
-    try {
-      const resRes = await fetchResidentsFromSheet();
-      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
-        db.residents = resRes.residents;
-      }
-    } catch {}
-
-    // Auto-sync incomes live dari Google Sheet DataIuran
-    try {
-      const incRes = await fetchIncomesFromSheet();
-      if (incRes.success && incRes.incomes.length > 0) {
-        const sheetIncMap = new Map(incRes.incomes.map((i) => [i.id, i]));
-        const localMap = new Map((db.incomes || []).map((i) => [i.id, i]));
-        const mergedInc = incRes.incomes.map((s) => {
-          const local = localMap.get(s.id);
-          return { ...s, buktiId: local?.buktiId || s.buktiId };
-        });
-        db.incomes = mergedInc;
-      }
-    } catch {}
-
-    // Auto-sync proofs live dari Google Sheet BuktiTransfer
-    try {
-      const proofsRes = await fetchProofsFromSheet();
-      if (proofsRes.success && proofsRes.proofs.length > 0) {
-        const sheetProofMap = new Map(proofsRes.proofs.map((p) => [p.id, p]));
-        const localOnly = (db.proofs || []).filter((p) => !sheetProofMap.has(p.id));
-        db.proofs = [...proofsRes.proofs, ...localOnly];
       }
     } catch {}
 

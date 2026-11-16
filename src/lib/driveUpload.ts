@@ -23,24 +23,32 @@ export async function uploadToGoogleDrive(
   filename: string,
   webhookUrl?: string
 ): Promise<DriveUploadResult> {
-  // 1. Coba upload langsung via gdrive CLI
-  try {
-    const cliResult = await uploadViaGdriveCLI(dataUrlOrBase64, filename);
-    if (cliResult.success) {
-      return cliResult;
+  // 1. Di Vercel / production, lewati CLI lokal agar tidak membuang waktu spawn proses yang tidak ada
+  const isServerless = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
+  if (!isServerless) {
+    try {
+      const cliResult = await uploadViaGdriveCLI(dataUrlOrBase64, filename);
+      if (cliResult.success) {
+        return cliResult;
+      }
+      console.warn('gdrive CLI upload fallback notice:', cliResult.error);
+    } catch (err: any) {
+      console.warn('gdrive CLI upload error, falling back to webhook:', err.message);
     }
-    console.warn('gdrive CLI upload fallback notice:', cliResult.error);
-  } catch (err: any) {
-    console.warn('gdrive CLI upload error, falling back to webhook:', err.message);
   }
 
-  // 2. Fallback: Google Apps Script Web App jika webhookUrl tersedia
+  // 2. Upload langsung melalui Google Apps Script Web App
+  const validParamWebhook =
+    webhookUrl && webhookUrl.includes('script.google.com') ? webhookUrl : undefined;
   const activeWebhookUrl =
-    webhookUrl ||
+    validParamWebhook ||
+    process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
     process.env.GOOGLE_WEBHOOK_URL ||
     'https://script.google.com/macros/s/AKfycbxg_LRxCVh-oYYeiMBpJvo6i0kkrClAmAUdXnPfFNhZNTsBXarGZ9JJOaoFMI7l6YBC9w/exec';
 
   if (activeWebhookUrl && activeWebhookUrl.startsWith('http')) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8500);
     try {
       let base64 = dataUrlOrBase64;
       let mimetype = 'image/jpeg';
@@ -64,7 +72,9 @@ export async function uploadToGoogleDrive(
           'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const text = await res.text();
@@ -83,6 +93,7 @@ export async function uploadToGoogleDrive(
         }
       }
     } catch (e: any) {
+      clearTimeout(timeoutId);
       console.error('Webhook upload error:', e.message);
     }
   }
