@@ -167,7 +167,11 @@ export function isIncomeInPeriod(inc: any, targetPeriod: string, year: number): 
 
 export function normalizeBlokCode(s?: string | null): string {
   if (!s) return '';
-  return s.trim().toUpperCase().replace(/[\s\-_/.]+/g, '-');
+  return s
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-_/.()\[\]]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 export function matchIncomeToResident(income: any, resident: any): boolean {

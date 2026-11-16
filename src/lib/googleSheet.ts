@@ -388,8 +388,12 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       if (isRegularIuran && blockKey && monthKey && !inc.catatan?.toLowerCase().includes('angsuran') && !inc.catatan?.toLowerCase().includes('cicil')) {
         const existing = seenBlockMonth.get(comboKey);
         if (existing) {
-          // Jika salah satu memiliki buktiId (hasil verifikasi resmi), prioritaskan yang berbukti resmi
-          if (!existing.buktiId && inc.buktiId) {
+          // Prioritaskan baris dengan buktiId resmi, lalu yang memiliki residentId lengkap, lalu yang memiliki Transaksi ID resmi
+          const score = (tx: IncomeTransaction) =>
+            (tx.buktiId ? 4 : 0) +
+            (tx.residentId ? 2 : 0) +
+            (tx.id && !tx.id.startsWith('SHEET-ROW-') ? 1 : 0);
+          if (score(inc) > score(existing)) {
             const idx = uniqueIncomes.indexOf(existing);
             if (idx !== -1) uniqueIncomes[idx] = inc;
             seenBlockMonth.set(comboKey, inc);
