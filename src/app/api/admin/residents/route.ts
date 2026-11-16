@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { Resident } from '@/types';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   appendResidentToSheet,
   updateResidentInSheet,
@@ -12,7 +13,8 @@ import {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
     try {
@@ -31,6 +33,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { nama, blok, hp, tarif, status, catatan } = body;
@@ -76,6 +79,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { id, nama, blok, hp, tarif, status, catatan } = body;
@@ -240,6 +244,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

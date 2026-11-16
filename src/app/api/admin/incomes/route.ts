@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   appendIncomesToSheet,
   deleteIncomeFromSheet,
@@ -17,7 +18,8 @@ import {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
     let incomes = db.incomes || [];
@@ -107,6 +109,7 @@ function normalizePeriodCode(input?: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { tanggal, sumber, residentId, kategori, bulan, nominal, catatan } = body;
@@ -295,6 +298,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { id, action } = body;
@@ -385,6 +389,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -422,7 +427,7 @@ export async function DELETE(req: NextRequest) {
     // 2. Jika berasal dari verifikasi bukti transfer:
     // HAPUS TOTAL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS
     if (relatedBuktiIds.size > 0) {
-      for (const bId of relatedBuktiIds) {
+      for (const bId of Array.from(relatedBuktiIds)) {
         if (!db.deletedIncomeIds.includes(bId)) db.deletedIncomeIds.push(bId);
         if (!db.deletedProofIds.includes(bId)) db.deletedProofIds.push(bId);
 

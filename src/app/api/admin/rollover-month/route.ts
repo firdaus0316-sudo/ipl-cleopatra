@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { SaldoAwalEntry } from '@/types';
 import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod } from '@/lib/format';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -35,7 +36,8 @@ function isExpenseInPeriod(exp: any, targetPeriod: string): boolean {
   return Boolean(exp.tanggal && exp.tanggal.startsWith(normTarget));
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
     return NextResponse.json({
@@ -50,6 +52,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { targetPeriode, saldoAwalBaru, keterangan, tutupPeriodeLama, saldoAwalLama } = body;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   appendIncomesToSheet,
   appendPelunasanToSheet,
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -131,6 +133,7 @@ function normalizePeriodCode(input?: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { id, action, adminNote } = body;
@@ -445,6 +448,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -480,7 +484,7 @@ export async function DELETE(req: NextRequest) {
     if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
 
     // 2. Hapus seluruh transaksi kas masuk terkait dari Google Sheet DataIuran & RiwayatPelunasan
-    for (const txId of txIdsToDelete) {
+    for (const txId of Array.from(txIdsToDelete)) {
       if (!db.deletedIncomeIds.includes(txId)) db.deletedIncomeIds.push(txId);
       try {
         await deleteIncomeFromSheet(txId);

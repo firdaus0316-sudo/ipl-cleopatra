@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction, ExpenseTransaction, KasbonEntry, PembayaranRecord } from '@/types';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   appendIncomesToSheet,
   appendKasbonToSheet,
@@ -16,7 +17,8 @@ import {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
     let kasbonList = db.kasbon || [];
@@ -50,6 +52,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const { action, id, nominal, metode, tanggal, catatan, namaPeminjam, keterangan, status } = body;
@@ -280,6 +283,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

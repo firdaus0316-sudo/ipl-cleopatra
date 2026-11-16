@@ -381,12 +381,22 @@ export default function AdminPage() {
   const [hoveredChartDay, setHoveredChartDay] = useState<any>(null);
   const [selectedTargetPeriod, setSelectedTargetPeriod] = useState<string>('2026-11');
 
-  // Check existing session
+  // Check existing session cookie on server
   useEffect(() => {
-    const savedAuth = localStorage.getItem('cleo_admin_auth');
-    if (savedAuth === 'true') {
-      setIsAuthenticated(true);
-    }
+    fetch('/api/admin/auth', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.authenticated) {
+          setIsAuthenticated(true);
+          localStorage.setItem('cleo_admin_auth', 'true');
+        } else {
+          localStorage.removeItem('cleo_admin_auth');
+          setIsAuthenticated(false);
+        }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      });
   }, []);
 
   // Fetch data on tab change or auth with fresh timestamp
@@ -409,6 +419,12 @@ export default function AdminPage() {
         fetch(`/api/admin/kasbon?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/tunggakan?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
       ]);
+
+      if (dashRes?.requireAuth || proofsRes?.requireAuth || settRes?.requireAuth) {
+        localStorage.removeItem('cleo_admin_auth');
+        setIsAuthenticated(false);
+        return;
+      }
 
       if (dashRes?.success) {
         setDashboardData(dashRes);
@@ -553,7 +569,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+    } catch {}
     setIsAuthenticated(false);
     localStorage.removeItem('cleo_admin_auth');
     window.location.href = '/admin';

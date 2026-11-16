@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { fetchProofsFromSheet, fetchIncomesFromSheet } from '@/lib/googleSheet';
+import { fetchProofsFromSheet, fetchIncomesFromSheet, getDirectGoogleDriveImageUrl } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       adminNote: p.adminNote,
       createdAt: p.createdAt,
       verifiedAt: p.verifiedAt,
-      buktiUrl: p.buktiUrl,
+      buktiUrl: getDirectGoogleDriveImageUrl(p.driveUrl || p.buktiUrl),
     }));
 
     // Jika mencari nama/blok tertentu, tambahkan juga transaksi kas masuk resmi dari DataIuran

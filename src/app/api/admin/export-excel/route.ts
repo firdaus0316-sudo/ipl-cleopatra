@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { getDb } from '@/lib/db';
 import { formatDateIndo, MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod } from '@/lib/format';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,6 +29,7 @@ function isExpenseInPeriod(exp: any, targetPeriod: string, year: number): boolea
 }
 
 export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const requestedTargetPeriod = searchParams.get('period') || '2026-11';

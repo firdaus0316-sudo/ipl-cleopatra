@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getDb, saveDb } from '@/lib/db';
+import { getDb } from '@/lib/db';
+import { normalizePeriodCode } from '@/lib/format';
 import {
   fetchResidentsFromSheet,
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
   fetchSaldoAwalFromSheet,
+  fetchProofsFromSheet,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -14,13 +16,14 @@ export async function GET() {
   try {
     const db = getDb();
 
-    // Fetch live residents, incomes, expenses, and saldo awal from Google Sheet
+    // Fetch live residents, incomes, expenses, proofs, and saldo awal from Google Sheet
     try {
-      const [sheetResult, incRes, expRes, saldoRes] = await Promise.all([
-        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
-        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
-        fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] })),
+      const [sheetResult, incRes, expRes, saldoRes, proofRes] = await Promise.all([
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] as any[] })),
         fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
       ]);
 
       if (sheetResult.success && sheetResult.residents && sheetResult.residents.length > 0) {
@@ -50,6 +53,10 @@ export async function GET() {
       if (saldoRes.success && saldoRes.saldoAwal) {
         db.settings.saldoAwal = saldoRes.saldoAwal;
       }
+      if (proofRes.success && proofRes.proofs && proofRes.proofs.length > 0) {
+        const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
+        db.proofs = proofRes.proofs.filter((p) => !deletedProofSet.has(p.id));
+      }
     } catch (e) {
       console.warn('Public data live sync error:', e);
     }
@@ -66,11 +73,49 @@ export async function GET() {
 
     const saldoKas = (Number(db.settings?.saldoAwal) || 0) + totalPemasukan - totalPengeluaran;
 
+    // Petakan periode yang sudah lunas & menunggu verifikasi per Blok untuk cegah dobel bayar
+    const paidPeriodsByBlok: Record<string, string[]> = {};
+    const pendingPeriodsByBlok: Record<string, string[]> = {};
+
+    (db.incomes || []).forEach((inc) => {
+      if (!inc || inc.status !== 'Sah') return;
+      const kat = (inc.kategori || '').toLowerCase();
+      if (!kat.includes('iuran') || kat.includes('tunggakan')) return;
+      const match = (inc.sumber || '').match(/\(([^)]+)\)/);
+      const rawBlok = match?.[1] || '';
+      const cleanBlok = rawBlok.toUpperCase().replace(/\s+/g, '');
+      if (!cleanBlok) return;
+      if (!paidPeriodsByBlok[cleanBlok]) paidPeriodsByBlok[cleanBlok] = [];
+      (inc.bulan || []).forEach((b) => {
+        const norm = normalizePeriodCode(b);
+        if (norm && !paidPeriodsByBlok[cleanBlok].includes(norm)) {
+          paidPeriodsByBlok[cleanBlok].push(norm);
+        }
+      });
+    });
+
+    (db.proofs || []).forEach((p) => {
+      if (!p || p.status !== 'Menunggu Verifikasi') return;
+      const kat = (p.kategori || '').toLowerCase();
+      if (!kat.includes('iuran') || kat.includes('tunggakan')) return;
+      const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+      if (!cleanBlok) return;
+      if (!pendingPeriodsByBlok[cleanBlok]) pendingPeriodsByBlok[cleanBlok] = [];
+      (p.bulan || []).forEach((b) => {
+        const norm = normalizePeriodCode(b);
+        if (norm && !pendingPeriodsByBlok[cleanBlok].includes(norm)) {
+          pendingPeriodsByBlok[cleanBlok].push(norm);
+        }
+      });
+    });
+
     return NextResponse.json({
       success: true,
       settings: safeSettings,
       residents: (db.residents || []).filter((r) => r && r.status === 'Aktif'),
       saldoKas,
+      paidPeriodsByBlok,
+      pendingPeriodsByBlok,
       sheetStatus: `Tersinkron otomatis Google Sheets`,
       isSheetLocked: false,
     });

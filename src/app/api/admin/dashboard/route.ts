@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb } from '@/lib/db';
 import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident } from '@/lib/format';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   fetchKasbonFromSheet,
   fetchTunggakanLamaFromSheet,
@@ -34,6 +35,7 @@ function isExpenseInPeriod(exp: any, targetPeriod: string, year: number): boolea
 }
 
 export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const { searchParams } = new URL(req.url);
     const requestedTargetPeriod = searchParams.get('targetPeriod');

@@ -40,6 +40,7 @@ import {
   MessageCircle,
   Building2,
   Loader2,
+  Printer,
 } from 'lucide-react';
 import { formatRupiah, formatDateIndo, createWaLink, normalizePeriodCode } from '@/lib/format';
 
@@ -50,6 +51,7 @@ interface SafeSettings {
   namaBank: string;
   nomorRekening: string;
   atasNama: string;
+  qrisUrl?: string;
   nomorWaAdmin: string;
   pesanPengumuman: string;
 }
@@ -120,6 +122,8 @@ export default function PublicPage() {
   const [settings, setSettings] = useState<SafeSettings | null>(null);
   const [residents, setResidents] = useState<PublicResident[]>([]);
   const [saldoKas, setSaldoKas] = useState<number>(0);
+  const [paidPeriodsByBlok, setPaidPeriodsByBlok] = useState<Record<string, string[]>>({});
+  const [pendingPeriodsByBlok, setPendingPeriodsByBlok] = useState<Record<string, string[]>>({});
   const [copied, setCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSheetLocked, setIsSheetLocked] = useState(false);
@@ -150,6 +154,7 @@ export default function PublicPage() {
   const [proofList, setProofList] = useState<PublicProof[]>([]);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [selectedProofPreview, setSelectedProofPreview] = useState<PublicProof | null>(null);
+  const [selectedReceiptProof, setSelectedReceiptProof] = useState<PublicProof | null>(null);
 
   const statusSuggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -243,6 +248,8 @@ export default function PublicPage() {
           setSettings(data.settings);
           setResidents(data.residents);
           if (data.saldoKas !== undefined) setSaldoKas(data.saldoKas);
+          if (data.paidPeriodsByBlok) setPaidPeriodsByBlok(data.paidPeriodsByBlok);
+          if (data.pendingPeriodsByBlok) setPendingPeriodsByBlok(data.pendingPeriodsByBlok);
           setIsSheetLocked(Boolean(data.isSheetLocked));
         }
       })
@@ -283,6 +290,31 @@ export default function PublicPage() {
     const r = residents.find((x) => x.id === selectedResidentId);
     return r?.tarif || 150000;
   }, [residents, selectedResidentId]);
+
+  const currentResidentPaidSet = useMemo(() => {
+    const clean = (blok || '').toUpperCase().replace(/\s+/g, '');
+    return new Set(paidPeriodsByBlok[clean] || []);
+  }, [blok, paidPeriodsByBlok]);
+
+  const currentResidentPendingSet = useMemo(() => {
+    const clean = (blok || '').toUpperCase().replace(/\s+/g, '');
+    return new Set(pendingPeriodsByBlok[clean] || []);
+  }, [blok, pendingPeriodsByBlok]);
+
+  const overlappingWarning = useMemo(() => {
+    const katLower = (kategori || '').toLowerCase();
+    if (!blok || !katLower.includes('iuran') || katLower.includes('tunggakan')) {
+      return { paid: [] as string[], pending: [] as string[] };
+    }
+    const paid: string[] = [];
+    const pending: string[] = [];
+    selectedMonths.forEach((m) => {
+      const code = normalizePeriodCode(m);
+      if (code && currentResidentPaidSet.has(code)) paid.push(m);
+      else if (code && currentResidentPendingSet.has(code)) pending.push(m);
+    });
+    return { paid, pending };
+  }, [blok, kategori, selectedMonths, currentResidentPaidSet, currentResidentPendingSet]);
 
   const handleSelectResident = (r: PublicResident) => {
     setSelectedResidentId(r.id);
@@ -1159,6 +1191,22 @@ export default function PublicPage() {
                   Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
                 </div>
               </div>
+
+              {settings?.qrisUrl && (
+                <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4 bg-emerald-50/40 rounded-xl p-3.5 border">
+                  <img
+                    src={settings.qrisUrl}
+                    alt="QRIS Kas RT"
+                    className="w-28 h-28 object-contain rounded-lg bg-white p-1 border border-slate-200 shrink-0"
+                  />
+                  <div className="text-xs text-slate-700 text-center sm:text-left">
+                    <div className="font-black text-slate-900">Scan QRIS Resmi Kas RT</div>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      Mendukung pembayaran via M-Banking, GoPay, OVO, DANA, dan ShopeePay. Simpan screenshot bukti transaksi lalu unggah di form bawah.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* FORM CARD */}
@@ -1293,18 +1341,36 @@ export default function PublicPage() {
                       {Array.from(new Set([...BULAN_OPTIONS, ...selectedMonths])).map((m) => {
                         const isSelected = selectedMonths.includes(m);
                         const monthLabel = m.replace(' 2026', '');
+                        const mCode = normalizePeriodCode(m);
+                        const isRegular = (kategori || '').toLowerCase().includes('iuran') && !(kategori || '').toLowerCase().includes('tunggakan');
+                        const isAlreadyPaid = Boolean(blok && isRegular && mCode && currentResidentPaidSet.has(mCode));
+                        const isPendingVerif = Boolean(blok && isRegular && mCode && currentResidentPendingSet.has(mCode));
                         return (
                           <button
                             key={m}
                             type="button"
                             onClick={() => handleToggleMonth(m)}
-                            className={`py-2 px-2.5 rounded-xl text-xs font-semibold text-center transition border ${
+                            className={`py-2 px-2.5 rounded-xl text-xs font-semibold text-center transition border flex flex-col items-center justify-center gap-0.5 ${
                               isSelected
                                 ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
+                                : isAlreadyPaid
+                                ? 'bg-emerald-50/70 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                                : isPendingVerif
+                                ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            {monthLabel}
+                            <span>{monthLabel}</span>
+                            {isAlreadyPaid && (
+                              <span className={`text-[9px] font-extrabold uppercase ${isSelected ? 'text-emerald-100' : 'text-emerald-700'}`}>
+                                ✓ Lunas
+                              </span>
+                            )}
+                            {!isAlreadyPaid && isPendingVerif && (
+                              <span className={`text-[9px] font-extrabold uppercase ${isSelected ? 'text-amber-200' : 'text-amber-700'}`}>
+                                ⏳ Proses
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -1410,6 +1476,26 @@ export default function PublicPage() {
                       </label>
                     )}
                   </div>
+
+                  {/* PERINGATAN ANTI-DOBEL PEMBAYARAN */}
+                  {(overlappingWarning.paid.length > 0 || overlappingWarning.pending.length > 0) && (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <div className="font-black">Perhatian Anti-Dobel Pembayaran ({blok})</div>
+                        {overlappingWarning.paid.length > 0 && (
+                          <p className="text-[11px] leading-relaxed">
+                            Periode <strong>{overlappingWarning.paid.join(', ')}</strong> sudah tercatat <strong>LUNAS</strong> di kas RT.
+                          </p>
+                        )}
+                        {overlappingWarning.pending.length > 0 && (
+                          <p className="text-[11px] leading-relaxed">
+                            Periode <strong>{overlappingWarning.pending.join(', ')}</strong> sudah dikirim dan sedang <strong>Menunggu Verifikasi</strong> Bendahara.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* SUBMIT BUTTON */}
                   <button
@@ -1552,11 +1638,24 @@ export default function PublicPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       {p.status === 'Terverifikasi' && (
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                          Lunas
-                        </span>
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedReceiptProof(p);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold inline-flex items-center gap-1 transition shadow-2xs"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span className="hidden sm:inline">Kuitansi</span>
+                          </button>
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                            Lunas
+                          </span>
+                        </>
                       )}
                       {p.status === 'Menunggu Verifikasi' && (
                         <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">
@@ -2398,17 +2497,138 @@ export default function PublicPage() {
                 <img
                   src={selectedProofPreview.buktiUrl}
                   alt="Bukti Transfer"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallbackApplied) return;
+                    const m = (selectedProofPreview.buktiUrl || '').match(/\/d\/([a-zA-Z0-9_-]+)/) || (selectedProofPreview.buktiUrl || '').match(/id=([a-zA-Z0-9_-]+)/);
+                    if (m && m[1]) {
+                      img.dataset.fallbackApplied = '1';
+                      img.src = `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1000`;
+                    }
+                  }}
                   className="max-h-60 w-auto object-contain rounded-lg"
                 />
               </div>
             )}
 
-            <button
-              onClick={() => setSelectedProofPreview(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition"
-            >
-              Tutup
-            </button>
+            <div className="flex gap-2">
+              {selectedProofPreview.status === 'Terverifikasi' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selectedProofPreview;
+                    setSelectedProofPreview(null);
+                    setSelectedReceiptProof(target);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition inline-flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Lihat Kuitansi</span>
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedProofPreview(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KUITANSI RESMI DIGITAL (PRINTABLE / PDF) */}
+      {selectedReceiptProof && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto text-xs">
+            <div className="printable-area space-y-4">
+              {/* Kop Kuitansi */}
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/logo-cleopatra.jpg"
+                    alt="Logo RT Cleopatra"
+                    className="w-11 h-11 rounded-xl object-cover border border-slate-200"
+                  />
+                  <div>
+                    <div className="font-black text-slate-900 text-sm tracking-tight">
+                      {settings?.namaRt || 'RT 011 / RW 028'} • {settings?.namaKomplek || 'Cluster Cleopatra'}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {settings?.alamat || 'Kel. Sukamaju, Kec. Cilodong'}
+                    </div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-black text-[10px] tracking-wider uppercase border border-emerald-300">
+                  LUNAS
+                </span>
+              </div>
+
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                  Kuitansi Resmi Pembayaran Iuran Warga
+                </div>
+                <div className="font-mono font-black text-slate-900 text-sm mt-0.5">
+                  {selectedReceiptProof.id}
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5">
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Telah Diterima Dari:</span>
+                  <strong className="text-slate-900 text-right">{selectedReceiptProof.residentName}</strong>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Blok / Unit Rumah:</span>
+                  <strong className="font-mono text-slate-900">{selectedReceiptProof.blok}</strong>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Kategori:</span>
+                  <strong className="text-slate-900">{selectedReceiptProof.kategori || 'Iuran Bulanan'}</strong>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-slate-500">Untuk Periode:</span>
+                  <strong className="text-slate-900 text-right">{selectedReceiptProof.bulan?.join(', ') || '-'}</strong>
+                </div>
+                <div className="flex justify-between gap-2 pt-2 border-t border-slate-200 items-center">
+                  <span className="text-slate-600 font-bold">Total Nominal:</span>
+                  <strong className="text-emerald-700 font-black text-base">
+                    {formatRupiah(selectedReceiptProof.nominal)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-end justify-between pt-2 text-[11px] text-slate-600">
+                <div>
+                  <div>Tanggal Verifikasi:</div>
+                  <div className="font-bold text-slate-800">
+                    {formatDateIndo(selectedReceiptProof.verifiedAt || selectedReceiptProof.createdAt)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-400">Terverifikasi Digital oleh:</div>
+                  <div className="font-black text-slate-900 mt-1">Bendahara {settings?.namaRt || 'RT 011'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="no-print flex gap-2 mt-5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition inline-flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Cetak / Simpan PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedReceiptProof(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

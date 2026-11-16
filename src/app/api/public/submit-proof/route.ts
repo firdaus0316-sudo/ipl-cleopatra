@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ProofSubmission } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
-import { normalizePeriodCode, appendProofToSheet } from '@/lib/googleSheet';
+import {
+  normalizePeriodCode,
+  appendProofToSheet,
+  fetchProofsFromSheet,
+  fetchIncomesFromSheet,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,6 +26,88 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
+
+    // Normalisasi periode ke array YYYY-MM terlebih dahulu
+    let parsedMonths: string[] = [];
+    if (Array.isArray(bulan)) {
+      bulan.forEach((b: string) => {
+        const parts = String(b).split(/[,;\n]+/);
+        parts.forEach((p) => {
+          const norm = normalizePeriodCode(p);
+          if (norm && !parsedMonths.includes(norm)) parsedMonths.push(norm);
+        });
+      });
+    } else if (typeof bulan === 'string' && bulan.trim()) {
+      bulan.split(/[,;\n]+/).forEach((p) => {
+        const norm = normalizePeriodCode(p);
+        if (norm && !parsedMonths.includes(norm)) parsedMonths.push(norm);
+      });
+    }
+
+    if (parsedMonths.length === 0) {
+      parsedMonths = [db.settings.periodeAktif ? normalizePeriodCode(db.settings.periodeAktif) : new Date().toISOString().slice(0, 7)];
+    }
+
+    // Proteksi Anti-Dobel untuk Iuran Bulanan (Reguler)
+    const katLower = (kategori || 'Iuran Bulanan').toLowerCase();
+    const isRegularIuran = katLower.includes('iuran') && !katLower.includes('tunggakan');
+    if (isRegularIuran) {
+      try {
+        const normInputBlok = blok.trim().toUpperCase().replace(/\s+/g, '');
+        const [proofRes, incRes] = await Promise.all([
+          fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
+          fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        ]);
+
+        const liveProofs = proofRes.success && proofRes.proofs.length > 0 ? proofRes.proofs : db.proofs || [];
+        const duplicatePending = liveProofs.find((p) => {
+          if (!p || p.status !== 'Menunggu Verifikasi') return false;
+          const pKat = (p.kategori || '').toLowerCase();
+          if (!pKat.includes('iuran') || pKat.includes('tunggakan')) return false;
+          const pBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+          if (pBlok !== normInputBlok) return false;
+          const pMonths = (p.bulan || []).map((m: string) => normalizePeriodCode(m));
+          return parsedMonths.some((m) => pMonths.includes(m));
+        });
+
+        if (duplicatePending) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Bukti untuk Blok ${blok.trim().toUpperCase()} periode (${parsedMonths.join(', ')}) sudah masuk (${duplicatePending.id}) dan sedang Menunggu Verifikasi Bendahara. Tidak perlu mengirim ulang.`,
+            },
+            { status: 409 }
+          );
+        }
+
+        const liveIncomes = incRes.success && incRes.incomes.length > 0 ? incRes.incomes : db.incomes || [];
+        const paidMonthsSet = new Set<string>();
+        liveIncomes.forEach((inc) => {
+          if (!inc || inc.status !== 'Sah') return;
+          const iKat = (inc.kategori || '').toLowerCase();
+          if (!iKat.includes('iuran') || iKat.includes('tunggakan')) return;
+          const match = (inc.sumber || '').match(/\(([^)]+)\)/);
+          const iBlok = (match?.[1] || '').toUpperCase().replace(/\s+/g, '');
+          if (iBlok === normInputBlok) {
+            (inc.bulan || []).forEach((m: string) => paidMonthsSet.add(normalizePeriodCode(m)));
+          }
+        });
+
+        const alreadyPaid = parsedMonths.filter((m) => paidMonthsSet.has(m));
+        if (alreadyPaid.length === parsedMonths.length) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Iuran Blok ${blok.trim().toUpperCase()} periode ${alreadyPaid.join(', ')} sudah tercatat LUNAS di sistem kas RT.`,
+            },
+            { status: 409 }
+          );
+        }
+      } catch (dupErr) {
+        console.warn('Duplicate check notice:', dupErr);
+      }
+    }
+
     const datePrefix = new Date().toISOString().slice(2, 7).replace('-', ''); // e.g. "2611"
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const proofId = `BKT-${datePrefix}-${randomSuffix}`;
@@ -43,27 +130,6 @@ export async function POST(req: NextRequest) {
         driveUrl = driveRes.fileUrl;
         finalBuktiUrl = driveRes.fileUrl;
       }
-    }
-
-    // Normalisasi periode ke array YYYY-MM
-    let parsedMonths: string[] = [];
-    if (Array.isArray(bulan)) {
-      bulan.forEach((b: string) => {
-        const parts = String(b).split(/[,;\n]+/);
-        parts.forEach((p) => {
-          const norm = normalizePeriodCode(p);
-          if (norm && !parsedMonths.includes(norm)) parsedMonths.push(norm);
-        });
-      });
-    } else if (typeof bulan === 'string' && bulan.trim()) {
-      bulan.split(/[,;\n]+/).forEach((p) => {
-        const norm = normalizePeriodCode(p);
-        if (norm && !parsedMonths.includes(norm)) parsedMonths.push(norm);
-      });
-    }
-
-    if (parsedMonths.length === 0) {
-      parsedMonths = [db.settings.periodeAktif ? normalizePeriodCode(db.settings.periodeAktif) : new Date().toISOString().slice(0, 7)];
     }
 
     const newProof: ProofSubmission = {

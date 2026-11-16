@@ -148,4 +148,10 @@ export interface DatabaseSchema {
   deletedIncomeIds?: string[];
   deletedExpenseIds?: string[];
   deletedProofIds?: string[];
+  pelunasanHistory?: Array<{
+    id: string;
+    wargaId?: string;
+    namaWarga?: string;
+    [key: string]: any;
+  }>;
 }

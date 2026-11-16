@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { appendSaldoAwalToSheet } from '@/lib/googleSheet';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
     return NextResponse.json({ success: true, settings: db.settings });
@@ -15,16 +17,22 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const body = await req.json();
     const db = getDb();
 
     const oldSaldoAwal = db.settings.saldoAwal;
     const newSaldoAwal = body.saldoAwal !== undefined ? Number(body.saldoAwal) : oldSaldoAwal;
+    const nextAdminPin =
+      typeof body.adminPin === 'string' && body.adminPin.trim().length >= 4
+        ? body.adminPin.trim()
+        : db.settings.adminPin;
 
     db.settings = {
       ...db.settings,
       ...body,
+      adminPin: nextAdminPin,
       saldoAwal: isNaN(newSaldoAwal) ? oldSaldoAwal : newSaldoAwal,
     };
 

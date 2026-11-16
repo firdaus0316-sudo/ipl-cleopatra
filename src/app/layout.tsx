@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "IPL Cleopatra | Administrasi Keuangan RT",
   description: "Portal resmi pembayaran dan transparansi keuangan kas warga RT 011 / RW 028 Cluster Cleopatra",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/logo-cleopatra.jpg",
+    apple: "/logo-cleopatra.jpg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
