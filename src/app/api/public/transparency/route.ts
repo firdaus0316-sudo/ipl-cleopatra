@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { normalizePeriodCode } from '@/lib/format';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
@@ -154,6 +155,35 @@ export async function GET() {
       incomeByCategory[cat] = (incomeByCategory[cat] || 0) + inc.nominal;
     }
 
+    // Rincian iuran masuk per periode (mis. Nov 2026, Des 2026) + Non-Iuran (Tunggakan/Lain)
+    const iuranByPeriodMap: Record<string, number> = {};
+    let nonIuranTotal = 0;
+
+    for (const inc of validIncomes) {
+      const nom = Number(inc.nominal) || 0;
+      const katLower = (inc.kategori || '').toLowerCase();
+      const isRegularIuran = katLower.includes('iuran') && !katLower.includes('tunggakan');
+      if (isRegularIuran) {
+        const rawPeriod = (Array.isArray(inc.bulan) && inc.bulan[0]) || inc.tanggal?.slice(0, 7) || '2026-11';
+        const normPeriod = normalizePeriodCode(rawPeriod) || rawPeriod;
+        iuranByPeriodMap[normPeriod] = (iuranByPeriodMap[normPeriod] || 0) + nom;
+      } else {
+        nonIuranTotal += nom;
+      }
+    }
+
+    const iuranByPeriod = Object.entries(iuranByPeriodMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, nominal]) => {
+        let label = period;
+        if (/^\d{4}-\d{2}$/.test(period)) {
+          const [y, m] = period.split('-');
+          const mIdx = parseInt(m, 10) - 1;
+          label = `${MONTH_NAMES_SHORT[mIdx] || m} ${y}`;
+        }
+        return { period, label, nominal };
+      });
+
     // Tunggakan Lama & Kasbon Petugas (Pos Piutang & Pinjaman Berjalan)
     const tunggakanLamaList = db.tunggakanLama || [];
     const tunggakanBelumLunas = tunggakanLamaList.filter((t) => t.status !== 'Lunas');
@@ -236,6 +266,10 @@ export async function GET() {
       },
       expenseByCategory,
       incomeByCategory,
+      incomeBreakdown: {
+        byPeriod: iuranByPeriod,
+        nonIuran: nonIuranTotal,
+      },
       monthlyFlow,
       posPiutang: {
         tunggakan: {

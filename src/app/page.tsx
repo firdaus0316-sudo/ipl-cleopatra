@@ -968,21 +968,40 @@ export default function PublicPage() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Total Kas Masuk
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4" />
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Total Kas Masuk
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-blue-600 mt-2 tracking-tight">
+                    {formatRupiah(transparencyData?.summary?.totalPemasukan || 0)}
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-600 mt-2 tracking-tight">
-                  {formatRupiah(transparencyData?.summary?.totalPemasukan || 0)}
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Iuran bulanan & donasi terverifikasi
-                </div>
+                {transparencyData?.incomeBreakdown ? (
+                  <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {(transparencyData.incomeBreakdown.byPeriod || []).map(
+                      (item: { period: string; label: string; nominal: number }, idx: number) => (
+                        <span key={item.period} className="font-semibold text-emerald-700">
+                          {idx > 0 ? '• ' : ''}Iuran {item.label}: {formatRupiah(item.nominal)}
+                        </span>
+                      )
+                    )}
+                    {transparencyData.incomeBreakdown.nonIuran > 0 && (
+                      <span className="font-semibold text-blue-700">
+                        + Tunggakan/Lain: {formatRupiah(transparencyData.incomeBreakdown.nonIuran)}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Iuran bulanan & donasi terverifikasi
+                  </div>
+                )}
               </div>
 
               <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition">
