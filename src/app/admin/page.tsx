@@ -381,22 +381,36 @@ export default function AdminPage() {
   const [hoveredChartDay, setHoveredChartDay] = useState<any>(null);
   const [selectedTargetPeriod, setSelectedTargetPeriod] = useState<string>('2026-11');
 
-  // Check existing session cookie on server
+  // Check existing session cookie on server & install crash shield
   useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.warn('Admin panel caught transient promise rejection:', event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
     fetch('/api/admin/auth', { cache: 'no-store' })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.authenticated) {
           setIsAuthenticated(true);
-          localStorage.setItem('cleo_admin_auth', 'true');
+          try {
+            localStorage.setItem('cleo_admin_auth', 'true');
+          } catch {}
         } else {
-          localStorage.removeItem('cleo_admin_auth');
+          try {
+            localStorage.removeItem('cleo_admin_auth');
+          } catch {}
           setIsAuthenticated(false);
         }
       })
       .catch(() => {
         setIsAuthenticated(false);
       });
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Fetch data on tab change or auth with fresh timestamp
@@ -421,7 +435,9 @@ export default function AdminPage() {
       ]);
 
       if (dashRes?.requireAuth || proofsRes?.requireAuth || settRes?.requireAuth) {
-        localStorage.removeItem('cleo_admin_auth');
+        try {
+          localStorage.removeItem('cleo_admin_auth');
+        } catch {}
         setIsAuthenticated(false);
         return;
       }
@@ -558,7 +574,9 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setIsAuthenticated(true);
-        localStorage.setItem('cleo_admin_auth', 'true');
+        try {
+          localStorage.setItem('cleo_admin_auth', 'true');
+        } catch {}
       } else {
         setAuthError(data.error || 'Password admin salah.');
       }
@@ -574,7 +592,9 @@ export default function AdminPage() {
       await fetch('/api/admin/auth', { method: 'DELETE' });
     } catch {}
     setIsAuthenticated(false);
-    localStorage.removeItem('cleo_admin_auth');
+    try {
+      localStorage.removeItem('cleo_admin_auth');
+    } catch {}
     window.location.href = '/admin';
   };
 

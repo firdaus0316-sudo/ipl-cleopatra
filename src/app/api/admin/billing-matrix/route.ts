@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchIncomeToResident, matchProofToResident } from '@/lib/format';
-import { fetchIncomesFromSheet, fetchResidentsFromSheet } from '@/lib/googleSheet';
+import { fetchIncomesFromSheet, fetchResidentsFromSheet, fetchProofsFromSheet } from '@/lib/googleSheet';
 
 const MONTH_NAMES = [
   'Januari',
@@ -55,11 +55,12 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Auto-sync live residents & incomes dari Google Sheet
+    // Auto-sync live residents, incomes & proofs dari Google Sheet
     try {
-      const [incRes, resRes] = await Promise.all([
-        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
-        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
+      const [incRes, resRes, proofRes] = await Promise.all([
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
       ]);
 
       if (resRes.success && resRes.residents && resRes.residents.length > 0) {
@@ -72,6 +73,11 @@ export async function GET(req: NextRequest) {
           const local = localMap.get(s.id);
           return { ...s, buktiId: local?.buktiId || s.buktiId };
         });
+      }
+
+      if (proofRes.success && proofRes.proofs && proofRes.proofs.length > 0) {
+        const deletedSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
+        db.proofs = proofRes.proofs.filter((p) => !deletedSet.has(p.id));
       }
     } catch {}
 

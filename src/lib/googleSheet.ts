@@ -892,22 +892,29 @@ export async function deleteRowFromSheet(
     // 1. Prioritaskan Webhook Apps Script (Sangat Cepat & Berjalan di Cloud/Vercel)
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
+    const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
       try {
         const res = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'delete_row', sheetName, rowId, colIndex: idColIndex }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) return { success: true };
       } catch (webhookErr) {
+        clearTimeout(timeoutId);
         console.warn(`Webhook deleteRowFromSheet error:`, webhookErr);
       }
     }
 
-    // 2. Fallback via gsheets CLI jika di komputer lokal
-    if (gid) {
+    // 2. Fallback via gsheets CLI hanya di komputer lokal (lewati di Vercel/production)
+    const isServerless = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
+    if (gid && !isServerless) {
       try {
         const csvText = await fetchCsvByGid(gid);
         const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -967,24 +974,34 @@ export async function updateRowInSheet(
 
     const { getDb } = await import('@/lib/db');
     const db = getDb();
-    const webhookUrl = process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl || DEFAULT_WEBHOOK_URL;
+    const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
+    const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_row', sheetName, rowId, idColIndex, updates }),
-      });
-      if (res.ok) {
-        try {
-          const json = await res.json();
-          if (json.updated === false) {
-            console.warn(`updateRowInSheet [${sheetName}] row not updated:`, json.message);
-            return { success: false, error: json.message || 'Baris tidak ditemukan di Google Sheets.' };
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+      try {
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_row', sheetName, rowId, idColIndex, updates }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          try {
+            const json = await res.json();
+            if (json.updated === false) {
+              console.warn(`updateRowInSheet [${sheetName}] row not updated:`, json.message);
+              return { success: false, error: json.message || 'Baris tidak ditemukan di Google Sheets.' };
+            }
+            return { success: true };
+          } catch {
+            return { success: true };
           }
-          return { success: true };
-        } catch {
-          return { success: true };
         }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
       }
     }
 
@@ -1451,6 +1468,8 @@ export async function updateProofInSheet(data: {
   transactionId?: string;
 }) {
   const webhookUrl = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8500);
   try {
     const res = await fetch(webhookUrl, {
       method: 'POST',
@@ -1459,9 +1478,12 @@ export async function updateProofInSheet(data: {
         action: 'verify_bukti',
         ...data,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     return await res.json();
   } catch (err: any) {
+    clearTimeout(timeoutId);
     console.error('updateProofInSheet error:', err);
     return { status: 'error', message: err.message };
   }

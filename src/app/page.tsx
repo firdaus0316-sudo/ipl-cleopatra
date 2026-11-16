@@ -230,7 +230,9 @@ export default function PublicPage() {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem('cleo_admin_auth', 'true');
+        try {
+          localStorage.setItem('cleo_admin_auth', 'true');
+        } catch {}
         setShowAdminPinModal(false);
         setAdminPinInput('');
         window.location.href = '/admin';
@@ -280,8 +282,16 @@ export default function PublicPage() {
   };
 
   useEffect(() => {
-    localStorage.removeItem('cleo_admin_auth');
+    try {
+      localStorage.removeItem('cleo_admin_auth');
+    } catch {}
     loadData();
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.warn('Caught transient promise rejection safely:', event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     // Cek apakah sudah berjalan sebagai aplikasi standalone (PWA terpasang)
     const standalone =
@@ -307,6 +317,7 @@ export default function PublicPage() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
@@ -600,21 +611,37 @@ export default function PublicPage() {
     }
   };
 
-  const copyRekening = () => {
-    if (settings?.nomorRekening) {
-      navigator.clipboard.writeText(settings.nomorRekening);
+  const copyRekening = async () => {
+    const rek = settings?.nomorRekening;
+    if (!rek) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(rek);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = rek;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
     }
   };
 
   const fetchStatus = (q = '') => {
     setIsLoadingStatus(true);
-    fetch(`/api/public/status?q=${encodeURIComponent(q)}`)
-      .then((res) => res.json())
+    fetch(`/api/public/status?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data.success) setProofList(data.data);
+        if (data?.success && Array.isArray(data.data)) setProofList(data.data);
       })
+      .catch(() => {})
       .finally(() => setIsLoadingStatus(false));
   };
 
@@ -623,20 +650,22 @@ export default function PublicPage() {
       fetchStatus(searchQuery);
     } else if (tab === 'transparansi') {
       setIsLoadingTrans(true);
-      fetch('/api/public/transparency')
-        .then((res) => res.json())
+      fetch('/api/public/transparency', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data.success) setTransparencyData(data);
+          if (data?.success) setTransparencyData(data);
         })
+        .catch(() => {})
         .finally(() => setIsLoadingTrans(false));
       fetchMatrixData(matrixYear);
     } else if (tab === 'dashboard') {
       setIsLoadingTrans(true);
-      fetch('/api/public/transparency')
-        .then((res) => res.json())
+      fetch('/api/public/transparency', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data.success) setTransparencyData(data);
+          if (data?.success) setTransparencyData(data);
         })
+        .catch(() => {})
         .finally(() => setIsLoadingTrans(false));
     }
   }, [tab, matrixYear]);
