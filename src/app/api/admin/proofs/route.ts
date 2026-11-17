@@ -13,6 +13,7 @@ import {
   deleteIncomeFromSheet,
   deletePelunasanFromSheet,
   getDirectGoogleDriveImageUrl,
+  syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -68,22 +69,8 @@ export async function GET(req: NextRequest) {
       console.error('Error auto-sync proofs from sheet:', e);
     }
 
-    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
-    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
-
-    let proofs = (db.proofs || []).map((p) => {
-      const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
-      const res = (p.residentId && residentMapById.get(p.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
-      if (res && res.nama) {
-        return {
-          ...p,
-          residentName: res.nama,
-          blok: res.blok,
-          residentId: res.id,
-        };
-      }
-      return p;
-    });
+    syncAllDbNamesWithMaster(db);
+    let proofs = [...(db.proofs || [])];
 
     // Urutkan terbaru di atas, dan prioritaskan status "Menunggu Verifikasi" paling atas
     proofs.reverse().sort((a, b) => {

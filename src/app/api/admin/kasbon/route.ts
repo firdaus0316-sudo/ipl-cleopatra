@@ -12,6 +12,8 @@ import {
   deleteExpenseFromSheet,
   deleteExpenseByRefIdFromSheet,
   fetchKasbonFromSheet,
+  fetchResidentsFromSheet,
+  syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -23,21 +25,28 @@ export async function GET(req: NextRequest) {
     const db = getDb();
     let kasbonList = db.kasbon || [];
 
-    // Ambil data kasbon terkini secara langsung dari Google Sheet DataKasbon
+    // Ambil data kasbon terkini secara langsung dari Google Sheet DataKasbon & MasterWarga
     try {
-      const sheetRes = await fetchKasbonFromSheet();
+      const [sheetRes, resRes] = await Promise.all([
+        fetchKasbonFromSheet(),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+      ]);
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
       if (sheetRes.success && sheetRes.kasbon.length > 0) {
         const localMap = new Map(kasbonList.map((k) => [k.id, k]));
-        kasbonList = sheetRes.kasbon.map((s) => {
+        db.kasbon = sheetRes.kasbon.map((s) => {
           const local = localMap.get(s.id);
           return {
             ...s,
             riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
           };
         });
-        db.kasbon = kasbonList;
-        saveDb(db);
       }
+      syncAllDbNamesWithMaster(db);
+      kasbonList = db.kasbon || [];
+      saveDb(db);
     } catch (e) {
       console.warn('Gagal fetch live kasbon dari sheet:', e);
     }

@@ -1,4 +1,5 @@
-import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission } from '@/types';
+import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema } from '@/types';
+import { normalizeBlokCode } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -1534,4 +1535,100 @@ export async function appendBuktiStrukToSheet(e: ExpenseTransaction) {
     escapeGsheetCell(e.status || 'Sah'),
   ].join(',');
   return appendRowsToSheet('BuktiStruk', [row]);
+}
+
+/**
+ * 11. Sinkronisasi Nama & Blok Terkini dari Master Warga ke Seluruh Transaksi
+ * Memastikan setiap pembaruan di Google Sheet masterwarga langsung tercermin
+ * di DataIuran, BuktiTransfer, TunggakanLama, dan DataKasbon tanpa jeda.
+ */
+export function syncAllDbNamesWithMaster(db: DatabaseSchema): void {
+  const residents = db.residents || [];
+  if (residents.length === 0) return;
+
+  const byId = new Map<string, Resident>();
+  const byBlok = new Map<string, Resident>();
+  const byExactName = new Map<string, Resident>();
+
+  for (const r of residents) {
+    if (!r) continue;
+    if (r.id) byId.set(r.id, r);
+    const normBlok = normalizeBlokCode(r.blok);
+    if (normBlok) byBlok.set(normBlok, r);
+    const cleanName = (r.nama || '').trim().toLowerCase();
+    if (cleanName) byExactName.set(cleanName, r);
+  }
+
+  const resolveResident = (opts: {
+    id?: string;
+    blok?: string;
+    nama?: string;
+    allowPrefix?: boolean;
+  }): Resident | undefined => {
+    if (opts.id && byId.has(opts.id)) return byId.get(opts.id);
+    const normBlok = normalizeBlokCode(opts.blok);
+    if (normBlok && byBlok.has(normBlok)) return byBlok.get(normBlok);
+    const cleanName = (opts.nama || '').trim().toLowerCase();
+    if (cleanName && byExactName.has(cleanName)) return byExactName.get(cleanName);
+    if (opts.allowPrefix && cleanName.length >= 4) {
+      const prefixMatches = residents.filter((r) => {
+        const rn = (r.nama || '').trim().toLowerCase();
+        return rn === cleanName || rn.startsWith(`${cleanName} `);
+      });
+      if (prefixMatches.length === 1) return prefixMatches[0];
+    }
+    return undefined;
+  };
+
+  db.incomes = (db.incomes || []).map((inc) => {
+    const parsed = extractNameAndBlok(inc.sumber || '');
+    const res = resolveResident({ id: inc.residentId, blok: parsed.blok, nama: parsed.nama });
+    if (res && res.nama) {
+      return {
+        ...inc,
+        residentId: res.id,
+        sumber: res.blok ? `${res.nama} (${res.blok})` : res.nama,
+      };
+    }
+    return inc;
+  });
+
+  db.proofs = (db.proofs || []).map((p) => {
+    const res = resolveResident({ id: p.residentId, blok: p.blok, nama: p.residentName });
+    if (res && res.nama) {
+      return {
+        ...p,
+        residentId: res.id,
+        residentName: res.nama,
+        blok: res.blok || p.blok,
+      };
+    }
+    return p;
+  });
+
+  db.tunggakanLama = (db.tunggakanLama || []).map((t) => {
+    if (t.tipeWarga === 'Non-Warga' || t.tipeWarga === 'Pindah') return t;
+    const res = resolveResident({ id: t.wargaId, blok: t.blok, nama: t.namaWarga, allowPrefix: true });
+    if (res && res.nama) {
+      return {
+        ...t,
+        wargaId: res.id,
+        namaWarga: res.nama,
+        blok: res.blok || t.blok,
+      };
+    }
+    return t;
+  });
+
+  db.kasbon = (db.kasbon || []).map((k) => {
+    const res = resolveResident({ id: k.wargaId, nama: k.namaPeminjam, allowPrefix: false });
+    if (res && res.nama) {
+      return {
+        ...k,
+        wargaId: res.id,
+        namaPeminjam: res.nama,
+      };
+    }
+    return k;
+  });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
-import { syncAllGoogleSheetsData } from '@/lib/googleSheet';
+import { syncAllGoogleSheetsData, syncAllDbNamesWithMaster } from '@/lib/googleSheet';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
       db.proofs = [...localOnlyProofs, ...mergedProofs];
     }
 
+    syncAllDbNamesWithMaster(db);
     saveDb(db);
 
     const summaryMsg = `Sinkronisasi selesai: ${result.residents.length} Warga, ${result.incomes.length} Iuran, ${result.expenses.length} Pengeluaran, ${result.tunggakanLama.length} Tunggakan (${(result.tunggakanWarga || []).length} Warga + ${(result.tunggakanNonWarga || []).length} Non-Warga), ${result.kasbon.length} Kasbon, ${(result.proofs || []).length} Bukti Transfer. Saldo Awal: Rp ${result.saldoAwal.toLocaleString('id-ID')}`;

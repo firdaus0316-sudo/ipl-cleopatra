@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { fetchProofsFromSheet, fetchIncomesFromSheet, getDirectGoogleDriveImageUrl } from '@/lib/googleSheet';
+import {
+  fetchProofsFromSheet,
+  fetchIncomesFromSheet,
+  fetchResidentsFromSheet,
+  getDirectGoogleDriveImageUrl,
+  syncAllDbNamesWithMaster,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,34 +18,30 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
 
-    // Auto-sync live proofs dari Google Sheet BuktiTransfer
+    // Auto-sync live proofs, incomes & masterwarga secara paralel
     try {
-      const pRes = await fetchProofsFromSheet();
+      const [pRes, incRes, resRes] = await Promise.all([
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+      ]);
+
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
+
       if (pRes.success && pRes.proofs.length > 0) {
         const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
         db.proofs = pRes.proofs.filter((p) => !deletedProofSet.has(p.id));
       }
-    } catch {}
 
-    // Auto-sync live incomes dari Google Sheet DataIuran
-    try {
-      const incRes = await fetchIncomesFromSheet();
       if (incRes.success && incRes.incomes.length > 0) {
         db.incomes = incRes.incomes;
       }
     } catch {}
 
-    const residentMapById = new Map((db.residents || []).map((r) => [r.id, r]));
-    const residentMapByBlok = new Map((db.residents || []).map((r) => [(r.blok || '').toUpperCase().replace(/\s+/g, ''), r]));
-
-    let proofs = (db.proofs || []).map((p) => {
-      const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
-      const res = (p.residentId && residentMapById.get(p.residentId)) || (cleanBlok && residentMapByBlok.get(cleanBlok));
-      if (res && res.nama) {
-        return { ...p, residentName: res.nama, blok: res.blok, residentId: res.id };
-      }
-      return p;
-    });
+    syncAllDbNamesWithMaster(db);
+    let proofs = [...(db.proofs || [])];
 
     // Urutkan terbaru di atas (reverse dari urutan baris Google Sheet) sebelum slice
     proofs.reverse();

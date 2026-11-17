@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { matchIncomeToResident, matchProofToResident } from '@/lib/format';
-import { fetchIncomesFromSheet, fetchResidentsFromSheet, fetchProofsFromSheet } from '@/lib/googleSheet';
+import { fetchIncomesFromSheet, fetchResidentsFromSheet, fetchProofsFromSheet, syncAllDbNamesWithMaster } from '@/lib/googleSheet';
 
 const MONTH_NAMES = [
   'Januari',
@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
         const deletedSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
         db.proofs = proofRes.proofs.filter((p) => !deletedSet.has(p.id));
       }
+      syncAllDbNamesWithMaster(db);
     } catch {}
 
     const activeResidents = (db.residents || []).filter((r) => r.status === 'Aktif');

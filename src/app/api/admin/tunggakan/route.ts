@@ -11,6 +11,8 @@ import {
   deleteTunggakanFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
+  fetchResidentsFromSheet,
+  syncAllDbNamesWithMaster,
   extractNameAndBlok,
 } from '@/lib/googleSheet';
 
@@ -24,14 +26,20 @@ export async function GET(req: NextRequest) {
     let tunggakanList = db.tunggakanLama || [];
 
     try {
-      const [wargaRes, nonWargaRes] = await Promise.all([
+      const [wargaRes, nonWargaRes, resRes] = await Promise.all([
         fetchTunggakanLamaFromSheet(),
         fetchTunggakanNonWargaFromSheet(),
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
       ]);
+
+      if (resRes.success && resRes.residents && resRes.residents.length > 0) {
+        db.residents = resRes.residents;
+      }
+
       const combined = [...(wargaRes.tunggakan || []), ...(nonWargaRes.tunggakan || [])];
       if (combined.length > 0) {
         const localMap = new Map(tunggakanList.map((t) => [t.id, t]));
-        tunggakanList = combined.map((s) => {
+        db.tunggakanLama = combined.map((s) => {
           const local = localMap.get(s.id);
           return {
             ...s,
@@ -39,9 +47,10 @@ export async function GET(req: NextRequest) {
             riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
           };
         });
-        db.tunggakanLama = tunggakanList;
-        saveDb(db);
       }
+      syncAllDbNamesWithMaster(db);
+      tunggakanList = db.tunggakanLama || [];
+      saveDb(db);
     } catch (e) {
       console.warn('Gagal fetch live tunggakan dari sheet:', e);
     }

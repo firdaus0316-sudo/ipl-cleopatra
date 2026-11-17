@@ -7,6 +7,7 @@ import {
   fetchExpensesFromSheet,
   fetchSaldoAwalFromSheet,
   fetchProofsFromSheet,
+  syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +58,7 @@ export async function GET() {
         const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
         db.proofs = proofRes.proofs.filter((p) => !deletedProofSet.has(p.id));
       }
+      syncAllDbNamesWithMaster(db);
     } catch (e) {
       console.warn('Public data live sync error:', e);
     }
