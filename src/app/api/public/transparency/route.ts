@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { normalizePeriodCode, isIuranBulananCategory } from '@/lib/format';
+import { normalizePeriodCode, classifyIncomeBucket } from '@/lib/format';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
@@ -146,21 +146,31 @@ export async function GET() {
       incomeByCategory[cat] = (incomeByCategory[cat] || 0) + inc.nominal;
     }
 
-    // Rincian iuran masuk per periode (mis. Nov 2026, Des 2026) + Non-Iuran (Tunggakan/Lain)
+    // Rincian iuran masuk per periode (mis. Nov 2026, Des 2026) + pemisahan Tunggakan vs Donasi/Kategori Non-Iuran
     const iuranByPeriodMap: Record<string, number> = {};
-    let nonIuranTotal = 0;
+    let tunggakanTotal = 0;
+    let kasbonKembaliTotal = 0;
+    let donasiLainnyaTotal = 0;
+    const nonIuranKategoriMap: Record<string, number> = {};
 
     for (const inc of validIncomes) {
       const nom = Number(inc.nominal) || 0;
-      const isRegularIuran = isIuranBulananCategory(inc.kategori);
-      if (isRegularIuran) {
+      const bucket = classifyIncomeBucket(inc.kategori);
+      if (bucket === 'iuran') {
         const rawPeriod = (Array.isArray(inc.bulan) && inc.bulan[0]) || inc.tanggal?.slice(0, 7) || '2026-11';
         const normPeriod = normalizePeriodCode(rawPeriod) || rawPeriod;
         iuranByPeriodMap[normPeriod] = (iuranByPeriodMap[normPeriod] || 0) + nom;
+      } else if (bucket === 'tunggakan') {
+        tunggakanTotal += nom;
+      } else if (bucket === 'kasbon') {
+        kasbonKembaliTotal += nom;
       } else {
-        nonIuranTotal += nom;
+        donasiLainnyaTotal += nom;
+        const katName = (inc.kategori || 'Lainnya').trim();
+        nonIuranKategoriMap[katName] = (nonIuranKategoriMap[katName] || 0) + nom;
       }
     }
+    const nonIuranTotal = tunggakanTotal + kasbonKembaliTotal + donasiLainnyaTotal;
 
     const iuranByPeriod = Object.entries(iuranByPeriodMap)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -258,6 +268,12 @@ export async function GET() {
       incomeByCategory,
       incomeBreakdown: {
         byPeriod: iuranByPeriod,
+        tunggakan: tunggakanTotal,
+        kasbonKembali: kasbonKembaliTotal,
+        donasiLainnya: donasiLainnyaTotal,
+        nonIuranKategori: Object.entries(nonIuranKategoriMap)
+          .sort(([, a], [, b]) => b - a)
+          .map(([kategori, nominal]) => ({ kategori, nominal })),
         nonIuran: nonIuranTotal,
       },
       monthlyFlow,

@@ -133,13 +133,7 @@ export function normalizePeriodCode(input?: any): string {
 export function isIncomeInPeriod(inc: any, targetPeriod: string, year: number): boolean {
   if (inc.status && inc.status !== 'Sah') return false;
 
-  const isNonRegular =
-    inc.kategori === 'Pengembalian Kasbon' ||
-    inc.kategori === 'Cicilan Tunggakan' ||
-    inc.kategori === 'Pelunasan Tunggakan' ||
-    inc.kategori?.toLowerCase().includes('kasbon') ||
-    inc.kategori?.toLowerCase().includes('tunggakan') ||
-    inc.kategori?.toLowerCase().includes('donasi');
+  const isNonRegular = !isIuranBulananCategory(inc.kategori);
 
   const bList = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [inc.bulan] : [];
   const validPeriodCodes = bList
@@ -251,4 +245,19 @@ export function isIuranBulananCategory(kategori?: string | null): boolean {
     return false;
   }
   return lower === 'iuran bulanan' || lower === 'iuran bulanan (reguler)' || lower.startsWith('iuran bulanan');
+}
+
+/**
+ * Mengelompokkan transaksi pemasukan ke bucket keuangan agar jelas pemisahannya:
+ * - 'iuran'     : Iuran Bulanan Reguler
+ * - 'tunggakan' : Pelunasan / Cicilan Tunggakan Warga
+ * - 'kasbon'    : Pengembalian / Pelunasan Kasbon Petugas
+ * - 'lainnya'   : Kategori non-bulanan (Donasi / Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya)
+ */
+export function classifyIncomeBucket(kategori?: string | null): 'iuran' | 'tunggakan' | 'kasbon' | 'lainnya' {
+  if (isIuranBulananCategory(kategori)) return 'iuran';
+  const lower = (kategori || '').trim().toLowerCase();
+  if (lower.includes('tunggakan')) return 'tunggakan';
+  if (lower.includes('kasbon')) return 'kasbon';
+  return 'lainnya';
 }

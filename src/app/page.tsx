@@ -1067,15 +1067,25 @@ export default function PublicPage() {
                         </span>
                       )
                     )}
-                    {transparencyData.incomeBreakdown.nonIuran > 0 && (
-                      <span className="font-semibold text-blue-700">
-                        + Tunggakan/Lain: {formatRupiah(transparencyData.incomeBreakdown.nonIuran)}
+                    {(transparencyData.incomeBreakdown.tunggakan || 0) > 0 && (
+                      <span className="font-semibold text-amber-700">
+                        • Tunggakan: {formatRupiah(transparencyData.incomeBreakdown.tunggakan)}
+                      </span>
+                    )}
+                    {(transparencyData.incomeBreakdown.donasiLainnya || 0) > 0 && (
+                      <span className="font-semibold text-purple-700">
+                        • Donasi/Lain: {formatRupiah(transparencyData.incomeBreakdown.donasiLainnya)}
+                      </span>
+                    )}
+                    {(transparencyData.incomeBreakdown.kasbonKembali || 0) > 0 && (
+                      <span className="font-semibold text-cyan-700">
+                        • Kembali Kasbon: {formatRupiah(transparencyData.incomeBreakdown.kasbonKembali)}
                       </span>
                     )}
                   </div>
                 ) : (
                   <div className="text-[11px] text-slate-400 mt-1">
-                    Iuran bulanan & donasi terverifikasi
+                    Iuran bulanan &amp; donasi terverifikasi
                   </div>
                 )}
               </div>
@@ -1094,6 +1104,82 @@ export default function PublicPage() {
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">
                   Operasional, satpam, sampah & kasbon
+                </div>
+              </div>
+            </div>
+
+            {/* KPI CARD BARU: PENERIMAAN DI LUAR IURAN BULANAN REGULER (TETAP MASUK TOTAL KAS MASUK) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Kartu Kiri: Donasi / Dana Hibah, THR, Kegiatan, Lainnya */}
+              <div className="bg-white border border-purple-200/80 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                        Donasi / Hibah &amp; Kategori Non-Iuran
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Di luar Iuran Bulanan &amp; Tunggakan (tetap masuk Total Kas Masuk)
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+                      Masuk Kas RT
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-purple-700 mt-2 tracking-tight">
+                    {formatRupiah(transparencyData?.incomeBreakdown?.donasiLainnya || 0)}
+                  </div>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
+                  {(transparencyData?.incomeBreakdown?.nonIuranKategori || []).length > 0 ? (
+                    (transparencyData.incomeBreakdown.nonIuranKategori as { kategori: string; nominal: number }[]).map((item) => (
+                      <span
+                        key={item.kategori}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200/70 text-[11px] font-bold text-purple-900"
+                      >
+                        <span>{item.kategori}:</span>
+                        <span>{formatRupiah(item.nominal)}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-slate-400">
+                      Belum ada penerimaan Donasi / THR / Kegiatan.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Kartu Kanan: Pelunasan Tunggakan & Pengembalian Kasbon Masuk Kas */}
+              <div className="bg-white border border-amber-200/80 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                        Pelunasan Tunggakan &amp; Kasbon Masuk
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Terpisah dari Iuran Bulanan &amp; Donasi (tetap masuk Total Kas Masuk)
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                      Masuk Kas RT
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-amber-700 mt-2 tracking-tight">
+                    {formatRupiah((transparencyData?.incomeBreakdown?.tunggakan || 0) + (transparencyData?.incomeBreakdown?.kasbonKembali || 0))}
+                  </div>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900">
+                    <span>Bayar Tunggakan:</span>
+                    <span>{formatRupiah(transparencyData?.incomeBreakdown?.tunggakan || 0)}</span>
+                  </span>
+                  {(transparencyData?.incomeBreakdown?.kasbonKembali || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-200 text-[11px] font-bold text-cyan-900">
+                      <span>Pengembalian Kasbon:</span>
+                      <span>{formatRupiah(transparencyData?.incomeBreakdown?.kasbonKembali || 0)}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb } from '@/lib/db';
-import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident, isIuranBulananCategory } from '@/lib/format';
+import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident, isIuranBulananCategory, classifyIncomeBucket } from '@/lib/format';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   fetchKasbonFromSheet,
@@ -422,6 +422,56 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
       .slice(0, 8);
 
+    // Rincian Pemasukan Terpisah berdasarkan Bucket (Iuran Bulanan vs Bayar Tunggakan vs Pengembalian Kasbon vs Kategori Non-Bulanan)
+    let pemasukanIuranBulanan = 0;
+    let pemasukanTunggakan = 0;
+    let pemasukanKasbonKembali = 0;
+    let pemasukanNonIuranKategori = 0;
+    const nonIuranKategoriMap: Record<string, { kategori: string; nominal: number; count: number }> = {};
+
+    periodIncomes.forEach((inc) => {
+      const nom = Number(inc.nominal) || 0;
+      const bucket = classifyIncomeBucket(inc.kategori);
+      if (bucket === 'iuran') {
+        pemasukanIuranBulanan += nom;
+      } else if (bucket === 'tunggakan') {
+        pemasukanTunggakan += nom;
+      } else if (bucket === 'kasbon') {
+        pemasukanKasbonKembali += nom;
+      } else {
+        pemasukanNonIuranKategori += nom;
+        const katName = (inc.kategori || 'Lainnya').trim();
+        if (!nonIuranKategoriMap[katName]) {
+          nonIuranKategoriMap[katName] = { kategori: katName, nominal: 0, count: 0 };
+        }
+        nonIuranKategoriMap[katName].nominal += nom;
+        nonIuranKategoriMap[katName].count += 1;
+      }
+    });
+
+    let pemasukanTunggakanTahun = 0;
+    let pemasukanKasbonKembaliTahun = 0;
+    let pemasukanNonIuranKategoriTahun = 0;
+    const nonIuranKategoriTahunMap: Record<string, { kategori: string; nominal: number; count: number }> = {};
+
+    yearIncomes.forEach((inc) => {
+      const nom = Number(inc.nominal) || 0;
+      const bucket = classifyIncomeBucket(inc.kategori);
+      if (bucket === 'tunggakan') {
+        pemasukanTunggakanTahun += nom;
+      } else if (bucket === 'kasbon') {
+        pemasukanKasbonKembaliTahun += nom;
+      } else if (bucket === 'lainnya') {
+        pemasukanNonIuranKategoriTahun += nom;
+        const katName = (inc.kategori || 'Lainnya').trim();
+        if (!nonIuranKategoriTahunMap[katName]) {
+          nonIuranKategoriTahunMap[katName] = { kategori: katName, nominal: 0, count: 0 };
+        }
+        nonIuranKategoriTahunMap[katName].nominal += nom;
+        nonIuranKategoriTahunMap[katName].count += 1;
+      }
+    });
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -432,12 +482,16 @@ export async function GET(req: NextRequest) {
         totalPemasukanPeriode,
         totalPemasukanTahun,
         totalPemasukanAllTime: totalIncomesAllTime,
-        pemasukanIuranBulanan: periodIncomes
-          .filter((i) => isIuranBulananCategory(i.kategori))
-          .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
-        pemasukanNonIuran: periodIncomes
-          .filter((i) => !isIuranBulananCategory(i.kategori))
-          .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
+        pemasukanIuranBulanan,
+        pemasukanTunggakan,
+        pemasukanKasbonKembali,
+        pemasukanNonIuranKategori,
+        pemasukanNonIuran: pemasukanTunggakan + pemasukanKasbonKembali + pemasukanNonIuranKategori,
+        pemasukanTunggakanTahun,
+        pemasukanKasbonKembaliTahun,
+        pemasukanNonIuranKategoriTahun,
+        nonIuranKategoriBreakdown: Object.values(nonIuranKategoriMap).sort((a, b) => b.nominal - a.nominal),
+        nonIuranKategoriBreakdownTahun: Object.values(nonIuranKategoriTahunMap).sort((a, b) => b.nominal - a.nominal),
         totalPengeluaran: totalPengeluaranPeriode,
         totalPengeluaranPeriode,
         totalPengeluaranTahun,
