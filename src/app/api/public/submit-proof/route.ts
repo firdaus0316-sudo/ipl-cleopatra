@@ -54,32 +54,18 @@ export async function POST(req: NextRequest) {
     if (isRegularIuran) {
       try {
         const normInputBlok = blok.trim().toUpperCase().replace(/\s+/g, '');
-        const normInputName = residentName.trim().toLowerCase();
-        const hasValidResidentId = Boolean(residentId && !String(residentId).startsWith('TEMP-'));
         const [proofRes, incRes] = await Promise.all([
           fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
           fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
         ]);
-
-        const isSamePayer = (recId?: string, recBlok?: string, recName?: string) => {
-          if (hasValidResidentId && recId) {
-            return recId === residentId;
-          }
-          const cleanRecBlok = (recBlok || '').toUpperCase().replace(/\s+/g, '');
-          if (cleanRecBlok !== normInputBlok) return false;
-          if (hasValidResidentId && recName) {
-            const cleanRecName = recName.trim().toLowerCase();
-            return cleanRecName.includes(normInputName) || normInputName.includes(cleanRecName);
-          }
-          return true;
-        };
 
         const liveProofs = proofRes.success && proofRes.proofs.length > 0 ? proofRes.proofs : db.proofs || [];
         const duplicatePending = liveProofs.find((p) => {
           if (!p || p.status !== 'Menunggu Verifikasi') return false;
           const pKat = (p.kategori || '').toLowerCase();
           if (!pKat.includes('iuran') || pKat.includes('tunggakan')) return false;
-          if (!isSamePayer(p.residentId, p.blok, p.residentName)) return false;
+          const pBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
+          if (pBlok !== normInputBlok) return false;
           const pMonths = (p.bulan || []).map((m: string) => normalizePeriodCode(m));
           return parsedMonths.some((m) => pMonths.includes(m));
         });
@@ -88,7 +74,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: `Bukti untuk ${residentName.trim()} (${blok.trim().toUpperCase()}) periode (${parsedMonths.join(', ')}) sudah masuk (${duplicatePending.id}) dan sedang Menunggu Verifikasi Bendahara. Tidak perlu mengirim ulang.`,
+              error: `Bukti untuk Blok ${blok.trim().toUpperCase()} periode (${parsedMonths.join(', ')}) sudah masuk (${duplicatePending.id}) dan sedang Menunggu Verifikasi Bendahara. Tidak perlu mengirim ulang.`,
             },
             { status: 409 }
           );
@@ -100,10 +86,9 @@ export async function POST(req: NextRequest) {
           if (!inc || inc.status !== 'Sah') return;
           const iKat = (inc.kategori || '').toLowerCase();
           if (!iKat.includes('iuran') || iKat.includes('tunggakan')) return;
-          const match = (inc.sumber || '').match(/^(.*?)\(([^)]+)\)/);
-          const iName = match?.[1]?.trim() || inc.sumber || '';
-          const iBlok = (match?.[2] || '').trim();
-          if (isSamePayer(inc.residentId, iBlok, iName)) {
+          const match = (inc.sumber || '').match(/\(([^)]+)\)/);
+          const iBlok = (match?.[1] || '').toUpperCase().replace(/\s+/g, '');
+          if (iBlok === normInputBlok) {
             (inc.bulan || []).forEach((m: string) => paidMonthsSet.add(normalizePeriodCode(m)));
           }
         });
@@ -113,7 +98,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: `Iuran ${residentName.trim()} (${blok.trim().toUpperCase()}) periode ${alreadyPaid.join(', ')} sudah tercatat LUNAS di sistem kas RT.`,
+              error: `Iuran Blok ${blok.trim().toUpperCase()} periode ${alreadyPaid.join(', ')} sudah tercatat LUNAS di sistem kas RT.`,
             },
             { status: 409 }
           );

@@ -123,8 +123,6 @@ export default function PublicPage() {
   const [settings, setSettings] = useState<SafeSettings | null>(null);
   const [residents, setResidents] = useState<PublicResident[]>([]);
   const [saldoKas, setSaldoKas] = useState<number>(0);
-  const [paidPeriodsByResident, setPaidPeriodsByResident] = useState<Record<string, string[]>>({});
-  const [pendingPeriodsByResident, setPendingPeriodsByResident] = useState<Record<string, string[]>>({});
   const [paidPeriodsByBlok, setPaidPeriodsByBlok] = useState<Record<string, string[]>>({});
   const [pendingPeriodsByBlok, setPendingPeriodsByBlok] = useState<Record<string, string[]>>({});
   const [copied, setCopied] = useState(false);
@@ -258,8 +256,6 @@ export default function PublicPage() {
           setSettings(data.settings);
           setResidents(data.residents);
           if (data.saldoKas !== undefined) setSaldoKas(data.saldoKas);
-          if (data.paidPeriodsByResident) setPaidPeriodsByResident(data.paidPeriodsByResident);
-          if (data.pendingPeriodsByResident) setPendingPeriodsByResident(data.pendingPeriodsByResident);
           if (data.paidPeriodsByBlok) setPaidPeriodsByBlok(data.paidPeriodsByBlok);
           if (data.pendingPeriodsByBlok) setPendingPeriodsByBlok(data.pendingPeriodsByBlok);
           setIsSheetLocked(Boolean(data.isSheetLocked));
@@ -355,20 +351,14 @@ export default function PublicPage() {
   }, [residents, selectedResidentId]);
 
   const currentResidentPaidSet = useMemo(() => {
-    if (selectedResidentId) {
-      return new Set(paidPeriodsByResident[selectedResidentId] || []);
-    }
     const clean = (blok || '').toUpperCase().replace(/\s+/g, '');
     return new Set(paidPeriodsByBlok[clean] || []);
-  }, [selectedResidentId, blok, paidPeriodsByResident, paidPeriodsByBlok]);
+  }, [blok, paidPeriodsByBlok]);
 
   const currentResidentPendingSet = useMemo(() => {
-    if (selectedResidentId) {
-      return new Set(pendingPeriodsByResident[selectedResidentId] || []);
-    }
     const clean = (blok || '').toUpperCase().replace(/\s+/g, '');
     return new Set(pendingPeriodsByBlok[clean] || []);
-  }, [selectedResidentId, blok, pendingPeriodsByResident, pendingPeriodsByBlok]);
+  }, [blok, pendingPeriodsByBlok]);
 
   const overlappingWarning = useMemo(() => {
     const katLower = (kategori || '').toLowerCase();
