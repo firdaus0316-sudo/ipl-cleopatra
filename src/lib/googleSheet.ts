@@ -512,6 +512,7 @@ export async function fetchTunggakanLamaFromSheet(): Promise<{ success: boolean;
       const tunggakanId = cols[5] || `TUNG-${i}`;
       const wargaId = cols[6] || undefined;
       const nominalAwalRaw = (cols[7] || '').replace(/[^0-9]/g, '');
+      const blok = (cols[8] || '').trim() || undefined;
 
       const jumlah = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       const nominalAwal = nominalAwalRaw ? parseInt(nominalAwalRaw, 10) : jumlah;
@@ -522,6 +523,7 @@ export async function fetchTunggakanLamaFromSheet(): Promise<{ success: boolean;
         id: tunggakanId,
         tanggal,
         namaWarga,
+        blok,
         jumlah,
         nominalAwal,
         keterangan,
@@ -1315,6 +1317,7 @@ export async function appendResidentToSheet(r: Resident) {
     0,
     escapeGsheetCell(r.id),
     r.status || 'Aktif',
+    0, // Col L: Iuran Ramadhan
   ].join(',');
   return appendRowsToSheet('MasterWarga', [row]);
 }
@@ -1375,6 +1378,7 @@ export async function appendTunggakanLamaToSheet(t: TunggakanLamaEntry) {
     escapeGsheetCell(t.id || t.tunggakanId || ''),
     escapeGsheetCell(t.wargaId || ''),
     t.nominalAwal || t.jumlah || 0,
+    escapeGsheetCell(t.blok || ''),
   ].join(',');
   return appendRowsToSheet('TunggakanLama', [row]);
 }
