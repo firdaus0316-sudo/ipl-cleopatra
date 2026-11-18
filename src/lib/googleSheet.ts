@@ -421,7 +421,25 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
  */
 export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expenses: ExpenseTransaction[]; error?: string }> {
   try {
-    const csvText = await fetchCsvByGid(SHEET_GIDS.datapengeluaran);
+    const [csvText, strukCsvText] = await Promise.all([
+      fetchCsvByGid(SHEET_GIDS.datapengeluaran),
+      fetchCsvByGid(SHEET_GIDS.buktistruk).catch(() => ''),
+    ]);
+
+    // Peta Link Bukti Struk dari tab BuktiStruk berdasarkan Transaksi ID (kolom G / index 6 -> Link kolom F / index 5)
+    const strukUrlByTxId = new Map<string, string>();
+    if (strukCsvText) {
+      const strukLines = strukCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < strukLines.length; i++) {
+        const sCols = parseCsvLine(strukLines[i]);
+        const sTxId = (sCols[6] || '').trim();
+        const sUrl = (sCols[5] || '').trim();
+        if (sTxId && sUrl) {
+          strukUrlByTxId.set(sTxId, sUrl);
+        }
+      }
+    }
+
     const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const expenses: ExpenseTransaction[] = [];
 
@@ -457,6 +475,8 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
         penerima = 'Satpam / Petugas Kebersihan';
       }
 
+      const matchedStrukUrl = strukUrlByTxId.get(transaksiId.trim());
+
       expenses.push({
         id: transaksiId,
         tanggal,
@@ -464,6 +484,8 @@ export async function fetchExpensesFromSheet(): Promise<{ success: boolean; expe
         nominal,
         penerima,
         keterangan,
+        buktiUrl: matchedStrukUrl ? getDirectGoogleDriveImageUrl(matchedStrukUrl) : undefined,
+        driveUrl: matchedStrukUrl || undefined,
         status: isVoid ? 'Dibatalkan' : 'Sah',
         createdAt: new Date().toISOString(),
       });
@@ -1122,11 +1144,40 @@ export async function updateIncomeInSheet(
 }
 
 export async function deleteExpenseFromSheet(expId: string): Promise<{ success: boolean; error?: string }> {
-  return deleteRowFromSheet('DataPengeluaran', 5, expId, SHEET_GIDS.datapengeluaran);
+  const [dpRes] = await Promise.all([
+    deleteRowFromSheet('DataPengeluaran', 5, expId, SHEET_GIDS.datapengeluaran),
+    deleteRowFromSheet('BuktiStruk', 7, expId, SHEET_GIDS.buktistruk).catch(() => ({ success: false })),
+  ]);
+  return dpRes;
 }
 
 export async function deleteExpenseByRefIdFromSheet(refId: string): Promise<{ success: boolean; error?: string }> {
   return deleteRowFromSheet('DataPengeluaran', 7, refId, SHEET_GIDS.datapengeluaran);
+}
+
+export async function updateBuktiStrukInSheet(e: ExpenseTransaction): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedTime = formatGoogleSheetTimestamp(e.tanggal ? new Date(e.tanggal) : new Date());
+    const updates: Record<number, string | number> = {
+      1: formattedTime,
+      2: e.keterangan || `${e.kategori} - ${e.penerima}`,
+      3: e.kategori || 'Variabel',
+      4: e.penerima || 'Pihak Terkait / Toko',
+      5: e.nominal || 0,
+      8: e.status === 'Dibatalkan' ? 'Dibatalkan' : 'Sah',
+    };
+    if (e.driveUrl || e.buktiUrl) {
+      updates[6] = e.driveUrl || e.buktiUrl || '';
+    }
+    const res = await updateRowInSheet('BuktiStruk', 7, e.id, updates);
+    if (!res.success && (e.driveUrl || e.buktiUrl)) {
+      return appendBuktiStrukToSheet(e);
+    }
+    return res;
+  } catch (err: any) {
+    console.error('updateBuktiStrukInSheet error:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 export async function updateExpenseInSheet(
@@ -1135,19 +1186,25 @@ export async function updateExpenseInSheet(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const formattedTime = formatGoogleSheetTimestamp(e.tanggal ? new Date(e.tanggal) : new Date());
-    // Coba update via webhook
-    const webhookRes = await updateRowInSheet('DataPengeluaran', 5, e.id, {
-      1: formattedTime,
-      2: e.keterangan || `${e.kategori} - ${e.penerima}`,
-      3: e.nominal || 0,
-      4: e.kategori,
-      6: e.status === 'Dibatalkan' ? 'Dibatalkan' : 'Aktif',
-      8: escapeGsheetCell(e.penerima || 'Pihak Terkait / Toko'),
-    });
+    // Coba update via webhook ke DataPengeluaran & BuktiStruk sekaligus
+    const [webhookRes] = await Promise.all([
+      updateRowInSheet('DataPengeluaran', 5, e.id, {
+        1: formattedTime,
+        2: e.keterangan || `${e.kategori} - ${e.penerima}`,
+        3: e.nominal || 0,
+        4: e.kategori,
+        6: e.status === 'Dibatalkan' ? 'Dibatalkan' : 'Aktif',
+        8: escapeGsheetCell(e.penerima || 'Pihak Terkait / Toko'),
+      }),
+      updateBuktiStrukInSheet(e).catch((err) => {
+        console.error('Sync BuktiStruk update error:', err);
+        return { success: false };
+      }),
+    ]);
 
     if (!webhookRes.success) {
-      // Fallback: hapus baris lama dan tambahkan baris baru yang telah diperbarui
-      await deleteExpenseFromSheet(e.id);
+      // Fallback: hapus baris lama di DataPengeluaran dan tambahkan baris baru yang telah diperbarui
+      await deleteRowFromSheet('DataPengeluaran', 5, e.id, SHEET_GIDS.datapengeluaran);
       await appendExpenseToSheet(e, refId);
     }
     return { success: true };

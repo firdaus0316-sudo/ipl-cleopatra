@@ -238,12 +238,9 @@ export async function PUT(req: NextRequest) {
 
       saveDb(db);
 
-      // Real-time auto sync ke Google Sheet DataPengeluaran & BuktiStruk
+      // Real-time auto sync ke Google Sheet DataPengeluaran & BuktiStruk (update in-place, tanpa duplikasi)
       try {
         await updateExpenseInSheet(exp);
-        if (exp.buktiUrl || exp.driveUrl) {
-          await appendBuktiStrukToSheet(exp);
-        }
       } catch (sheetErr) {
         console.error('Update expense in sheet error:', sheetErr);
       }
