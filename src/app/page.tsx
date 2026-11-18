@@ -106,13 +106,30 @@ const EXPENSE_COLORS: Record<string, string> = {
   Lainnya: '#94a3b8',
 };
 
+const KATEGORI_INCOME_OPTIONS = [
+  'Iuran Bulanan',
+  'THR (Tunjangan Hari Raya)',
+  'Donasi / Dana Hibah',
+  'Ramadhan',
+  'Agustusan',
+  'Selokan',
+  'Lainnya',
+];
+
 const INCOME_COLORS: Record<string, string> = {
   'Iuran Bulanan': '#10b981',
   'Iuran Bulanan (Reguler)': '#10b981',
-  'Iuran Agustusan': '#f59e0b',
+  'THR (Tunjangan Hari Raya)': '#ec4899',
   'Iuran THR': '#ec4899',
+  'Donasi / Dana Hibah': '#8b5cf6',
   'Dana Hibah / Donasi': '#8b5cf6',
+  Ramadhan: '#14b8a6',
+  Agustusan: '#f59e0b',
+  'Iuran Agustusan': '#f59e0b',
+  Selokan: '#06b6d4',
+  'Iuran Perbaikan Selokan': '#06b6d4',
   'Tunggakan Terbayar': '#0284c7',
+  Lainnya: '#64748b',
   'Pemasukan Lainnya': '#64748b',
 };
 
@@ -138,7 +155,7 @@ export default function PublicPage() {
   const [residentName, setResidentName] = useState('');
   const [blok, setBlok] = useState('');
   const [hp, setHp] = useState('');
-  const [kategori, setKategori] = useState('Iuran Bulanan (Reguler)');
+  const [kategori, setKategori] = useState('Iuran Bulanan');
   const [selectedMonths, setSelectedMonths] = useState<string[]>(['November 2026']);
   const [customNominal, setCustomNominal] = useState<string>('150000');
   const [catatanWarga, setCatatanWarga] = useState('');
@@ -376,14 +393,21 @@ export default function PublicPage() {
   }, [blok, kategori, selectedMonths, currentResidentPaidSet, currentResidentPendingSet]);
 
   const isUntargetedKategori = (kat: string) =>
-    kat === 'Dana Hibah / Donasi' || kat === 'Pemasukan Lainnya';
+    kat === 'Donasi / Dana Hibah' ||
+    kat === 'Lainnya' ||
+    kat === 'Dana Hibah / Donasi' ||
+    kat === 'Pemasukan Lainnya';
 
   const handleKategoriChange = (nextKat: string) => {
     setKategori(nextKat);
-    if (isUntargetedKategori(nextKat)) {
-      setCustomNominal('');
-    } else {
+    if (nextKat === 'Iuran Bulanan') {
       setCustomNominal(String(currentResidentTarif * Math.max(1, selectedMonths.length)));
+    } else if (nextKat === 'THR (Tunjangan Hari Raya)') {
+      setCustomNominal('100000');
+    } else if (nextKat === 'Ramadhan' || nextKat === 'Agustusan' || nextKat === 'Selokan') {
+      setCustomNominal('50000');
+    } else {
+      setCustomNominal('');
     }
   };
 
@@ -393,10 +417,10 @@ export default function PublicPage() {
     setBlok(r.blok);
     setHp(r.hp);
     const tarif = r.tarif || 150000;
-    if (isUntargetedKategori(kategori)) {
-      setCustomNominal('');
-    } else {
+    if (kategori === 'Iuran Bulanan') {
       setCustomNominal(String(tarif * Math.max(1, selectedMonths.length)));
+    } else if (isUntargetedKategori(kategori)) {
+      setCustomNominal('');
     }
     setIsWargaPickerOpen(false);
   };
@@ -589,7 +613,7 @@ export default function PublicPage() {
           blok,
           hp,
           kategori,
-          bulan: selectedMonths,
+          bulan: kategori === 'Iuran Bulanan' ? selectedMonths : [selectedMonths[0] || 'November 2026'],
           nominal: Number(customNominal),
           buktiUrl: buktiImage,
           catatanWarga,
@@ -1423,22 +1447,22 @@ export default function PublicPage() {
 
                   {/* KATEGORI */}
                   <div>
-                    <label className="block font-bold text-slate-800 mb-1.5">Kategori Iuran</label>
+                    <label className="block font-bold text-slate-800 mb-1.5">Pilihan Kategori Iuran / Pemasukan</label>
                     <select
                       value={kategori}
                       onChange={(e) => handleKategoriChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
-                      <option value="Iuran Bulanan (Reguler)">Iuran Bulanan (Reguler)</option>
-                      <option value="Iuran Agustusan">Iuran Agustusan</option>
-                      <option value="Iuran THR (Tunjangan Hari Raya)">Iuran THR</option>
-                      <option value="Iuran Perbaikan Selokan">Iuran Perbaikan Selokan</option>
-                      <option value="Dana Hibah / Donasi">Dana Hibah / Donasi</option>
-                      <option value="Pemasukan Lainnya">Pemasukan Lainnya</option>
+                      {KATEGORI_INCOME_OPTIONS.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* POLA PERIODE BULAN YANG DIBAYAR (SESUAI GAMBAR 2) */}
+                  {/* POLA PERIODE BULAN YANG DIBAYAR (KHUSUS IURAN BULANAN) */}
+                  {kategori === 'Iuran Bulanan' && (
                   <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="font-extrabold text-slate-900 text-xs sm:text-sm">
@@ -1508,17 +1532,12 @@ export default function PublicPage() {
                       <div className="text-slate-600">
                         Bulan terpilih: <span className="font-black text-slate-900">{selectedMonths.join(', ')}</span>
                       </div>
-                      {!isUntargetedKategori(kategori) ? (
-                        <div className="text-emerald-700 font-black">
-                          {formatRupiah(currentResidentTarif)} x {selectedMonths.length} bln
-                        </div>
-                      ) : (
-                        <div className="text-slate-500 font-semibold text-[11px]">
-                          Sukarela / tanpa tarif target
-                        </div>
-                      )}
+                      <div className="text-emerald-700 font-black">
+                        {formatRupiah(currentResidentTarif)} x {selectedMonths.length} bln
+                      </div>
                     </div>
                   </div>
+                  )}
 
                   {/* DUA KOLOM BERDAMPINGAN: TOTAL NOMINAL KAS MASUK & CATATAN TAMBAHAN (SESUAI GAMBAR 2) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -1536,9 +1555,11 @@ export default function PublicPage() {
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black text-emerald-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block font-medium">
-                        {isUntargetedKategori(kategori)
+                        {kategori === 'Iuran Bulanan'
+                          ? `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`
+                          : isUntargetedKategori(kategori)
                           ? 'Isi nominal sesuai jumlah transfer / donasi (tidak ditargetkan)'
-                          : `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`}
+                          : `Nominal saran ${kategori} (dapat diubah sesuai bukti transfer)`}
                       </span>
                     </div>
 
