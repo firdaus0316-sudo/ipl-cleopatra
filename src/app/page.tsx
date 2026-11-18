@@ -375,13 +375,29 @@ export default function PublicPage() {
     return { paid, pending };
   }, [blok, kategori, selectedMonths, currentResidentPaidSet, currentResidentPendingSet]);
 
+  const isUntargetedKategori = (kat: string) =>
+    kat === 'Dana Hibah / Donasi' || kat === 'Pemasukan Lainnya';
+
+  const handleKategoriChange = (nextKat: string) => {
+    setKategori(nextKat);
+    if (isUntargetedKategori(nextKat)) {
+      setCustomNominal('');
+    } else {
+      setCustomNominal(String(currentResidentTarif * Math.max(1, selectedMonths.length)));
+    }
+  };
+
   const handleSelectResident = (r: PublicResident) => {
     setSelectedResidentId(r.id);
     setResidentName(r.nama);
     setBlok(r.blok);
     setHp(r.hp);
     const tarif = r.tarif || 150000;
-    setCustomNominal(String(tarif * Math.max(1, selectedMonths.length)));
+    if (isUntargetedKategori(kategori)) {
+      setCustomNominal('');
+    } else {
+      setCustomNominal(String(tarif * Math.max(1, selectedMonths.length)));
+    }
     setIsWargaPickerOpen(false);
   };
 
@@ -409,7 +425,9 @@ export default function PublicPage() {
     }
 
     setSelectedMonths(selected);
-    setCustomNominal(String(currentResidentTarif * selected.length));
+    if (!isUntargetedKategori(kategori)) {
+      setCustomNominal(String(currentResidentTarif * selected.length));
+    }
   };
 
   const handleToggleMonth = (month: string) => {
@@ -421,7 +439,9 @@ export default function PublicPage() {
       updated = [...selectedMonths, month];
     }
     setSelectedMonths(updated);
-    setCustomNominal(String(currentResidentTarif * Math.max(1, updated.length)));
+    if (!isUntargetedKategori(kategori)) {
+      setCustomNominal(String(currentResidentTarif * Math.max(1, updated.length)));
+    }
   };
 
   const compressImageFile = (file: File): Promise<string> => {
@@ -1406,7 +1426,7 @@ export default function PublicPage() {
                     <label className="block font-bold text-slate-800 mb-1.5">Kategori Iuran</label>
                     <select
                       value={kategori}
-                      onChange={(e) => setKategori(e.target.value)}
+                      onChange={(e) => handleKategoriChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="Iuran Bulanan (Reguler)">Iuran Bulanan (Reguler)</option>
@@ -1488,9 +1508,15 @@ export default function PublicPage() {
                       <div className="text-slate-600">
                         Bulan terpilih: <span className="font-black text-slate-900">{selectedMonths.join(', ')}</span>
                       </div>
-                      <div className="text-emerald-700 font-black">
-                        {formatRupiah(currentResidentTarif)} x {selectedMonths.length} bln
-                      </div>
+                      {!isUntargetedKategori(kategori) ? (
+                        <div className="text-emerald-700 font-black">
+                          {formatRupiah(currentResidentTarif)} x {selectedMonths.length} bln
+                        </div>
+                      ) : (
+                        <div className="text-slate-500 font-semibold text-[11px]">
+                          Sukarela / tanpa tarif target
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1503,12 +1529,16 @@ export default function PublicPage() {
                       <input
                         type="number"
                         required
+                        min="1"
+                        placeholder={isUntargetedKategori(kategori) ? 'Isi sesuai nominal transfer' : ''}
                         value={customNominal}
                         onChange={(e) => setCustomNominal(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black text-emerald-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block font-medium">
-                        Otomatis terkalkulasi ({selectedMonths.length} bulan x {formatRupiah(currentResidentTarif)})
+                        {isUntargetedKategori(kategori)
+                          ? 'Isi nominal sesuai jumlah transfer / donasi (tidak ditargetkan)'
+                          : `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`}
                       </span>
                     </div>
 

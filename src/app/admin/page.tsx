@@ -865,10 +865,10 @@ export default function AdminPage() {
       setNewIncomeNominal('50000');
       setNewIncomeNote('Iuran Kerja Bakti / Pembersihan Selokan');
     } else if (cat === 'Donasi / Dana Hibah') {
-      setNewIncomeNominal('200000');
+      setNewIncomeNominal('');
       setNewIncomeNote('Donasi sukarela warga');
     } else {
-      setNewIncomeNominal('50000');
+      setNewIncomeNominal('');
       setNewIncomeNote('');
     }
   };
