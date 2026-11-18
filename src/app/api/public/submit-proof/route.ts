@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ProofSubmission } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
+import { isIuranBulananCategory } from '@/lib/format';
 import {
   normalizePeriodCode,
   appendProofToSheet,
@@ -48,9 +49,13 @@ export async function POST(req: NextRequest) {
       parsedMonths = [db.settings.periodeAktif ? normalizePeriodCode(db.settings.periodeAktif) : new Date().toISOString().slice(0, 7)];
     }
 
-    // Proteksi Anti-Dobel untuk Iuran Bulanan (Reguler)
-    const katLower = (kategori || 'Iuran Bulanan').toLowerCase();
-    const isRegularIuran = katLower.includes('iuran') && !katLower.includes('tunggakan');
+    // Proteksi Anti-Dobel khusus Iuran Bulanan (Reguler)
+    const isRegularIuran = isIuranBulananCategory(kategori || 'Iuran Bulanan');
+    if (!isRegularIuran && parsedMonths.length > 1) {
+      // Kategori selain Iuran Bulanan (Donasi/Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya)
+      // dicatat 1 periode saat itu, jangan dipecah ke multi-bulan.
+      parsedMonths = [parsedMonths[0]];
+    }
     if (isRegularIuran) {
       try {
         const normInputBlok = blok.trim().toUpperCase().replace(/\s+/g, '');
@@ -62,8 +67,7 @@ export async function POST(req: NextRequest) {
         const liveProofs = proofRes.success && proofRes.proofs.length > 0 ? proofRes.proofs : db.proofs || [];
         const duplicatePending = liveProofs.find((p) => {
           if (!p || p.status !== 'Menunggu Verifikasi') return false;
-          const pKat = (p.kategori || '').toLowerCase();
-          if (!pKat.includes('iuran') || pKat.includes('tunggakan')) return false;
+          if (!isIuranBulananCategory(p.kategori)) return false;
           const pBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
           if (pBlok !== normInputBlok) return false;
           const pMonths = (p.bulan || []).map((m: string) => normalizePeriodCode(m));
@@ -84,8 +88,7 @@ export async function POST(req: NextRequest) {
         const paidMonthsSet = new Set<string>();
         liveIncomes.forEach((inc) => {
           if (!inc || inc.status !== 'Sah') return;
-          const iKat = (inc.kategori || '').toLowerCase();
-          if (!iKat.includes('iuran') || iKat.includes('tunggakan')) return;
+          if (!isIuranBulananCategory(inc.kategori)) return;
           const match = (inc.sumber || '').match(/\(([^)]+)\)/);
           const iBlok = (match?.[1] || '').toUpperCase().replace(/\s+/g, '');
           if (iBlok === normInputBlok) {

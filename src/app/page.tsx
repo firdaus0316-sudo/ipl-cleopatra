@@ -402,12 +402,15 @@ export default function PublicPage() {
     setKategori(nextKat);
     if (nextKat === 'Iuran Bulanan') {
       setCustomNominal(String(currentResidentTarif * Math.max(1, selectedMonths.length)));
-    } else if (nextKat === 'THR (Tunjangan Hari Raya)') {
-      setCustomNominal('100000');
-    } else if (nextKat === 'Ramadhan' || nextKat === 'Agustusan' || nextKat === 'Selokan') {
-      setCustomNominal('50000');
     } else {
-      setCustomNominal('');
+      setSelectedMonths([selectedMonths[0] || 'November 2026']);
+      if (nextKat === 'THR (Tunjangan Hari Raya)') {
+        setCustomNominal('100000');
+      } else if (nextKat === 'Ramadhan' || nextKat === 'Agustusan' || nextKat === 'Selokan') {
+        setCustomNominal('50000');
+      } else {
+        setCustomNominal('');
+      }
     }
   };
 
@@ -1558,8 +1561,8 @@ export default function PublicPage() {
                         {kategori === 'Iuran Bulanan'
                           ? `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`
                           : isUntargetedKategori(kategori)
-                          ? 'Isi nominal sesuai jumlah transfer / donasi (tidak ditargetkan)'
-                          : `Nominal saran ${kategori} (dapat diubah sesuai bukti transfer)`}
+                          ? 'Isi nominal transfer / donasi — dicatat penuh 1 periode saat ini (tidak dipecah)'
+                          : `Nominal saran ${kategori} — dicatat penuh 1 periode saat ini (dapat diubah sesuai bukti)`}
                       </span>
                     </div>
 

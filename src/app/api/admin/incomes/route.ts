@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
+import { isIuranBulananCategory } from '@/lib/format';
 import {
   appendIncomesToSheet,
   deleteIncomeFromSheet,
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    const isIuran = kategori.trim() === 'Iuran Bulanan' || kategori.toLowerCase().includes('iuran');
+    const isIuran = isIuranBulananCategory(kategori);
 
     if (isIuran) {
       // Cari tarif warga
@@ -231,7 +232,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Pemasukan non-iuran atau 1 transaksi standar
+    // Pemasukan non-iuran bulanan (Donasi / Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya):
+    // Selalu dicatat utuh sebagai 1 transaksi pada periode saat itu (tidak dipecah multi-bulan).
+    const singlePeriod =
+      monthsList[0] ||
+      normalizePeriodCode(tgl) ||
+      (db.settings.periodeAktif ? normalizePeriodCode(db.settings.periodeAktif) : new Date().toISOString().slice(0, 7));
+
     const incomeId = `INC-MANUAL-${Date.now()}`;
     const newIncome: IncomeTransaction = {
       id: incomeId,
@@ -239,7 +246,7 @@ export async function POST(req: NextRequest) {
       sumber: sumber.trim(),
       residentId: residentId || undefined,
       kategori: kategori.trim(),
-      bulan: monthsList.length > 0 ? monthsList : undefined,
+      bulan: [singlePeriod],
       nominal: totalNominal,
       status: 'Sah',
       catatan: catatan?.trim() || 'Pemasukan dicatat manual oleh admin',
@@ -254,7 +261,7 @@ export async function POST(req: NextRequest) {
     appendIncomesToSheet({
       namaWarga: rNamaSingle,
       blok: rBlokSingle,
-      bulanIuran: monthsList[0] || normalizePeriodCode(tgl) || '2026-11',
+      bulanIuran: singlePeriod,
       jumlah: newIncome.nominal,
       status: 'Lunas',
       kategori: newIncome.kategori,
@@ -263,8 +270,8 @@ export async function POST(req: NextRequest) {
       wargaId: wIdSingle,
       statusTransaksi: 'Aktif',
       buktiId: '',
-      bulanAwal: monthsList[0] || normalizePeriodCode(tgl) || '2026-11',
-      bulanAkhir: monthsList[0] || normalizePeriodCode(tgl) || '2026-11',
+      bulanAwal: singlePeriod,
+      bulanAkhir: singlePeriod,
       jumlahBulan: 1,
     }).catch((e) => console.error('Auto-sync single income to sheet error:', e));
 

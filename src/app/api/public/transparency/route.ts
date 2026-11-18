@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { normalizePeriodCode } from '@/lib/format';
+import { normalizePeriodCode, isIuranBulananCategory } from '@/lib/format';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
@@ -152,8 +152,7 @@ export async function GET() {
 
     for (const inc of validIncomes) {
       const nom = Number(inc.nominal) || 0;
-      const katLower = (inc.kategori || '').toLowerCase();
-      const isRegularIuran = katLower.includes('iuran') && !katLower.includes('tunggakan');
+      const isRegularIuran = isIuranBulananCategory(inc.kategori);
       if (isRegularIuran) {
         const rawPeriod = (Array.isArray(inc.bulan) && inc.bulan[0]) || inc.tanggal?.slice(0, 7) || '2026-11';
         const normPeriod = normalizePeriodCode(rawPeriod) || rawPeriod;

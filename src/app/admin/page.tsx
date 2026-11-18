@@ -895,7 +895,10 @@ export default function AdminPage() {
       sumber: finalSumber,
       residentId: !isManualNonWarga && newIncomeResidentId ? newIncomeResidentId : undefined,
       kategori: newIncomeCategory,
-      bulan: newIncomeCategory === 'Iuran Bulanan' ? newIncomeMonths : undefined,
+      bulan:
+        newIncomeCategory === 'Iuran Bulanan'
+          ? newIncomeMonths
+          : [newIncomeDate ? newIncomeDate.slice(0, 7) : '2026-11'],
       nominal: Number(newIncomeNominal),
       catatan: newIncomeNote || `${newIncomeCategory} - ${finalSumber}`,
     };
@@ -5886,9 +5889,13 @@ export default function AdminPage() {
                     onChange={(e) => setNewIncomeNominal(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-black text-emerald-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
-                  {newIncomeCategory === 'Iuran Bulanan' && (
+                  {newIncomeCategory === 'Iuran Bulanan' ? (
                     <span className="text-[10px] text-slate-400 mt-0.5 block">
                       Otomatis terkalkulasi ({newIncomeMonths.length} bulan x {formatRupiah(newIncomeTarif)})
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-700 font-semibold mt-0.5 block">
+                      Dicatat penuh 1 periode ({newIncomeDate ? newIncomeDate.slice(0, 7) : 'saat ini'}), tidak dipecah per bulan.
                     </span>
                   )}
                 </div>

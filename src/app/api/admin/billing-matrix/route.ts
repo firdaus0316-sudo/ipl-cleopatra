@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { matchIncomeToResident, matchProofToResident } from '@/lib/format';
+import { matchIncomeToResident, matchProofToResident, isIuranBulananCategory } from '@/lib/format';
 import { fetchIncomesFromSheet, fetchResidentsFromSheet, fetchProofsFromSheet, syncAllDbNamesWithMaster } from '@/lib/googleSheet';
 
 const MONTH_NAMES = [
@@ -83,8 +83,8 @@ export async function GET(req: NextRequest) {
     } catch {}
 
     const activeResidents = (db.residents || []).filter((r) => r.status === 'Aktif');
-    const validIncomes = (db.incomes || []).filter((i) => i.status !== 'Dibatalkan');
-    const pendingProofs = (db.proofs || []).filter((p) => p.status === 'Menunggu Verifikasi');
+    const validIncomes = (db.incomes || []).filter((i) => i.status !== 'Dibatalkan' && isIuranBulananCategory(i.kategori));
+    const pendingProofs = (db.proofs || []).filter((p) => p.status === 'Menunggu Verifikasi' && isIuranBulananCategory(p.kategori));
     const currentPeriod = db.settings?.periodeAktif || '2026-11';
 
     // Statistik bulanan untuk rekapitulasi cepat

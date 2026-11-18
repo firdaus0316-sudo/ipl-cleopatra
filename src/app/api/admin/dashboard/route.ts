@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb } from '@/lib/db';
-import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident } from '@/lib/format';
+import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident, isIuranBulananCategory } from '@/lib/format';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   fetchKasbonFromSheet,
@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
     // Kumpulkan seluruh periode yang ada di database transaksi
     const discoveredPeriodCodes = new Set<string>();
     validIncomes.forEach((inc) => {
-      const isIuran = inc.kategori === 'Iuran Bulanan' || inc.kategori?.toLowerCase().includes('iuran');
+      const isIuran = isIuranBulananCategory(inc.kategori);
       if (!isIuran) return;
       const bList = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [inc.bulan] : [];
       bList.forEach((b) => {
@@ -233,7 +233,7 @@ export async function GET(req: NextRequest) {
       let periodRealisasiNominal = 0;
 
       validIncomes.forEach((inc) => {
-        const isIuran = inc.kategori === 'Iuran Bulanan' || inc.kategori?.toLowerCase().includes('iuran');
+        const isIuran = isIuranBulananCategory(inc.kategori);
         if (!isIuran) return;
 
         const bList = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [inc.bulan] : [];
@@ -433,10 +433,10 @@ export async function GET(req: NextRequest) {
         totalPemasukanTahun,
         totalPemasukanAllTime: totalIncomesAllTime,
         pemasukanIuranBulanan: periodIncomes
-          .filter((i) => i.kategori === 'Iuran Bulanan' || i.kategori?.toLowerCase().includes('iuran'))
+          .filter((i) => isIuranBulananCategory(i.kategori))
           .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
         pemasukanNonIuran: periodIncomes
-          .filter((i) => !(i.kategori === 'Iuran Bulanan' || i.kategori?.toLowerCase().includes('iuran')))
+          .filter((i) => !isIuranBulananCategory(i.kategori))
           .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0),
         totalPengeluaran: totalPengeluaranPeriode,
         totalPengeluaranPeriode,

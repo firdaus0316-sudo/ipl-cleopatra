@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
+import { isIuranBulananCategory } from '@/lib/format';
 import {
   appendIncomesToSheet,
   appendPelunasanToSheet,
@@ -171,31 +172,42 @@ export async function POST(req: NextRequest) {
       });
 
       if (monthsList.length === 0) {
-        monthsList = [new Date().toISOString().slice(0, 7)];
+        monthsList = [
+          (proof.createdAt ? normalizePeriodCode(proof.createdAt.slice(0, 7)) : '') ||
+            new Date().toISOString().slice(0, 7),
+        ];
       }
 
-      // Cari tarif warga
-      const res = db.residents.find(
-        (r) => r.id === proof.residentId || r.nama.toLowerCase() === proof.residentName.toLowerCase()
-      );
-      const residentTarif = res?.tarif || 150000;
+      const proofKategori = (proof.kategori || 'Iuran Bulanan').trim();
+      const isRegularIuran = isIuranBulananCategory(proofKategori);
 
-      // Jika nominal mencakup lebih dari 1 bulan tetapi hanya 1 bulan yang terdaftar, ekspansi secara periodik
-      if (monthsList.length === 1 && proof.nominal >= residentTarif * 2 && residentTarif > 0) {
-        const calculatedMonthsCount = Math.round(proof.nominal / residentTarif);
-        if (calculatedMonthsCount > 1) {
-          const [sY, sM] = monthsList[0].split('-').map(Number);
-          monthsList = [];
-          for (let m = 0; m < calculatedMonthsCount; m++) {
-            const date = new Date(sY, sM - 1 + m, 1);
-            const mCode = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            monthsList.push(mCode);
+      if (isRegularIuran) {
+        // Cari tarif warga (ekspansi multi-bulan HANYA berlaku untuk Iuran Bulanan)
+        const res = db.residents.find(
+          (r) => r.id === proof.residentId || r.nama.toLowerCase() === proof.residentName.toLowerCase()
+        );
+        const residentTarif = res?.tarif || 150000;
+
+        // Jika nominal mencakup lebih dari 1 bulan tetapi hanya 1 bulan yang terdaftar, ekspansi secara periodik
+        if (monthsList.length === 1 && proof.nominal >= residentTarif * 2 && residentTarif > 0) {
+          const calculatedMonthsCount = Math.round(proof.nominal / residentTarif);
+          if (calculatedMonthsCount > 1) {
+            const [sY, sM] = monthsList[0].split('-').map(Number);
+            monthsList = [];
+            for (let m = 0; m < calculatedMonthsCount; m++) {
+              const date = new Date(sY, sM - 1 + m, 1);
+              const mCode = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              monthsList.push(mCode);
+            }
           }
         }
+        // Urutkan bulan secara kronologis
+        monthsList.sort();
+      } else {
+        // Kategori selain Iuran Bulanan (Donasi/Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya):
+        // Catat sebagai 1 transaksi utuh pada periode saat itu, jangan dipecah ke multi-bulan.
+        monthsList = [monthsList[0]];
       }
-
-      // Urutkan bulan secara kronologis
-      monthsList.sort();
 
       const numMonths = monthsList.length;
       const basePerMonth = Math.floor(proof.nominal / numMonths);
@@ -206,25 +218,31 @@ export async function POST(req: NextRequest) {
       const nowIso = new Date().toISOString();
       const todayDate = nowIso.slice(0, 10);
 
-      // Buat transaksi kas masuk TERPISAH untuk SETIAP bulan
+      // Buat transaksi kas masuk TERPISAH untuk SETIAP bulan (khusus Iuran Bulanan), atau 1 transaksi utuh untuk kategori lainnya
       monthsList.forEach((mCode, idx) => {
         const txId = `INC-${Date.now()}-${idx + 1}`;
         createdTxIds.push(txId);
-        const nominalThisMonth = idx === numMonths - 1 ? basePerMonth + remainder : basePerMonth;
+        const nominalThisMonth = isRegularIuran
+          ? idx === numMonths - 1
+            ? basePerMonth + remainder
+            : basePerMonth
+          : proof.nominal;
 
         const newIncome: IncomeTransaction = {
           id: txId,
           tanggal: todayDate,
           sumber: `${proof.residentName} (${proof.blok})`,
           residentId: proof.residentId,
-          kategori: 'Iuran Bulanan',
+          kategori: proofKategori,
           bulan: [mCode], // Format YYYY-MM per bulan
           nominal: nominalThisMonth,
           buktiId: proof.id,
           status: 'Sah',
           catatan:
             adminNote ||
-            (numMonths > 1
+            (!isRegularIuran
+              ? `${proofKategori} Periode ${mCode} - Bukti ${proof.id}`
+              : numMonths > 1
               ? `Iuran Periode ${mCode} (${idx + 1}/${numMonths}) - Bukti ${proof.id}`
               : `Iuran Periode ${mCode} - Bukti ${proof.id}`),
           createdAt: nowIso,
@@ -247,7 +265,7 @@ export async function POST(req: NextRequest) {
         bulanIuran: inc.bulan?.[0] || '2026-11',
         jumlah: inc.nominal,
         status: 'Lunas',
-        kategori: proof.kategori || 'Iuran Bulanan',
+        kategori: proofKategori,
         tarif: inc.nominal,
         transaksiId: inc.id,
         wargaId: wargaId || proof.residentId,
@@ -263,7 +281,7 @@ export async function POST(req: NextRequest) {
         await appendPelunasanToSheet({
           id: `VERIF-${proof.id}`,
           waktu: nowIso,
-          jenis: 'Iuran Warga (Transfer)',
+          jenis: isRegularIuran ? 'Iuran Warga (Transfer)' : `${proofKategori} (Transfer)`,
           referensiId: proof.id,
           nama: `${proof.residentName} (${proof.blok})`,
           nominal: proof.nominal,
@@ -313,13 +331,17 @@ export async function POST(req: NextRequest) {
       saveDb(db);
       addLog(
         'Verifikasi Bukti Disetujui',
-        `Bukti ${proof.id} dari ${proof.residentName} (${proof.blok}) disetujui. Dibagi ke ${numMonths} bulan kas masuk (${createdTxIds.join(', ')}).`,
+        isRegularIuran
+          ? `Bukti ${proof.id} (${proofKategori}) dari ${proof.residentName} (${proof.blok}) disetujui. Dibagi ke ${numMonths} bulan kas masuk (${createdTxIds.join(', ')}).`
+          : `Bukti ${proof.id} (${proofKategori}) dari ${proof.residentName} (${proof.blok}) disetujui penuh Rp ${proof.nominal.toLocaleString('id-ID')} pada periode ${monthsList[0]} (${createdTxIds.join(', ')}).`,
         'Admin'
       );
 
       return NextResponse.json({
         success: true,
-        message: `Bukti berhasil diverifikasi dan otomatis dipecah menjadi ${numMonths} transaksi kas masuk terpisah per bulan!`,
+        message: isRegularIuran && numMonths > 1
+          ? `Bukti berhasil diverifikasi dan otomatis dipecah menjadi ${numMonths} transaksi kas masuk terpisah per bulan!`
+          : `Bukti ${proofKategori} berhasil diverifikasi utuh pada periode ${monthsList[0]}!`,
         data: proof,
       });
     }

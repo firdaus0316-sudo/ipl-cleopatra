@@ -1,5 +1,5 @@
 import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema } from '@/types';
-import { normalizeBlokCode } from '@/lib/format';
+import { normalizeBlokCode, isIuranBulananCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -332,7 +332,9 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
         }
       }
 
-      if (bulanList.length > 1) {
+      const isRegularIuranRow = isIuranBulananCategory(kategori);
+
+      if (isRegularIuranRow && bulanList.length > 1) {
         const numMonths = bulanList.length;
         const baseNominal = Math.floor(nominal / numMonths);
         const rem = nominal - baseNominal * numMonths;
@@ -354,13 +356,14 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
           });
         });
       } else {
+        const singlePeriod = bulanList[0] || normalizePeriodCode(periode) || normalizePeriodCode(tanggal) || '2026-11';
         incomes.push({
           id: transaksiId,
           tanggal,
           sumber: blok ? `${nama} (${blok})` : nama,
           residentId: residentId ? residentId.trim() : undefined,
           kategori,
-          bulan: bulanList.length > 0 ? bulanList : [normalizePeriodCode(periode) || '2026-11'],
+          bulan: [singlePeriod],
           nominal,
           buktiId,
           status: isVoid ? 'Dibatalkan' : 'Sah',
@@ -380,7 +383,7 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       if (seenIncIds.has(inc.id)) continue;
       seenIncIds.add(inc.id);
 
-      const isRegularIuran = inc.kategori === 'Iuran Bulanan' || inc.kategori?.toLowerCase().includes('iuran');
+      const isRegularIuran = isIuranBulananCategory(inc.kategori);
       const parsed = extractNameAndBlok(inc.sumber || '');
       const blockKey = (parsed.blok || inc.residentId || inc.sumber || '').toUpperCase().replace(/\s+/g, '');
       const monthKey = Array.isArray(inc.bulan) ? inc.bulan.join(',') : inc.bulan || '';
@@ -714,10 +717,10 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
         });
       }
 
-      // Periksa juga kolom Bulan Awal & Bulan Akhir jika multi-bulan
+      // Periksa juga kolom Bulan Awal & Bulan Akhir jika multi-bulan (khusus Iuran Bulanan)
       const bulanAwal = (cols[15] || '').trim();
       const bulanAkhir = (cols[16] || '').trim();
-      if (bulanAwal && bulanAkhir) {
+      if (isIuranBulananCategory(kategori) && bulanAwal && bulanAkhir) {
         const normAwal = normalizePeriodCode(bulanAwal);
         const normAkhir = normalizePeriodCode(bulanAkhir);
         if (normAwal && normAkhir) {
@@ -729,7 +732,10 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
       }
 
       if (parsedBulan.length === 0) {
-        parsedBulan.push('2026-11');
+        const fallbackPeriod = bulanAwal ? normalizePeriodCode(bulanAwal) : '';
+        parsedBulan.push(fallbackPeriod || '2026-11');
+      } else if (!isIuranBulananCategory(kategori) && parsedBulan.length > 1) {
+        parsedBulan.splice(1);
       }
 
       let status: 'Terverifikasi' | 'Menunggu Verifikasi' | 'Ditolak' = 'Terverifikasi';

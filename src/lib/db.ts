@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { DatabaseSchema, Resident, ProofSubmission, IncomeTransaction, ExpenseTransaction, ActivityLog, AppSettings } from '@/types';
+import { isIuranBulananCategory } from '@/lib/format';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -168,6 +169,14 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
       if (monthsList.length === 0) monthsList.push('2026-11');
       monthsList.sort();
 
+      const kat = (proof.kategori || 'Iuran Bulanan').trim();
+      const isRegularIuran = isIuranBulananCategory(kat);
+
+      // Kategori selain Iuran Bulanan TIDAK boleh dipecah ke beberapa bulan; catat 1 transaksi utuh pada periode saat itu
+      if (!isRegularIuran) {
+        monthsList.splice(1);
+      }
+
       const numMonths = monthsList.length;
       const basePerMonth = Math.floor(proof.nominal / numMonths);
       const remainder = proof.nominal - basePerMonth * numMonths;
@@ -186,12 +195,14 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
           tanggal: txDate,
           sumber: `${proof.residentName} (${proof.blok})`,
           residentId: proof.residentId,
-          kategori: proof.kategori || 'Iuran Bulanan',
+          kategori: kat,
           bulan: [mCode],
           nominal: nominalThisMonth,
           buktiId: proof.id,
           status: 'Sah',
-          catatan: numMonths > 1
+          catatan: !isRegularIuran
+            ? `${kat} Periode ${mCode} - Bukti ${proof.id}`
+            : numMonths > 1
             ? `Iuran Periode ${mCode} (${idx + 1}/${numMonths}) - Bukti ${proof.id}`
             : `Iuran Periode ${mCode} - Bukti ${proof.id}`,
           createdAt: proof.verifiedAt || proof.createdAt || new Date().toISOString(),

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { normalizePeriodCode } from '@/lib/format';
+import { normalizePeriodCode, isIuranBulananCategory } from '@/lib/format';
 import {
   fetchResidentsFromSheet,
   fetchIncomesFromSheet,
@@ -81,8 +81,7 @@ export async function GET() {
 
     (db.incomes || []).forEach((inc) => {
       if (!inc || inc.status !== 'Sah') return;
-      const kat = (inc.kategori || '').toLowerCase();
-      if (!kat.includes('iuran') || kat.includes('tunggakan')) return;
+      if (!isIuranBulananCategory(inc.kategori)) return;
       const match = (inc.sumber || '').match(/\(([^)]+)\)/);
       const rawBlok = match?.[1] || '';
       const cleanBlok = rawBlok.toUpperCase().replace(/\s+/g, '');
@@ -98,8 +97,7 @@ export async function GET() {
 
     (db.proofs || []).forEach((p) => {
       if (!p || p.status !== 'Menunggu Verifikasi') return;
-      const kat = (p.kategori || '').toLowerCase();
-      if (!kat.includes('iuran') || kat.includes('tunggakan')) return;
+      if (!isIuranBulananCategory(p.kategori)) return;
       const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
       if (!cleanBlok) return;
       if (!pendingPeriodsByBlok[cleanBlok]) pendingPeriodsByBlok[cleanBlok] = [];

@@ -226,3 +226,29 @@ export function matchProofToResident(proof: any, resident: any): boolean {
 
   return false;
 }
+
+/**
+ * Mengembalikan true HANYA untuk kategori Iuran Bulanan (Reguler).
+ * Kategori lain (Donasi / Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya,
+ * Pelunasan Tunggakan, Pengembalian Kasbon) tidak boleh dipecah ke multi-bulan
+ * dan dicatat utuh pada satu periode saat transaksi tersebut terjadi.
+ */
+export function isIuranBulananCategory(kategori?: string | null): boolean {
+  const lower = (kategori || '').trim().toLowerCase();
+  if (!lower) return true;
+  if (
+    lower.includes('donasi') ||
+    lower.includes('hibah') ||
+    lower.includes('thr') ||
+    lower.includes('ramadhan') ||
+    lower.includes('agustusan') ||
+    lower.includes('selokan') ||
+    lower.includes('tunggakan') ||
+    lower.includes('kasbon') ||
+    lower.includes('lainnya') ||
+    lower.includes('lainya')
+  ) {
+    return false;
+  }
+  return lower === 'iuran bulanan' || lower === 'iuran bulanan (reguler)' || lower.startsWith('iuran bulanan');
+}
