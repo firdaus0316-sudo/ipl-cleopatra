@@ -185,11 +185,11 @@ export function matchIncomeToResident(income: any, resident: any): boolean {
     }
   }
 
-  // 3. Nama lengkap warga (minimal 4 karakter) jika blok tidak dicantumkan di sumber
+  // 3. Nama lengkap warga (exact base name sebelum kurung blok) jika blok tidak dicantumkan di sumber
   if (resident.nama && resident.nama.trim().length >= 4 && income.sumber) {
-    const sClean = income.sumber.toLowerCase();
+    const sBase = income.sumber.split('(')[0].toLowerCase().trim();
     const nClean = resident.nama.toLowerCase().trim();
-    if (sClean.includes(nClean)) {
+    if (sBase === nClean) {
       return true;
     }
   }
@@ -211,11 +211,11 @@ export function matchProofToResident(proof: any, resident: any): boolean {
     if (rBlok === pBlok) return true;
   }
 
-  // 3. Nama lengkap warga
+  // 3. Nama lengkap warga (exact match)
   if (resident.nama && resident.nama.trim().length >= 4 && proof.residentName) {
-    const pClean = proof.residentName.toLowerCase();
+    const pClean = proof.residentName.toLowerCase().trim();
     const nClean = resident.nama.toLowerCase().trim();
-    if (pClean.includes(nClean) || nClean.includes(pClean)) return true;
+    if (pClean === nClean) return true;
   }
 
   return false;

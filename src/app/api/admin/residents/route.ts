@@ -133,14 +133,23 @@ export async function PUT(req: NextRequest) {
       const oldBlokClean = (oldBlok || '').toUpperCase().replace(/\s+/g, '');
       const oldNamaClean = (oldNama || '').toLowerCase().trim();
 
+      const isRecordOwnedByEditedResident = (
+        recordResidentId?: string | null,
+        recordNameOrSumber?: string | null,
+        recordBlok?: string | null
+      ): boolean => {
+        const recId = (recordResidentId || '').trim();
+        if (recId) return recId === resident.id;
+        const cleanBlok = (recordBlok || '').toUpperCase().replace(/\s+/g, '');
+        if (oldBlokClean && cleanBlok === oldBlokClean) return true;
+        const baseName = (recordNameOrSumber || '').split('(')[0].trim().toLowerCase();
+        return Boolean(oldNamaClean && baseName === oldNamaClean);
+      };
+
       // Update di db.incomes & Google Sheet DataIuran
       for (const inc of db.incomes || []) {
-        const incBlokClean = (inc.sumber || '').replace(/.*\(|\).*/g, '').toUpperCase().replace(/\s+/g, '');
-        const isMatched =
-          inc.residentId === resident.id ||
-          (oldBlokClean && incBlokClean === oldBlokClean) ||
-          (oldNamaClean && inc.sumber?.toLowerCase().includes(oldNamaClean));
-        if (isMatched) {
+        const incBlokRaw = (inc.sumber || '').match(/\(([^)]+)\)/)?.[1] || '';
+        if (isRecordOwnedByEditedResident(inc.residentId, inc.sumber, incBlokRaw)) {
           inc.sumber = newSumber;
           inc.residentId = resident.id;
           try {
@@ -151,12 +160,7 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.proofs & Google Sheet BuktiTransfer
       for (const p of db.proofs || []) {
-        const pBlokClean = (p.blok || '').toUpperCase().replace(/\s+/g, '');
-        const isMatched =
-          p.residentId === resident.id ||
-          (oldBlokClean && pBlokClean === oldBlokClean) ||
-          (oldNamaClean && p.residentName?.toLowerCase().includes(oldNamaClean));
-        if (isMatched) {
+        if (isRecordOwnedByEditedResident(p.residentId, p.residentName, p.blok)) {
           p.residentName = resident.nama;
           p.blok = resident.blok;
           p.residentId = resident.id;
@@ -168,10 +172,7 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.kasbon & Google Sheet DataKasbon
       for (const k of db.kasbon || []) {
-        const isMatched =
-          k.wargaId === resident.id ||
-          (oldNamaClean && k.namaPeminjam?.toLowerCase().includes(oldNamaClean));
-        if (isMatched) {
+        if (isRecordOwnedByEditedResident(k.wargaId, k.namaPeminjam, '')) {
           k.namaPeminjam = resident.nama;
           k.wargaId = resident.id;
           try {
@@ -182,15 +183,21 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.expenses & Google Sheet DataPengeluaran jika mencantumkan nama warga
       for (const e of db.expenses || []) {
+        const wordRegex = oldNamaClean
+          ? new RegExp(`\\b${oldNamaClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+          : null;
         const isMatched =
-          (oldNamaClean && e.penerima?.toLowerCase().includes(oldNamaClean)) ||
-          (oldNamaClean && e.keterangan?.toLowerCase().includes(oldNamaClean));
+          Boolean(oldNamaClean && e.penerima?.trim().toLowerCase() === oldNamaClean) ||
+          Boolean(wordRegex && e.keterangan && wordRegex.test(e.keterangan));
         if (isMatched) {
-          if (oldNamaClean && e.penerima?.toLowerCase().includes(oldNamaClean)) {
+          if (oldNamaClean && e.penerima?.trim().toLowerCase() === oldNamaClean) {
             e.penerima = resident.nama;
           }
-          if (oldNamaClean && e.keterangan) {
-            e.keterangan = e.keterangan.replace(new RegExp(oldNama, 'gi'), resident.nama);
+          if (wordRegex && e.keterangan) {
+            e.keterangan = e.keterangan.replace(
+              new RegExp(`\\b${oldNama.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
+              resident.nama
+            );
           }
           try {
             await updateRowInSheet('DataPengeluaran', 5, e.id, { 2: e.keterangan, 4: e.kategori });
@@ -200,11 +207,7 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.tunggakanLama & Google Sheet TunggakanLama / TunggakanNonWarga
       for (const t of db.tunggakanLama || []) {
-        const isMatched =
-          t.wargaId === resident.id ||
-          (oldNamaClean && t.namaWarga?.toLowerCase().includes(oldNamaClean)) ||
-          (oldBlokClean && t.keterangan?.toUpperCase().replace(/\s+/g, '').includes(oldBlokClean));
-        if (isMatched) {
+        if (isRecordOwnedByEditedResident(t.wargaId, t.namaWarga, t.blok)) {
           t.namaWarga = resident.nama;
           t.wargaId = resident.id;
           try {
@@ -216,10 +219,7 @@ export async function PUT(req: NextRequest) {
 
       // Update di db.pelunasanHistory & Google Sheet RiwayatPelunasan
       for (const pel of db.pelunasanHistory || []) {
-        const isMatched =
-          pel.wargaId === resident.id ||
-          (oldNamaClean && pel.namaWarga?.toLowerCase().includes(oldNamaClean));
-        if (isMatched) {
+        if (isRecordOwnedByEditedResident(pel.wargaId, pel.namaWarga, '')) {
           pel.namaWarga = resident.nama;
           pel.wargaId = resident.id;
           try {
