@@ -75,7 +75,16 @@ export async function GET() {
 
     const saldoKas = (Number(db.settings?.saldoAwal) || 0) + totalPemasukan - totalPengeluaran;
 
-    // Petakan periode yang sudah lunas & menunggu verifikasi per Blok untuk cegah dobel bayar
+    // Petakan periode lunas & menunggu verifikasi berdasarkan residentId (utama) dan Blok (hanya jika unik 1 KK per blok)
+    const activeResidents = (db.residents || []).filter((r) => r && r.status === 'Aktif');
+    const blokResidentCount = new Map<string, number>();
+    activeResidents.forEach((r) => {
+      const cb = (r.blok || '').toUpperCase().replace(/\s+/g, '');
+      if (cb) blokResidentCount.set(cb, (blokResidentCount.get(cb) || 0) + 1);
+    });
+
+    const paidPeriodsByResident: Record<string, string[]> = {};
+    const pendingPeriodsByResident: Record<string, string[]> = {};
     const paidPeriodsByBlok: Record<string, string[]> = {};
     const pendingPeriodsByBlok: Record<string, string[]> = {};
 
@@ -86,14 +95,25 @@ export async function GET() {
       const match = (inc.sumber || '').match(/\(([^)]+)\)/);
       const rawBlok = match?.[1] || '';
       const cleanBlok = rawBlok.toUpperCase().replace(/\s+/g, '');
-      if (!cleanBlok) return;
-      if (!paidPeriodsByBlok[cleanBlok]) paidPeriodsByBlok[cleanBlok] = [];
-      (inc.bulan || []).forEach((b) => {
-        const norm = normalizePeriodCode(b);
-        if (norm && !paidPeriodsByBlok[cleanBlok].includes(norm)) {
-          paidPeriodsByBlok[cleanBlok].push(norm);
-        }
-      });
+      const months = (inc.bulan || []).map((b) => normalizePeriodCode(b)).filter(Boolean);
+
+      if (inc.residentId) {
+        if (!paidPeriodsByResident[inc.residentId]) paidPeriodsByResident[inc.residentId] = [];
+        months.forEach((norm) => {
+          if (!paidPeriodsByResident[inc.residentId!].includes(norm)) {
+            paidPeriodsByResident[inc.residentId!].push(norm);
+          }
+        });
+      }
+
+      if (cleanBlok && (!inc.residentId || (blokResidentCount.get(cleanBlok) || 0) <= 1)) {
+        if (!paidPeriodsByBlok[cleanBlok]) paidPeriodsByBlok[cleanBlok] = [];
+        months.forEach((norm) => {
+          if (!paidPeriodsByBlok[cleanBlok].includes(norm)) {
+            paidPeriodsByBlok[cleanBlok].push(norm);
+          }
+        });
+      }
     });
 
     (db.proofs || []).forEach((p) => {
@@ -101,21 +121,34 @@ export async function GET() {
       const kat = (p.kategori || '').toLowerCase();
       if (!kat.includes('iuran') || kat.includes('tunggakan')) return;
       const cleanBlok = (p.blok || '').toUpperCase().replace(/\s+/g, '');
-      if (!cleanBlok) return;
-      if (!pendingPeriodsByBlok[cleanBlok]) pendingPeriodsByBlok[cleanBlok] = [];
-      (p.bulan || []).forEach((b) => {
-        const norm = normalizePeriodCode(b);
-        if (norm && !pendingPeriodsByBlok[cleanBlok].includes(norm)) {
-          pendingPeriodsByBlok[cleanBlok].push(norm);
-        }
-      });
+      const months = (p.bulan || []).map((b) => normalizePeriodCode(b)).filter(Boolean);
+
+      if (p.residentId) {
+        if (!pendingPeriodsByResident[p.residentId]) pendingPeriodsByResident[p.residentId] = [];
+        months.forEach((norm) => {
+          if (!pendingPeriodsByResident[p.residentId!].includes(norm)) {
+            pendingPeriodsByResident[p.residentId!].push(norm);
+          }
+        });
+      }
+
+      if (cleanBlok && (!p.residentId || (blokResidentCount.get(cleanBlok) || 0) <= 1)) {
+        if (!pendingPeriodsByBlok[cleanBlok]) pendingPeriodsByBlok[cleanBlok] = [];
+        months.forEach((norm) => {
+          if (!pendingPeriodsByBlok[cleanBlok].includes(norm)) {
+            pendingPeriodsByBlok[cleanBlok].push(norm);
+          }
+        });
+      }
     });
 
     return NextResponse.json({
       success: true,
       settings: safeSettings,
-      residents: (db.residents || []).filter((r) => r && r.status === 'Aktif'),
+      residents: activeResidents,
       saldoKas,
+      paidPeriodsByResident,
+      pendingPeriodsByResident,
       paidPeriodsByBlok,
       pendingPeriodsByBlok,
       sheetStatus: `Tersinkron otomatis Google Sheets`,

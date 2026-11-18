@@ -382,7 +382,7 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
 
       const isRegularIuran = inc.kategori === 'Iuran Bulanan' || inc.kategori?.toLowerCase().includes('iuran');
       const parsed = extractNameAndBlok(inc.sumber || '');
-      const blockKey = (parsed.blok || inc.residentId || inc.sumber || '').toUpperCase().replace(/\s+/g, '');
+      const blockKey = (inc.residentId || parsed.blok || inc.sumber || '').toUpperCase().replace(/\s+/g, '');
       const monthKey = Array.isArray(inc.bulan) ? inc.bulan.join(',') : inc.bulan || '';
       const comboKey = `${blockKey}_${monthKey}`;
 
@@ -1547,14 +1547,18 @@ export function syncAllDbNamesWithMaster(db: DatabaseSchema): void {
   if (residents.length === 0) return;
 
   const byId = new Map<string, Resident>();
-  const byBlok = new Map<string, Resident>();
+  const byBlokList = new Map<string, Resident[]>();
   const byExactName = new Map<string, Resident>();
 
   for (const r of residents) {
     if (!r) continue;
     if (r.id) byId.set(r.id, r);
     const normBlok = normalizeBlokCode(r.blok);
-    if (normBlok) byBlok.set(normBlok, r);
+    if (normBlok) {
+      const list = byBlokList.get(normBlok) || [];
+      list.push(r);
+      byBlokList.set(normBlok, list);
+    }
     const cleanName = (r.nama || '').trim().toLowerCase();
     if (cleanName) byExactName.set(cleanName, r);
   }
@@ -1567,8 +1571,18 @@ export function syncAllDbNamesWithMaster(db: DatabaseSchema): void {
   }): Resident | undefined => {
     if (opts.id && byId.has(opts.id)) return byId.get(opts.id);
     const normBlok = normalizeBlokCode(opts.blok);
-    if (normBlok && byBlok.has(normBlok)) return byBlok.get(normBlok);
     const cleanName = (opts.nama || '').trim().toLowerCase();
+    if (normBlok && byBlokList.has(normBlok)) {
+      const candidates = byBlokList.get(normBlok)!;
+      if (candidates.length === 1) return candidates[0];
+      if (cleanName) {
+        const matched = candidates.find((c) => {
+          const cn = (c.nama || '').trim().toLowerCase();
+          return cn === cleanName || cn.includes(cleanName) || cleanName.includes(cn);
+        });
+        if (matched) return matched;
+      }
+    }
     if (cleanName && byExactName.has(cleanName)) return byExactName.get(cleanName);
     if (opts.allowPrefix && cleanName.length >= 4) {
       const prefixMatches = residents.filter((r) => {
