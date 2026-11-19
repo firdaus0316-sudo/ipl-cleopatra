@@ -48,7 +48,16 @@ import {
   Lock,
   Menu,
 } from 'lucide-react';
-import { formatRupiah, formatDateIndo, formatDateTimeIndo, createWaLink, formatPeriodCode, isIncomeInPeriod } from '@/lib/format';
+import {
+  formatRupiah,
+  formatDateIndo,
+  formatDateTimeIndo,
+  createWaLink,
+  formatPeriodCode,
+  normalizePeriodCode,
+  isIncomeInPeriod,
+  splitProofByPeriod,
+} from '@/lib/format';
 import {
   ProofSubmission,
   IncomeTransaction,
@@ -831,16 +840,22 @@ export default function AdminPage() {
   };
 
   const handleQuickMonthSelect = (count: number) => {
-    const startIndex = BULAN_OPTIONS.indexOf('November 2026') >= 0 ? BULAN_OPTIONS.indexOf('November 2026') : 0;
-    let selected: string[] = [];
-    if (count === 12) {
-      selected = [...BULAN_OPTIONS];
-    } else {
-      selected = BULAN_OPTIONS.slice(startIndex, startIndex + count);
-      if (selected.length < count) {
-        selected = BULAN_OPTIONS.slice(0, count);
-      }
+    const firstSelected = newIncomeMonths[0] || 'November 2026';
+    const norm = normalizePeriodCode(firstSelected) || '2026-11';
+    let [sY, sM] = norm.split('-').map(Number);
+    if (!sY || !sM) {
+      sY = 2026;
+      sM = 11;
     }
+
+    const selected: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const d = new Date(sY, sM - 1 + i, 1);
+      const mName = BULAN_NAMES[d.getMonth()];
+      const yStr = d.getFullYear();
+      selected.push(`${mName} ${yStr}`);
+    }
+
     setNewIncomeMonths(selected);
     if (newIncomeCategory === 'Iuran Bulanan') {
       setNewIncomeNominal(String(newIncomeTarif * selected.length));
@@ -3099,17 +3114,27 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-slate-100">
                     {proofs
                       .filter((p) => proofFilter === 'Semua' || p.status === proofFilter)
-                      .map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                      .flatMap((p) => splitProofByPeriod(p))
+                      .map((slice) => {
+                        const p = slice.proof;
+                        return (
+                        <tr key={slice.rowKey} className="hover:bg-slate-50/70 transition">
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-900">{p.residentName}</div>
                             <div className="text-[11px] text-slate-500">
                               Blok {p.blok} {p.hp && `• ${p.hp}`}
                             </div>
                           </td>
-                          <td className="py-3 px-4 font-mono font-medium text-slate-700">{p.bulan?.map(formatPeriodCode).join(', ') || '-'}</td>
+                          <td className="py-3 px-4">
+                            <div className="font-mono font-bold text-slate-800">{formatPeriodCode(slice.periodCode)}</div>
+                            {slice.totalSlices > 1 && (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/70 text-[10px] font-semibold">
+                                Periode {slice.sliceIndex + 1}/{slice.totalSlices} • Total {formatRupiah(p.nominal)}
+                              </span>
+                            )}
+                          </td>
                           <td className="py-3 px-4 font-black text-slate-900 text-sm">
-                            {formatRupiah(p.nominal)}
+                            {formatRupiah(slice.periodNominal)}
                           </td>
                           <td className="py-3 px-4 text-slate-500">{formatDateIndo(p.createdAt)}</td>
                           <td className="py-3 px-4">
@@ -3141,11 +3166,11 @@ export default function AdminPage() {
                                 const targetHp = p.hp || resident?.hp;
                                 if (!targetHp) return null;
 
-                                const periodeStr = p.bulan && p.bulan.length > 0
-                                  ? p.bulan.join(', ')
-                                  : (settings?.periodeAktif || '2026-11');
+                                const periodeStr = slice.periodCode && slice.periodCode !== '-'
+                                  ? slice.periodCode
+                                  : (p.bulan && p.bulan.length > 0 ? p.bulan.join(', ') : (settings?.periodeAktif || '2026-11'));
 
-                                const waMsg = `Assalamualaikum, Bapak/Ibu ${p.residentName}.\n\nKami informasikan pembayaran iuran RT 011 / RW 028 sudah *diterima dan diverifikasi*.\n\n*Rincian pembayaran:*\nNama: ${p.residentName}\nBlok: ${p.blok}\nKategori: ${p.kategori || 'Iuran Bulanan'}\nPeriode: ${periodeStr}\nNominal: ${formatRupiah(p.nominal)}\nStatus: *Terverifikasi*\n\nTerima kasih atas pembayarannya.\nPengurus RT 011 / RW 028`;
+                                const waMsg = `Assalamualaikum, Bapak/Ibu ${p.residentName}.\n\nKami informasikan pembayaran iuran RT 011 / RW 028 sudah *diterima dan diverifikasi*.\n\n*Rincian pembayaran:*\nNama: ${p.residentName}\nBlok: ${p.blok}\nKategori: ${p.kategori || 'Iuran Bulanan'}\nPeriode: ${periodeStr}\nNominal: ${formatRupiah(slice.periodNominal)}\nStatus: *Terverifikasi*\n\nTerima kasih atas pembayarannya.\nPengurus RT 011 / RW 028`;
 
                                 return (
                                   <a
@@ -3177,7 +3202,8 @@ export default function AdminPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -5343,6 +5369,28 @@ export default function AdminPage() {
                 <span className="text-slate-500">Nominal Transfer:</span>
                 <span className="font-black text-emerald-700 text-sm">{formatRupiah(selectedProof.nominal)}</span>
               </div>
+              {(() => {
+                const slices = splitProofByPeriod(selectedProof);
+                if (slices.length <= 1) return null;
+                return (
+                  <div className="pt-2 border-t border-slate-200">
+                    <span className="text-slate-500 block mb-1.5 font-semibold">
+                      Pembagian Otomatis Per Periode Bulan ({slices.length} Bulan):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {slices.map((s) => (
+                        <span
+                          key={s.rowKey}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[11px]"
+                        >
+                          <span>{s.periodCode}:</span>
+                          <span>{formatRupiah(s.periodNominal)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {selectedProof.catatanWarga && (
                 <div className="pt-2 border-t border-slate-200 text-slate-600">
                   <span className="text-slate-500 block mb-0.5">Catatan Warga:</span>
@@ -5966,7 +6014,7 @@ export default function AdminPage() {
 
                   {/* Multi-Select Pills Bulan */}
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
-                    {BULAN_OPTIONS.map((m) => {
+                    {Array.from(new Set([...BULAN_OPTIONS, ...newIncomeMonths])).map((m) => {
                       const isSelected = newIncomeMonths.includes(m);
                       return (
                         <button

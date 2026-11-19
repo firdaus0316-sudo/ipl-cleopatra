@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { normalizePeriodCode, classifyIncomeBucket } from '@/lib/format';
+import { normalizePeriodCode, classifyIncomeBucket, isIuranBulananCategory } from '@/lib/format';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
@@ -197,16 +197,30 @@ export async function GET() {
     const totalKasbonTerbayar = kasbonList.reduce((sum, k) => sum + (k.terbayar || 0), 0);
     const sisaKasbonBelumKembali = kasbonBelumLunas.reduce((sum, k) => sum + k.nominal, 0);
 
-    // Monthly flow breakdown for Bar Chart (Year 2026 / current year)
+    // Monthly flow breakdown for Bar Chart (Year 2026 / current year):
+    // Iuran Bulanan dikelompokkan berdasarkan PERIODE BULAN iuran (mis. Nov vs Des),
+    // sedangkan pemasukan non-iuran (Donasi, Tunggakan, dll.) berdasarkan tanggal transaksi.
     const monthlyMap: Record<number, { masuk: number; keluar: number }> = {};
     for (let m = 0; m < 12; m++) {
       monthlyMap[m] = { masuk: 0, keluar: 0 };
     }
 
     validIncomes.forEach((inc) => {
+      const targetYear = 2026;
+      const isRegular = isIuranBulananCategory(inc.kategori);
+      const rawPeriod = isRegular && Array.isArray(inc.bulan) && inc.bulan[0] ? normalizePeriodCode(inc.bulan[0]) : '';
+      if (isRegular && /^\d{4}-\d{2}$/.test(rawPeriod)) {
+        const y = parseInt(rawPeriod.slice(0, 4), 10);
+        const m = parseInt(rawPeriod.slice(5, 7), 10) - 1;
+        if (y === targetYear && m >= 0 && m < 12) {
+          monthlyMap[m].masuk += inc.nominal;
+        }
+        return;
+      }
       if (inc.tanggal) {
+        const y = parseInt(inc.tanggal.slice(0, 4), 10);
         const m = parseInt(inc.tanggal.slice(5, 7), 10) - 1;
-        if (!isNaN(m) && m >= 0 && m < 12) {
+        if (y === targetYear && !isNaN(m) && m >= 0 && m < 12) {
           monthlyMap[m].masuk += inc.nominal;
         }
       }

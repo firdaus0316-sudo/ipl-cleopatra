@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { splitProofByPeriod } from '@/lib/format';
 import {
   fetchProofsFromSheet,
   fetchIncomesFromSheet,
@@ -66,19 +67,25 @@ export async function GET(req: NextRequest) {
       return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
     });
 
-    const safeList = proofs.slice(0, 50).map((p) => ({
-      id: p.id,
-      residentName: p.residentName,
-      blok: p.blok,
-      kategori: p.kategori,
-      bulan: p.bulan,
-      nominal: p.nominal,
-      status: p.status,
-      adminNote: p.adminNote,
-      createdAt: p.createdAt,
-      verifiedAt: p.verifiedAt,
-      buktiUrl: getDirectGoogleDriveImageUrl(p.driveUrl || p.buktiUrl),
-    }));
+    const safeList = proofs.slice(0, 50).flatMap((p) => {
+      const slices = splitProofByPeriod(p);
+      return slices.map((s) => ({
+        id: s.totalSlices > 1 ? `${p.id} (${s.sliceIndex + 1}/${s.totalSlices})` : p.id,
+        residentName: p.residentName,
+        blok: p.blok,
+        kategori: p.kategori,
+        bulan: s.periodCode !== '-' ? [s.periodCode] : p.bulan,
+        nominal: s.periodNominal,
+        status: p.status,
+        adminNote:
+          s.totalSlices > 1
+            ? `${p.adminNote || 'Periode terpisah'} (Periode ${s.sliceIndex + 1}/${s.totalSlices} dari total Rp ${Number(p.nominal).toLocaleString('id-ID')})`
+            : p.adminNote,
+        createdAt: p.createdAt,
+        verifiedAt: p.verifiedAt,
+        buktiUrl: getDirectGoogleDriveImageUrl(p.driveUrl || p.buktiUrl),
+      }));
+    });
 
     // Jika mencari nama/blok tertentu, tambahkan juga transaksi kas masuk resmi dari DataIuran
     if (q) {

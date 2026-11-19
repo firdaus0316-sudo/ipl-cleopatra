@@ -261,3 +261,66 @@ export function classifyIncomeBucket(kategori?: string | null): 'iuran' | 'tungg
   if (lower.includes('kasbon')) return 'kasbon';
   return 'lainnya';
 }
+
+export interface ProofPeriodSlice<T = any> {
+  proof: T;
+  periodCode: string;
+  periodNominal: number;
+  sliceIndex: number;
+  totalSlices: number;
+  rowKey: string;
+}
+
+/**
+ * Memecah bukti transfer kategori Iuran Bulanan yang mencakup > 1 bulan
+ * (mis. bayar Rp 300.000 untuk 2 bulan) menjadi rincian per periode bulan.
+ * Kategori di luar Iuran Bulanan selalu utuh 1 periode.
+ */
+export function splitProofByPeriod<
+  T extends { id: string; kategori?: string; bulan?: string[]; nominal: number }
+>(proof: T): ProofPeriodSlice<T>[] {
+  const monthsRaw = Array.isArray(proof.bulan)
+    ? proof.bulan
+    : proof.bulan
+    ? String(proof.bulan).split(/[,;\n]+/)
+    : [];
+  const normalizedMonths: string[] = [];
+  monthsRaw.forEach((m) => {
+    const code = normalizePeriodCode(m) || String(m).trim();
+    if (code && !normalizedMonths.includes(code)) {
+      normalizedMonths.push(code);
+    }
+  });
+
+  if (normalizedMonths.length === 0) {
+    normalizedMonths.push('-');
+  }
+
+  if (!isIuranBulananCategory(proof.kategori) || normalizedMonths.length <= 1) {
+    return [
+      {
+        proof,
+        periodCode: normalizedMonths[0],
+        periodNominal: Number(proof.nominal) || 0,
+        sliceIndex: 0,
+        totalSlices: 1,
+        rowKey: proof.id,
+      },
+    ];
+  }
+
+  const sortedMonths = [...normalizedMonths].sort();
+  const n = sortedMonths.length;
+  const total = Number(proof.nominal) || 0;
+  const base = Math.floor(total / n);
+  const rem = total - base * n;
+
+  return sortedMonths.map((periodCode, idx) => ({
+    proof,
+    periodCode,
+    periodNominal: idx === n - 1 ? base + rem : base,
+    sliceIndex: idx,
+    totalSlices: n,
+    rowKey: `${proof.id}__${periodCode}`,
+  }));
+}
