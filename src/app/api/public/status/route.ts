@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
         )
         .slice(0, 20);
 
-      const existingProofIds = new Set(safeList.map((p) => p.id));
+      const existingProofIds = new Set(proofs.slice(0, 50).map((p) => p.id));
 
       matchingIncomes.forEach((inc) => {
         // Jangan duplikasi jika buktiId sudah ada di list
