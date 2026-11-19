@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
           expenses.unshift(missingExpense);
           updated = true;
           try {
-            appendExpenseToSheet(missingExpense, ksb.id);
+            await appendExpenseToSheet(missingExpense, ksb.id);
           } catch {}
         }
       }

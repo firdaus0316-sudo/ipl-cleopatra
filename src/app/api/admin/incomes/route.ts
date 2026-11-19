@@ -256,24 +256,28 @@ export async function POST(req: NextRequest) {
     db.incomes.unshift(newIncome);
     saveDb(db);
 
-    // Otomatis sinkronkan dan masukkan ke sheet DataIuran
+    // Otomatis sinkronkan dan masukkan ke sheet DataIuran secara sinkron sebelum mengembalikan respons
     const { nama: rNamaSingle, blok: rBlokSingle, wargaId: wIdSingle } = extractNameAndBlok(sumber, residentId, db.residents);
-    appendIncomesToSheet({
-      namaWarga: rNamaSingle,
-      blok: rBlokSingle,
-      bulanIuran: singlePeriod,
-      jumlah: newIncome.nominal,
-      status: 'Lunas',
-      kategori: newIncome.kategori,
-      tarif: newIncome.nominal,
-      transaksiId: newIncome.id,
-      wargaId: wIdSingle,
-      statusTransaksi: 'Aktif',
-      buktiId: '',
-      bulanAwal: singlePeriod,
-      bulanAkhir: singlePeriod,
-      jumlahBulan: 1,
-    }).catch((e) => console.error('Auto-sync single income to sheet error:', e));
+    try {
+      await appendIncomesToSheet({
+        namaWarga: rNamaSingle,
+        blok: rBlokSingle,
+        bulanIuran: singlePeriod,
+        jumlah: newIncome.nominal,
+        status: 'Lunas',
+        kategori: newIncome.kategori,
+        tarif: newIncome.nominal,
+        transaksiId: newIncome.id,
+        wargaId: wIdSingle,
+        statusTransaksi: 'Aktif',
+        buktiId: '',
+        bulanAwal: singlePeriod,
+        bulanAkhir: singlePeriod,
+        jumlahBulan: 1,
+      });
+    } catch (e) {
+      console.error('Auto-sync single income to sheet error:', e);
+    }
 
     addLog(
       'Catat Kas Masuk Manual',

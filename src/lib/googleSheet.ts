@@ -109,7 +109,7 @@ export function parseDateFlexible(str?: string): string {
 }
 
 export async function fetchCsvByGid(gid: string): Promise<string> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_t=${Date.now()}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 9500);
 

@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
           };
           db.expenses.push(missingExpense);
           try {
-            appendExpenseToSheet(missingExpense, ksb.id);
+            await appendExpenseToSheet(missingExpense, ksb.id);
           } catch {}
         }
       }
