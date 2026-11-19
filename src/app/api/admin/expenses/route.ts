@@ -3,6 +3,7 @@ import { getDb, saveDb, addLog } from '@/lib/db';
 import { ExpenseTransaction } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
+import { safeTimestamp } from '@/lib/format';
 import {
   appendExpenseToSheet,
   appendBuktiStrukToSheet,
@@ -21,8 +22,10 @@ export async function GET(req: NextRequest) {
     const db = getDb();
     let expenses = db.expenses || [];
 
+    let sheetExpOk = false;
     try {
       const sheetRes = await fetchExpensesFromSheet();
+      sheetExpOk = Boolean(sheetRes.success);
       if (sheetRes.success && sheetRes.expenses.length > 0) {
         const deletedSet = new Set(db.deletedExpenseIds || []);
         const localMap = new Map(expenses.map((e) => [e.id, e]));
@@ -47,56 +50,56 @@ export async function GET(req: NextRequest) {
       console.warn('Gagal fetch live expenses dari sheet:', e);
     }
 
-    // Auto-reconciliation: Pastikan setiap kasbon yang ada di DataKasbon tercatat di pengeluaran kas
-    try {
-      if (!db.kasbon || db.kasbon.length === 0) {
-        const ksbRes = await fetchKasbonFromSheet();
-        if (ksbRes.success && ksbRes.kasbon.length > 0) {
-          db.kasbon = ksbRes.kasbon;
-        }
+    // Auto-reconciliation: Pastikan setiap kasbon aktif di DataKasbon tercatat di pengeluaran kas (hanya jika Sheet berhasil dibaca)
+    if (sheetExpOk) try {
+      const ksbRes = await fetchKasbonFromSheet();
+      if (ksbRes.success && ksbRes.kasbon.length > 0) {
+        db.kasbon = ksbRes.kasbon;
       }
 
-      const activeKasbonList = db.kasbon || [];
-      let updated = false;
-      for (const ksb of activeKasbonList) {
-        if (!ksb.nominal || ksb.nominal <= 0) continue;
-        const exists = expenses.some(
-          (e) =>
-            e.id === `EXP-${ksb.id}` ||
-            e.id === `EXP-KSB-${ksb.id.replace(/^KSB-/, '')}` ||
-            e.id === ksb.id ||
-            e.id.includes(ksb.id) ||
-            (e.kategori === 'Kasbon' &&
-              e.penerima?.toLowerCase() === ksb.namaPeminjam?.toLowerCase() &&
-              e.nominal === (ksb.nominalAwal || ksb.nominal))
-        );
-        if (!exists) {
-          const missingExpense: ExpenseTransaction = {
-            id: `EXP-KSB-${ksb.id}`,
-            tanggal: ksb.tglBackdate || (ksb.timestamp ? ksb.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10)),
-            kategori: 'Kasbon',
-            keterangan: `Kasbon: ${ksb.namaPeminjam} - ${ksb.keterangan || 'Pinjaman Petugas'}`,
-            penerima: ksb.namaPeminjam,
-            nominal: ksb.nominalAwal || ksb.nominal,
-            status: 'Sah',
-            createdAt: new Date().toISOString(),
-          };
-          expenses.unshift(missingExpense);
-          updated = true;
-          try {
-            await appendExpenseToSheet(missingExpense, ksb.id);
-          } catch {}
+      if (ksbRes.success) {
+        const activeKasbonList = db.kasbon || [];
+        let updated = false;
+        for (const ksb of activeKasbonList) {
+          if (!ksb.nominal || ksb.nominal <= 0) continue;
+          const exists = expenses.some(
+            (e) =>
+              e.id === `EXP-${ksb.id}` ||
+              e.id === `EXP-KSB-${ksb.id.replace(/^KSB-/, '')}` ||
+              e.id === ksb.id ||
+              e.id.includes(ksb.id) ||
+              (e.kategori === 'Kasbon' &&
+                e.penerima?.toLowerCase() === ksb.namaPeminjam?.toLowerCase() &&
+                e.nominal === (ksb.nominalAwal || ksb.nominal))
+          );
+          if (!exists) {
+            const missingExpense: ExpenseTransaction = {
+              id: `EXP-KSB-${ksb.id}`,
+              tanggal: ksb.tglBackdate || (ksb.timestamp ? ksb.timestamp.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+              kategori: 'Kasbon',
+              keterangan: `Kasbon: ${ksb.namaPeminjam} - ${ksb.keterangan || 'Pinjaman Petugas'}`,
+              penerima: ksb.namaPeminjam,
+              nominal: ksb.nominalAwal || ksb.nominal,
+              status: 'Sah',
+              createdAt: new Date().toISOString(),
+            };
+            expenses.unshift(missingExpense);
+            updated = true;
+            try {
+              await appendExpenseToSheet(missingExpense, ksb.id);
+            } catch {}
+          }
         }
-      }
-      if (updated) {
-        db.expenses = expenses;
-        saveDb(db);
+        if (updated) {
+          db.expenses = expenses;
+          saveDb(db);
+        }
       }
     } catch (err) {
       console.warn('Kasbon reconciliation error:', err);
     }
 
-    expenses.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+    expenses.sort((a, b) => safeTimestamp(b.tanggal) - safeTimestamp(a.tanggal));
     return NextResponse.json({ success: true, data: expenses });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -109,9 +112,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { tanggal, kategori, nominal, penerima, keterangan, buktiUrl } = body;
 
-    if (!tanggal || !kategori || !nominal || !penerima) {
+    const parsedNominal = Number(nominal);
+    if (!tanggal || !kategori || !penerima || !Number.isFinite(parsedNominal) || parsedNominal <= 0) {
       return NextResponse.json(
-        { success: false, error: 'Tanggal, kategori, nominal, dan nama penerima wajib diisi.' },
+        { success: false, error: 'Tanggal, kategori, nama penerima, dan nominal valid (> 0) wajib diisi.' },
         { status: 400 }
       );
     }
@@ -295,13 +299,25 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
-    const idx = db.expenses.findIndex((e) => e.id === id);
+    let idx = db.expenses.findIndex((e) => e.id === id);
+
+    if (idx === -1) {
+      try {
+        const sheetRes = await fetchExpensesFromSheet();
+        if (sheetRes.success && sheetRes.expenses.length > 0) {
+          db.expenses = sheetRes.expenses;
+          idx = db.expenses.findIndex((e) => e.id === id);
+        }
+      } catch {}
+    }
 
     if (idx === -1) {
       return NextResponse.json({ success: false, error: 'Transaksi pengeluaran tidak ditemukan.' }, { status: 404 });
     }
 
     const exp = db.expenses[idx];
+    if (!db.deletedExpenseIds) db.deletedExpenseIds = [];
+    if (!db.deletedExpenseIds.includes(exp.id)) db.deletedExpenseIds.push(exp.id);
     db.expenses.splice(idx, 1);
     saveDb(db);
 

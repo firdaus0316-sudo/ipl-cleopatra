@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
-import { isIuranBulananCategory } from '@/lib/format';
+import { isIuranBulananCategory, safeNumber, safeTimestamp } from '@/lib/format';
 import {
   appendIncomesToSheet,
   appendPelunasanToSheet,
   extractNameAndBlok,
+  fetchIncomesFromSheet,
   fetchProofsFromSheet,
   fetchResidentsFromSheet,
   updateProofInSheet,
@@ -59,11 +60,15 @@ export async function GET(req: NextRequest) {
           };
         });
 
-        // Pertahankan bukti lokal yang belum ter-commit ke sheet jika ada
+        // Jangan pernah membangkitkan ulang bukti lama dari cache lokal; hanya pertahankan bukti baru (< 60 detik)
+        const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
         const sheetIdSet = new Set(sheetProofsRes.proofs.map((p) => p.id));
-        const localOnly = (db.proofs || []).filter((p) => !sheetIdSet.has(p.id));
+        const nowMs = Date.now();
+        const recentLocalOnly = (db.proofs || []).filter(
+          (p) => !sheetIdSet.has(p.id) && !deletedProofSet.has(p.id) && nowMs - safeTimestamp(p.createdAt) < 60_000
+        );
 
-        db.proofs = [...mergedProofs, ...localOnly];
+        db.proofs = [...mergedProofs.filter((p) => !deletedProofSet.has(p.id)), ...recentLocalOnly];
       }
       saveDb(db);
     } catch (e) {
@@ -78,9 +83,7 @@ export async function GET(req: NextRequest) {
       const rank = (s: string) => (s === 'Menunggu Verifikasi' ? 0 : s === 'Ditolak' ? 1 : 2);
       const diff = rank(a.status) - rank(b.status);
       if (diff !== 0) return diff;
-      const tA = new Date(a.createdAt || 0).getTime();
-      const tB = new Date(b.createdAt || 0).getTime();
-      return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
+      return safeTimestamp(b.createdAt) - safeTimestamp(a.createdAt);
     });
 
     if (status && status !== 'Semua') {
@@ -153,6 +156,37 @@ export async function POST(req: NextRequest) {
     const proof = db.proofs[proofIndex];
 
     if (action === 'approve') {
+      // Idempoten Guard: cegah double-approve (dobel klik / 2 tab / ghosting baris DataIuran)
+      if (proof.status === 'Terverifikasi') {
+        return NextResponse.json({
+          success: true,
+          message: `Bukti ${proof.id} sudah diverifikasi sebelumnya.`,
+          data: proof,
+        });
+      }
+
+      try {
+        const liveIncomesRes = await fetchIncomesFromSheet();
+        if (liveIncomesRes.success) {
+          const alreadyInSheet = liveIncomesRes.incomes.filter((i) => i.buktiId === proof.id && i.status === 'Sah');
+          if (alreadyInSheet.length > 0) {
+            proof.status = 'Terverifikasi';
+            proof.transactionId = alreadyInSheet.map((i) => i.id).join(', ');
+            saveDb(db);
+            return NextResponse.json({
+              success: true,
+              message: `Bukti ${proof.id} sudah tercatat sah di DataIuran.`,
+              data: proof,
+            });
+          }
+        }
+      } catch {}
+
+      const proofNominalSafe = safeNumber(proof.nominal, 0);
+      if (proofNominalSafe <= 0) {
+        return NextResponse.json({ success: false, error: 'Nominal bukti transfer tidak valid (<= 0).' }, { status: 400 });
+      }
+
       // 1. Pecah periode multi-bulan menjadi terpisah per bulan (Format YYYY-MM)
       const rawBulanList = Array.isArray(proof.bulan)
         ? proof.bulan
@@ -467,7 +501,20 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
-    const proofIndex = db.proofs.findIndex((p) => p.id === id);
+    let proofIndex = db.proofs.findIndex((p) => p.id === id);
+
+    if (proofIndex === -1) {
+      try {
+        const sheetProofsRes = await fetchProofsFromSheet();
+        if (sheetProofsRes.success && sheetProofsRes.proofs.length > 0) {
+          const found = sheetProofsRes.proofs.find((p) => p.id === id);
+          if (found) {
+            db.proofs.unshift(found);
+            proofIndex = 0;
+          }
+        }
+      } catch {}
+    }
 
     if (proofIndex === -1) {
       return NextResponse.json({ success: false, error: 'Bukti transfer tidak ditemukan.' }, { status: 404 });
@@ -475,7 +522,14 @@ export async function DELETE(req: NextRequest) {
 
     const proof = db.proofs[proofIndex];
 
-    // 1. Kumpulkan semua transaksi kas masuk yang dihasilkan dari bukti ini
+    // 1. Kumpulkan semua transaksi kas masuk yang dihasilkan dari bukti ini (sinkronkan dulu dengan DataIuran jika perlu)
+    try {
+      const sheetIncRes = await fetchIncomesFromSheet();
+      if (sheetIncRes.success && sheetIncRes.incomes.length > 0) {
+        db.incomes = sheetIncRes.incomes;
+      }
+    } catch {}
+
     const txIdsToDelete = new Set<string>();
     if (proof.transactionId) {
       proof.transactionId.split(',').forEach((t) => txIdsToDelete.add(t.trim()));

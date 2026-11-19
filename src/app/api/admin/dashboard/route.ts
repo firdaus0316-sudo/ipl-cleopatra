@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb } from '@/lib/db';
-import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident, isIuranBulananCategory, classifyIncomeBucket } from '@/lib/format';
+import { MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod, matchIncomeToResident, isIuranBulananCategory, classifyIncomeBucket, safeTimestamp } from '@/lib/format';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
   fetchKasbonFromSheet,
@@ -10,7 +10,7 @@ import {
   appendExpenseToSheet,
   fetchIncomesFromSheet,
   fetchProofsFromSheet,
-  fetchResidentsFromSheet,
+  fetchResidentsFromSheet, fetchSaldoAwalFromSheet,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
@@ -45,8 +45,10 @@ export async function GET(req: NextRequest) {
     const db = getDb();
 
     // Auto-sync seluruh data Google Sheets secara paralel agar sangat cepat
+    let sheetExpOk = false;
+    let sheetKasbonOk = false;
     try {
-      const [kasbonRes, wRes, nwRes, expRes, resRes, incRes, proofsRes] = await Promise.all([
+      const [kasbonRes, wRes, nwRes, expRes, resRes, incRes, proofsRes, saldoRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] as any[] })),
         fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
         fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
@@ -54,7 +56,13 @@ export async function GET(req: NextRequest) {
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
         fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
         fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
+        fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
       ]);
+      sheetExpOk = Boolean(expRes.success);
+      sheetKasbonOk = Boolean(kasbonRes.success);
+      if (saldoRes.success && saldoRes.saldoAwal) {
+        db.settings.saldoAwal = saldoRes.saldoAwal;
+      }
 
       if (kasbonRes.success && kasbonRes.kasbon.length > 0) {
         const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
@@ -108,15 +116,19 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      if (proofsRes.success && proofsRes.proofs.length > 0) {
+      if (proofsRes.success) {
+        const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
         const sheetProofMap = new Map(proofsRes.proofs.map((p) => [p.id, p]));
-        const localOnly = (db.proofs || []).filter((p) => !sheetProofMap.has(p.id));
-        db.proofs = [...proofsRes.proofs, ...localOnly];
+        const nowMs = Date.now();
+        const recentLocalOnly = (db.proofs || []).filter(
+          (p) => !sheetProofMap.has(p.id) && !deletedProofSet.has(p.id) && nowMs - safeTimestamp(p.createdAt) < 60_000
+        );
+        db.proofs = [...proofsRes.proofs.filter((p) => !deletedProofSet.has(p.id)), ...recentLocalOnly];
       }
     } catch {}
 
-    // Auto-reconciliation: Pastikan setiap kasbon aktif di DataKasbon tercatat di pengeluaran kas
-    try {
+    // Auto-reconciliation hanya berjalan jika baca Kasbon & Pengeluaran dari Sheet sukses (anti-ghosting)
+    if (sheetExpOk && sheetKasbonOk) try {
       const activeKasbonList = db.kasbon || [];
       for (const ksb of activeKasbonList) {
         if (!ksb.nominal || ksb.nominal <= 0) continue;

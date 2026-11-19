@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { residentId, residentName, blok, hp, kategori, bulan, nominal, buktiUrl, catatanWarga } = body;
 
-    if (!residentName || !blok || !nominal || !buktiUrl) {
+    if (!residentName || !blok || !buktiUrl || !Number.isFinite(Number(nominal)) || Number(nominal) <= 0) {
       return NextResponse.json(
         { success: false, error: 'Nama, blok rumah, nominal, dan foto bukti transfer wajib diisi.' },
         { status: 400 }

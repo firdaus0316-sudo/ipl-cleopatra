@@ -324,3 +324,20 @@ export function splitProofByPeriod<
     rowKey: `${proof.id}__${periodCode}`,
   }));
 }
+
+/**
+ * Mengembalikan angka finite yang aman (tidak pernah NaN / Infinity).
+ */
+export function safeNumber(val: unknown, fallback = 0): number {
+  const num = typeof val === 'number' ? val : Number(val);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+/**
+ * Mengembalikan timestamp milidetik yang aman untuk sorting (tidak pernah NaN).
+ */
+export function safeTimestamp(val: unknown): number {
+  if (!val) return 0;
+  const ms = new Date(String(val)).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}

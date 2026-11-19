@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { IncomeTransaction } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
-import { isIuranBulananCategory } from '@/lib/format';
+import { isIuranBulananCategory, safeTimestamp } from '@/lib/format';
 import {
   appendIncomesToSheet,
   deleteIncomeFromSheet,
@@ -59,8 +59,8 @@ export async function GET(req: NextRequest) {
     incomes = db.incomes || [];
 
     incomes.sort((a, b) => {
-      const timeB = new Date(b.createdAt || b.tanggal).getTime();
-      const timeA = new Date(a.createdAt || a.tanggal).getTime();
+      const timeB = safeTimestamp(b.createdAt || b.tanggal);
+      const timeA = safeTimestamp(a.createdAt || a.tanggal);
       return timeB - timeA;
     });
     return NextResponse.json({ success: true, data: incomes });
@@ -111,6 +111,12 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     const totalNominal = Number(nominal);
+    if (!Number.isFinite(totalNominal) || totalNominal <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Nominal kas masuk harus berupa angka valid lebih besar dari 0.' },
+        { status: 400 }
+      );
+    }
     const nowIso = new Date().toISOString();
     const tgl = tanggal.slice(0, 10);
 
@@ -306,7 +312,17 @@ export async function PUT(req: NextRequest) {
     }
 
     const db = getDb();
-    const inc = db.incomes.find((i) => i.id === id);
+    let inc = db.incomes.find((i) => i.id === id);
+
+    if (!inc) {
+      try {
+        const sheetRes = await fetchIncomesFromSheet();
+        if (sheetRes.success && sheetRes.incomes.length > 0) {
+          db.incomes = sheetRes.incomes;
+          inc = db.incomes.find((i) => i.id === id);
+        }
+      } catch {}
+    }
 
     if (!inc) {
       return NextResponse.json({ success: false, error: 'Transaksi tidak ditemukan.' }, { status: 404 });
@@ -397,7 +413,17 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
-    const idx = db.incomes.findIndex((i) => i.id === id);
+    let idx = db.incomes.findIndex((i) => i.id === id);
+
+    if (idx === -1) {
+      try {
+        const sheetRes = await fetchIncomesFromSheet();
+        if (sheetRes.success && sheetRes.incomes.length > 0) {
+          db.incomes = sheetRes.incomes;
+          idx = db.incomes.findIndex((i) => i.id === id);
+        }
+      } catch {}
+    }
 
     if (idx === -1) {
       return NextResponse.json({ success: false, error: 'Transaksi pemasukan tidak ditemukan.' }, { status: 404 });
@@ -407,17 +433,12 @@ export async function DELETE(req: NextRequest) {
     if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
     if (!db.deletedProofIds) db.deletedProofIds = [];
 
-    // 1. Kumpulkan semua Bukti ID yang terhubung dengan transaksi ini
+    // 1. Kumpulkan semua Bukti ID yang terhubung langsung dengan transaksi ini (via buktiId / transactionId)
     const relatedBuktiIds = new Set<string>();
-    if (inc.buktiId) relatedBuktiIds.add(inc.buktiId);
+    if (inc.buktiId && inc.buktiId.startsWith('BKT-')) relatedBuktiIds.add(inc.buktiId);
 
-    // Cari juga di db.proofs apakah ada bukti transfer yang merujuk transaksi ini
     (db.proofs || []).forEach((p) => {
-      if (
-        p.id === inc.buktiId ||
-        (p.transactionId && p.transactionId.includes(inc.id)) ||
-        (p.status === 'Terverifikasi' && inc.sumber && inc.sumber.toLowerCase().includes(p.residentName.toLowerCase()) && p.nominal === inc.nominal)
-      ) {
+      if (p.id === inc.buktiId || (p.transactionId && p.transactionId.split(',').map((t) => t.trim()).includes(inc.id))) {
         relatedBuktiIds.add(p.id);
       }
     });

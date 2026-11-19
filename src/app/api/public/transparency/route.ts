@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { normalizePeriodCode, classifyIncomeBucket, isIuranBulananCategory } from '@/lib/format';
+import { normalizePeriodCode, classifyIncomeBucket, isIuranBulananCategory, safeTimestamp } from '@/lib/format';
 import {
   fetchIncomesFromSheet,
   fetchExpensesFromSheet,
@@ -75,7 +75,8 @@ export async function GET() {
           });
       }
 
-      // Auto-reconciliation: Pastikan setiap kasbon aktif di DataKasbon tercatat di pengeluaran
+      // Auto-reconciliation: Pastikan setiap kasbon aktif di DataKasbon tercatat di pengeluaran (hanya jika baca Sheet berhasil)
+      if (kasbonRes.success && expRes.success) {
       const activeKasbonList = db.kasbon || [];
       for (const ksb of activeKasbonList) {
         if (!ksb.nominal || ksb.nominal <= 0) continue;
@@ -105,6 +106,7 @@ export async function GET() {
             await appendExpenseToSheet(missingExpense, ksb.id);
           } catch {}
         }
+      }
       }
 
       if (incRes.success && incRes.incomes.length > 0) {
@@ -245,7 +247,7 @@ export async function GET() {
     // Recent public expenses
     const recentExpenses = validExpenses
       .slice()
-      .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+      .sort((a, b) => safeTimestamp(b.tanggal) - safeTimestamp(a.tanggal))
       .slice(0, 15)
       .map((e) => ({
         id: e.id,
@@ -260,7 +262,7 @@ export async function GET() {
     // Recent public incomes
     const recentIncomes = validIncomes
       .slice()
-      .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+      .sort((a, b) => safeTimestamp(b.tanggal) - safeTimestamp(a.tanggal))
       .slice(0, 15)
       .map((i) => ({
         id: i.id,
