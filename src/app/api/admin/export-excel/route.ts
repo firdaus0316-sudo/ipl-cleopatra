@@ -5,6 +5,13 @@ import path from 'path';
 import { getDb } from '@/lib/db';
 import { formatDateIndo, MONTH_NAMES_ID, normalizePeriodCode, isIncomeInPeriod } from '@/lib/format';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
+import {
+  fetchResidentsFromSheet,
+  fetchIncomesFromSheet,
+  fetchExpensesFromSheet,
+  fetchSaldoAwalFromSheet,
+  syncAllDbNamesWithMaster,
+} from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,6 +49,19 @@ export async function GET(req: NextRequest) {
     const isAll = requestedTargetPeriod === 'ALL';
     const periodLabel = getPeriodLabel(requestedTargetPeriod, requestedYear);
     const db = getDb();
+    try {
+      const [resRes, incRes, expRes, saldoRes] = await Promise.all([
+        fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] as any[] })),
+        fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
+      ]);
+      if (resRes.success && resRes.residents.length > 0) db.residents = resRes.residents;
+      if (incRes.success && incRes.incomes.length > 0) db.incomes = incRes.incomes;
+      if (expRes.success && expRes.expenses.length > 0) db.expenses = expRes.expenses;
+      if (saldoRes.success && saldoRes.saldoAwal) db.settings.saldoAwal = saldoRes.saldoAwal;
+      syncAllDbNamesWithMaster(db);
+    } catch {}
     const todayStr = new Date().toISOString().slice(0, 10);
     const tanggalCetakIndo = formatDateIndo(todayStr);
 

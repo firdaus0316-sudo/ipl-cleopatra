@@ -183,6 +183,8 @@ export async function GET(req: NextRequest) {
       monthNames: MONTH_NAMES,
       currentPeriod,
       totalResidents: activeResidents.length,
+      totalMasterResidents: (db.residents || []).length,
+      inactiveResidents: Math.max(0, (db.residents || []).length - activeResidents.length),
       monthlyStats,
       data: matrix,
     });

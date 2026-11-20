@@ -93,7 +93,7 @@
       "id": "c849b3f5-1f47-4140-8d89-e6a36664e67d",
       "nama": "Dian Purnama Sari",
       "blok": "E-1/36",
-      "hp": "012345678910",
+      "hp": "0817273687",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -114,6 +114,15 @@
       "hp": "085781859440",
       "tarif": 360000,
       "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "WRG-071",
+      "nama": "Kosong",
+      "blok": "H-1/14",
+      "hp": "012345678",
+      "tarif": 100000,
+      "status": "Nonaktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
     },
     {
@@ -193,6 +202,15 @@
       "nama": "Irfan Pratomo Putra",
       "blok": "H-1/23",
       "hp": "085779662100",
+      "tarif": 100000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "2aa0d968-021b-4176-b299-a967eb0c1b43",
+      "nama": "Kosong",
+      "blok": "H-1/24",
+      "hp": "081210132220",
       "tarif": 100000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -282,7 +300,7 @@
       "id": "1939e0f5-9403-45cf-9f14-f2dac4b957e7",
       "nama": "Winda",
       "blok": "H-12/4",
-      "hp": "012345678910",
+      "hp": "082122150074",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -316,9 +334,9 @@
     },
     {
       "id": "58789148-4dda-475b-89f7-9dd10427e342",
-      "nama": "Wisnu/Panji",
+      "nama": "Panji Sabdho Waluyo",
       "blok": "H-12/9",
-      "hp": "012345678910",
+      "hp": "08111130496",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -328,6 +346,15 @@
       "nama": "Muhamad Yunus Mustaqim",
       "blok": "H-12/10",
       "hp": "08987530300",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "6134519a-49da-4ca8-b494-39ab8f22b5bf",
+      "nama": "Andi Prajuda",
+      "blok": "H-12/11",
+      "hp": "085216059059",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -344,7 +371,7 @@
     {
       "id": "8db2d517-e98d-4542-a9fc-4ebe42b99a32",
       "nama": "Eko Fajar Nugroho",
-      "blok": "H-12/14",
+      "blok": "H-12/15",
       "hp": "081287542174",
       "tarif": 150000,
       "status": "Aktif",
@@ -363,15 +390,6 @@
       "id": "f05656b9-f7e9-4909-a11a-3dad46374e80",
       "nama": "Ria",
       "blok": "H-12/17",
-      "hp": "012345678910",
-      "tarif": 150000,
-      "status": "Aktif",
-      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
-    },
-    {
-      "id": "534a48da-9a48-434c-8301-47b9dfc380eb",
-      "nama": "Dodi/Erwin",
-      "blok": "H-13-11",
       "hp": "012345678910",
       "tarif": 150000,
       "status": "Aktif",
@@ -451,9 +469,9 @@
     },
     {
       "id": "f3727e51-9fe1-4907-ad23-f8279035e729",
-      "nama": "Agung",
+      "nama": "Agung Barata",
       "blok": "H-13/9",
-      "hp": "012345678910",
+      "hp": "08111874184",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -463,6 +481,15 @@
       "nama": "Arneti",
       "blok": "H-13/10",
       "hp": "089506105936",
+      "tarif": 150000,
+      "status": "Aktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "534a48da-9a48-434c-8301-47b9dfc380eb",
+      "nama": "Erwin W",
+      "blok": "H-13/11",
+      "hp": "081335235815",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -514,9 +541,9 @@
     },
     {
       "id": "c3890588-7694-431e-9338-7e75bfab7598",
-      "nama": "Hendri",
+      "nama": "Hendri Oktriz",
       "blok": "H-14/35",
-      "hp": "012345678910",
+      "hp": "089639356766",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -540,10 +567,19 @@
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
     },
     {
-      "id": "717cab3b-f491-4576-8233-b5955647fc16",
-      "nama": "Husada Setiawan/Wiwi",
-      "blok": "H-14/41-42",
+      "id": "fbd3717f-931f-4c0f-a1b9-c688258a0b70",
+      "nama": "Kosong",
+      "blok": "H-14/40",
       "hp": "012345678910",
+      "tarif": 100000,
+      "status": "Nonaktif",
+      "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
+    },
+    {
+      "id": "717cab3b-f491-4576-8233-b5955647fc16",
+      "nama": "Husada Setiawan/Chris",
+      "blok": "H-14/41-42",
+      "hp": "081318308732",
       "tarif": 225000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -579,7 +615,7 @@
       "id": "f6d8cb48-4516-497b-b82b-d49ece052572",
       "nama": "Amin/Titin (Mohamad Iqbal)",
       "blok": "H-14/46",
-      "hp": "012345678910",
+      "hp": "085732680914",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -604,9 +640,9 @@
     },
     {
       "id": "ef18bed4-7174-43cb-9884-4258d368f56d",
-      "nama": "Depran",
+      "nama": "Pepran",
       "blok": "H-14/49",
-      "hp": "082228488040",
+      "hp": "082228468040",
       "tarif": 150000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"
@@ -624,7 +660,7 @@
       "id": "022857ee-493f-48cd-b9ce-f17a57396b7b",
       "nama": "Bambang Suryo Aji",
       "blok": "H-14/51",
-      "hp": "012345678910",
+      "hp": "087835754832",
       "tarif": 100000,
       "status": "Aktif",
       "catatan": "Tersinkron otomatis dari Google Sheets masterwarga"

@@ -2165,7 +2165,11 @@ export default function PublicPage() {
                         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
                           <div className="text-[11px] font-bold text-slate-500 mb-0.5">Total Warga Aktif</div>
                           <div className="text-xl font-black text-slate-900">{matrixData.totalResidents || residents.length} KK</div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">Tercatat di Sheet MasterWarga</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {matrixData.totalMasterResidents
+                              ? `Dari ${matrixData.totalMasterResidents} data di Sheet MasterWarga`
+                              : 'Tercatat di Sheet MasterWarga'}
+                          </div>
                         </div>
 
                         <div className="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200 shadow-2xs">

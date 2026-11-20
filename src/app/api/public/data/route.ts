@@ -109,10 +109,18 @@ export async function GET() {
       });
     });
 
+    const activeResidentsList = (db.residents || []).filter((r) => r && r.status === 'Aktif');
+    const totalResidentsCount = (db.residents || []).length;
+
     return NextResponse.json({
       success: true,
       settings: safeSettings,
-      residents: (db.residents || []).filter((r) => r && r.status === 'Aktif'),
+      residents: activeResidentsList,
+      residentCounts: {
+        total: totalResidentsCount,
+        aktif: activeResidentsList.length,
+        nonaktif: Math.max(0, totalResidentsCount - activeResidentsList.length),
+      },
       saldoKas,
       paidPeriodsByBlok,
       pendingPeriodsByBlok,

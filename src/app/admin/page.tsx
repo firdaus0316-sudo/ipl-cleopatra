@@ -2742,11 +2742,22 @@ export default function AdminPage() {
                     <div className="text-xl font-extrabold text-slate-900">
                       {formatRupiah(dashboardData.targetRealisasiIuran.totalTargetNominal)}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-                      <span>Total Master Warga:</span>
-                      <span className="font-bold text-slate-700">
-                        {dashboardData.targetRealisasiIuran.totalTargetWarga} KK
-                      </span>
+                    <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span>Warga Aktif Target:</span>
+                        <span className="font-bold text-slate-700">
+                          {dashboardData.targetRealisasiIuran.totalTargetWarga} KK
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Total Sheet MasterWarga:</span>
+                        <span className="font-semibold text-slate-600">
+                          {dashboardData.targetRealisasiIuran.totalMasterWarga ?? residents.length} KK
+                          {(dashboardData.targetRealisasiIuran.inactiveWargaCount || 0) > 0
+                            ? ` (${dashboardData.targetRealisasiIuran.inactiveWargaCount} Nonaktif)`
+                            : ''}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -3724,7 +3735,10 @@ export default function AdminPage() {
         })()}
 
         {/* TAB 5: MASTER WARGA */}
-        {activeTab === 'warga' && (
+        {activeTab === 'warga' && (() => {
+          const aktifCount = residents.filter((r) => r.status === 'Aktif').length;
+          const nonaktifCount = Math.max(0, residents.length - aktifCount);
+          return (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -3732,16 +3746,35 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-500">
                   Kelola data penghuni rumah, nomor WhatsApp, dan tarif iuran masing-masing rumah.
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold">
+                    Total Sheet MasterWarga: {residents.length}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold">
+                    Aktif: {aktifCount}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700 font-bold">
+                    Nonaktif: {nonaktifCount}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => refreshSlices(['residents', 'dashboard', 'matrix']).then(() => showToast('MasterWarga disinkronkan dari Google Sheet!'))}
+                  className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>Sinkron Sheet</span>
+                </button>
                 <button
                   onClick={() => {
                     setEditingResident(null);
                     setResNama('');
                     setResBlok('');
                     setResHp('');
-                    setResTarif('100000');
+                    setResTarif('150000');
                     setResStatus('Aktif');
                     setShowResidentModal(true);
                   }}
@@ -3846,7 +3879,8 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* TAB 6: MATRIKS PENAGIHAN */}
         {activeTab === 'matriks' && (() => {
@@ -3982,8 +4016,12 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
                     <div className="text-[11px] font-bold text-slate-500 mb-0.5">Total Warga Aktif</div>
-                    <div className="text-xl font-black text-slate-900">{matrixData.totalResidents || residents.length} KK</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">Tercatat di Sheet MasterWarga</div>
+                    <div className="text-xl font-black text-slate-900">{matrixData.totalResidents || residents.filter((r) => r.status === 'Aktif').length} KK</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {matrixData.totalMasterResidents
+                        ? `Dari ${matrixData.totalMasterResidents} data di Sheet MasterWarga`
+                        : `Tercatat di Sheet MasterWarga (${residents.length} data)`}
+                    </div>
                   </div>
 
                   <div className="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200 shadow-2xs">

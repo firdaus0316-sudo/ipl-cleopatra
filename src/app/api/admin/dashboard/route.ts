@@ -169,7 +169,9 @@ export async function GET(req: NextRequest) {
 
     const pendingProofsCount = db.proofs.filter((p) => p.status === 'Menunggu Verifikasi').length;
     const verifiedProofsCount = db.proofs.filter((p) => p.status === 'Terverifikasi').length;
+    const totalResidentsCount = db.residents.length;
     const activeResidentsCount = db.residents.filter((r) => r.status === 'Aktif').length;
+    const inactiveResidentsCount = Math.max(0, totalResidentsCount - activeResidentsCount);
 
     const tunggakanLamaList = db.tunggakanLama || [];
     const kasbonList = db.kasbon || [];
@@ -302,6 +304,8 @@ export async function GET(req: NextRequest) {
         periode: pCode,
         periodeLabel: getPeriodLabel(pCode),
         totalTargetWarga,
+        totalMasterWarga: totalResidentsCount,
+        inactiveWargaCount: inactiveResidentsCount,
         totalTargetNominal,
         wargaSudahBayarCount,
         realisasiNominal: periodRealisasiNominal,
@@ -515,7 +519,9 @@ export async function GET(req: NextRequest) {
         selectedYear: requestedYear,
         pendingProofsCount,
         verifiedProofsCount,
+        totalResidentsCount,
         activeResidentsCount,
+        inactiveResidentsCount,
 
         // PIUTANG TUNGGAKAN LAMA
         tunggakanLamaCount: tunggakanBelumLunas.length,

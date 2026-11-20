@@ -5,6 +5,7 @@ import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth
 import {
   appendResidentToSheet,
   updateResidentInSheet,
+  deleteResidentFromSheet,
   fetchResidentsFromSheet,
   updateIncomeInSheet,
   updateRowInSheet,
@@ -12,6 +13,12 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+function computeResidentCounts(list: Resident[]) {
+  const aktif = list.filter((r) => r && r.status === 'Aktif').length;
+  const nonaktif = list.length - aktif;
+  return { total: list.length, aktif, nonaktif };
+}
 
 export async function GET(req: NextRequest) {
   if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
@@ -26,7 +33,11 @@ export async function GET(req: NextRequest) {
     } catch (sheetErr) {
       console.warn('Fetch live residents error:', sheetErr);
     }
-    return NextResponse.json({ success: true, data: db.residents });
+    return NextResponse.json({
+      success: true,
+      data: db.residents,
+      counts: computeResidentCounts(db.residents || []),
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -43,15 +54,30 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
-    const count = db.residents.length + 1;
-    const residentId = `WRG-${String(count).padStart(3, '0')}`;
+    // Selaraskan lebih dulu dengan Google Sheet MasterWarga terbaru sebelum generate ID & simpan
+    try {
+      const sheetRes = await fetchResidentsFromSheet();
+      if (sheetRes.success && sheetRes.residents.length > 0) {
+        db.residents = sheetRes.residents;
+      }
+    } catch {}
+
+    let maxWrgNum = db.residents.length;
+    for (const existing of db.residents || []) {
+      const m = /^WRG-(\d+)$/i.exec((existing.id || '').trim());
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n) && n > maxWrgNum) maxWrgNum = n;
+      }
+    }
+    const residentId = `WRG-${String(maxWrgNum + 1).padStart(3, '0')}`;
 
     const newResident: Resident = {
       id: residentId,
       nama: nama.trim(),
       blok: blok.trim().toUpperCase(),
       hp: hp ? hp.trim() : '',
-      tarif: Number(tarif) || 100000,
+      tarif: Number(tarif) || 150000,
       status: status || 'Aktif',
       catatan: catatan?.trim() || '',
     };
@@ -89,17 +115,15 @@ export async function PUT(req: NextRequest) {
     }
 
     const db = getDb();
-    let resident = db.residents.find((r) => r.id === id);
+    // Selaraskan lebih dulu dengan Google Sheet MasterWarga terbaru agar tidak menimpa update dari Sheet
+    try {
+      const sheetRes = await fetchResidentsFromSheet();
+      if (sheetRes.success && sheetRes.residents.length > 0) {
+        db.residents = sheetRes.residents;
+      }
+    } catch {}
 
-    if (!resident) {
-      try {
-        const sheetRes = await fetchResidentsFromSheet();
-        if (sheetRes.success && sheetRes.residents.length > 0) {
-          db.residents = sheetRes.residents;
-          resident = db.residents.find((r) => r.id === id);
-        }
-      } catch {}
-    }
+    const resident = db.residents.find((r) => r.id === id);
 
     if (!resident) {
       return NextResponse.json({ success: false, error: 'Warga tidak ditemukan.' }, { status: 404 });
@@ -254,6 +278,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
+    try {
+      const sheetRes = await fetchResidentsFromSheet();
+      if (sheetRes.success && sheetRes.residents.length > 0) {
+        db.residents = sheetRes.residents;
+      }
+    } catch {}
+
     const idx = db.residents.findIndex((r) => r.id === id);
 
     if (idx === -1) {
@@ -262,6 +293,13 @@ export async function DELETE(req: NextRequest) {
 
     const deleted = db.residents.splice(idx, 1)[0];
     saveDb(db);
+
+    try {
+      await deleteResidentFromSheet(deleted.id, deleted.blok, deleted.nama);
+    } catch (sheetErr) {
+      console.error('Delete resident from sheet error:', sheetErr);
+    }
+
     addLog('Hapus Data Warga', `Menghapus warga ${deleted.nama} (${deleted.blok})`, 'Admin');
 
     return NextResponse.json({ success: true, message: 'Data warga berhasil dihapus.' });

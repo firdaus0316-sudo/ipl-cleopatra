@@ -205,8 +205,14 @@ export async function fetchResidentsFromSheet(): Promise<{ success: boolean; res
       const rawTarif = (cols[tarifIdx >= 0 ? tarifIdx : 3] || '').replace(/[^0-9]/g, '');
       const tarif = rawTarif ? parseInt(rawTarif, 10) : 150000;
       const wargaId = (idIdx >= 0 && cols[idIdx] && cols[idIdx].length > 3) ? cols[idIdx] : `WRG-${i.toString().padStart(3, '0')}`;
-      const statusRaw = (statusIdx >= 0 ? cols[statusIdx] : 'Aktif').toLowerCase();
-      const status = statusRaw.includes('non') ? 'Nonaktif' : 'Aktif';
+      const statusRaw = (statusIdx >= 0 ? cols[statusIdx] : 'Aktif').trim().toLowerCase();
+      const isNonaktif =
+        statusRaw.includes('non') ||
+        statusRaw.includes('tidak') ||
+        statusRaw.includes('inactiv') ||
+        statusRaw === 'off' ||
+        statusRaw.includes('pindah');
+      const status = isNonaktif ? 'Nonaktif' : 'Aktif';
 
       residents.push({
         id: wargaId,
@@ -1086,6 +1092,26 @@ export async function updateResidentInSheet(
     return res;
   } catch (err: any) {
     console.error('updateResidentInSheet error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteResidentFromSheet(
+  id: string,
+  blok?: string,
+  nama?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    let res = await deleteRowFromSheet('MasterWarga', 10, id, SHEET_GIDS.masterwarga);
+    if (!res.success && blok) {
+      res = await deleteRowFromSheet('MasterWarga', 2, blok, SHEET_GIDS.masterwarga);
+    }
+    if (!res.success && nama) {
+      res = await deleteRowFromSheet('MasterWarga', 1, nama, SHEET_GIDS.masterwarga);
+    }
+    return res;
+  } catch (err: any) {
+    console.error('deleteResidentFromSheet error:', err);
     return { success: false, error: err.message };
   }
 }
