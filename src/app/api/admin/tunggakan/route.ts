@@ -199,8 +199,8 @@ export async function POST(req: NextRequest) {
       // Otomatis masukkan pembayaran tunggakan ke Google Sheet DataIuran & RiwayatPelunasan
       const { nama: rNama, blok: rBlok, wargaId } = extractNameAndBlok(namaSumber, (item as any).residentId || '', db.residents);
       const targetBulan = tgl.slice(0, 7) || '2026-11';
-      try {
-        await appendIncomesToSheet({
+      await Promise.allSettled([
+        appendIncomesToSheet({
           namaWarga: rNama || item.namaWarga,
           blok: rBlok || item.blok || '',
           bulanIuran: targetBulan,
@@ -215,9 +215,8 @@ export async function POST(req: NextRequest) {
           bulanAwal: targetBulan,
           bulanAkhir: targetBulan,
           jumlahBulan: 1,
-        });
-
-        await appendPelunasanToSheet({
+        }),
+        appendPelunasanToSheet({
           id: bayarId,
           waktu: tgl,
           jenis: item.tipeWarga === 'Pindah' ? 'Tunggakan Non-Warga' : 'Tunggakan Warga',
@@ -227,13 +226,9 @@ export async function POST(req: NextRequest) {
           sisa: sisaBaru,
           transaksiId: incId,
           admin: 'Admin RT',
-        });
-
-        // Sinkronkan sisa dan status tunggakan ke Google Sheet TunggakanLama / TunggakanNonWarga
-        await updateTunggakanInSheet(item.id || item.tunggakanId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil', item.tipeWarga);
-      } catch (e) {
-        console.error('Auto-sync tunggakan payment to sheets error:', e);
-      }
+        }),
+        updateTunggakanInSheet(item.id || item.tunggakanId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil', item.tipeWarga),
+      ]);
 
       addLog(
         isLunas ? 'Pelunasan Tunggakan Warga' : 'Pembayaran Cicilan Tunggakan Warga',

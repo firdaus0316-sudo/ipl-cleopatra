@@ -310,24 +310,7 @@ export async function POST(req: NextRequest) {
         jumlahBulan: 1,
       }));
 
-      try {
-        await appendIncomesToSheet(rowsToAppend);
-        await appendPelunasanToSheet({
-          id: `VERIF-${proof.id}`,
-          waktu: nowIso,
-          jenis: isRegularIuran ? 'Iuran Warga (Transfer)' : `${proofKategori} (Transfer)`,
-          referensiId: proof.id,
-          nama: `${proof.residentName} (${proof.blok})`,
-          nominal: proof.nominal,
-          sisa: 0,
-          transaksiId: createdTxIds.join(', '),
-          admin: 'Bendahara RT',
-        });
-      } catch (e) {
-        console.error('Auto-sync verified proof to sheets error:', e);
-      }
-
-      // 2. Update Proof status & Drive URL
+      // 2. Update Proof status & Drive URL di memori terlebih dahulu
       proof.status = 'Terverifikasi';
       proof.adminNote = adminNote || 'Bukti valid dan sesuai';
       proof.verifiedAt = nowIso;
@@ -339,9 +322,21 @@ export async function POST(req: NextRequest) {
         proof.driveUrl = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
       }
 
-      // 3. Update status Terverifikasi ke Google Sheet BuktiTransfer
-      try {
-        await updateProofInSheet({
+      // 3. Sinkronkan paralel ke Google Sheets (DataIuran, RiwayatPelunasan, & BuktiTransfer) -> 3x lebih cepat
+      await Promise.allSettled([
+        appendIncomesToSheet(rowsToAppend),
+        appendPelunasanToSheet({
+          id: `VERIF-${proof.id}`,
+          waktu: nowIso,
+          jenis: isRegularIuran ? 'Iuran Warga (Transfer)' : `${proofKategori} (Transfer)`,
+          referensiId: proof.id,
+          nama: `${proof.residentName} (${proof.blok})`,
+          nominal: proof.nominal,
+          sisa: 0,
+          transaksiId: createdTxIds.join(', '),
+          admin: 'Bendahara RT',
+        }),
+        updateProofInSheet({
           buktiId: proof.id,
           status: 'Terverifikasi',
           waktuUpload: proof.createdAt || nowIso,
@@ -357,10 +352,8 @@ export async function POST(req: NextRequest) {
           verifiedBy: 'Bendahara RT',
           adminNote: proof.adminNote,
           transactionId: proof.transactionId,
-        });
-      } catch (e) {
-        console.error('updateProofInSheet error:', e);
-      }
+        }),
+      ]);
 
       saveDb(db);
       addLog(
@@ -546,30 +539,22 @@ export async function DELETE(req: NextRequest) {
     if (!db.deletedIncomeIds.includes(proof.id)) db.deletedIncomeIds.push(proof.id);
     if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
 
-    // 2. Hapus seluruh transaksi kas masuk terkait dari Google Sheet DataIuran & RiwayatPelunasan
+    // 2. Hapus paralel seluruh transaksi kas masuk terkait & baris BuktiTransfer + RiwayatPelunasan -> 4x lebih cepat
+    const deleteTasks: Promise<any>[] = [
+      deleteProofFromSheet(id),
+      deletePelunasanFromSheet(`VERIF-${id}`),
+      deletePelunasanFromSheet(id),
+    ];
     for (const txId of Array.from(txIdsToDelete)) {
       if (!db.deletedIncomeIds.includes(txId)) db.deletedIncomeIds.push(txId);
-      try {
-        await deleteIncomeFromSheet(txId);
-        await deletePelunasanFromSheet(txId);
-      } catch {}
+      deleteTasks.push(deleteIncomeFromSheet(txId), deletePelunasanFromSheet(txId));
     }
 
-    // 3. Hapus transaksi kas masuk terkait dari memori lokal db.incomes
     db.incomes = (db.incomes || []).filter((inc) => inc.buktiId !== proof.id && !txIdsToDelete.has(inc.id));
-
-    // 4. Hapus baris dari Google Sheet BuktiTransfer & RiwayatPelunasan
-    try {
-      await deleteProofFromSheet(id);
-      await deletePelunasanFromSheet(`VERIF-${id}`);
-      await deletePelunasanFromSheet(id);
-    } catch (e) {
-      console.error('deleteProofFromSheet error:', e);
-    }
-
-    // 5. Hapus data bukti transfer dari memori lokal
     db.proofs = (db.proofs || []).filter((p) => p.id !== id);
     saveDb(db);
+
+    await Promise.allSettled(deleteTasks);
 
     addLog(
       'Hapus Bukti Transfer & Transaksi Terkait',

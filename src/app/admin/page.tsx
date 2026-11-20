@@ -263,6 +263,9 @@ export default function AdminPage() {
 
   // Modal Expense
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
+  const [isSavingIncome, setIsSavingIncome] = useState(false);
+  const [isSavingResident, setIsSavingResident] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [selectedExpenseReceipt, setSelectedExpenseReceipt] = useState<ExpenseTransaction | null>(null);
   const [newExpenseDate, setNewExpenseDate] = useState(new Date().toISOString().slice(0, 10));
@@ -507,6 +510,99 @@ export default function AdminPage() {
     }
   };
 
+  const showToast = (msg: string) => {
+    setRefreshToast(msg);
+    setTimeout(() => {
+      setRefreshToast((prev) => (prev === msg ? '' : prev));
+    }, 3500);
+  };
+
+  // Targeted lightweight refresh: hanya memperbarui tab/data terkait tanpa memblokir transisi UI
+  const refreshSlices = async (
+    targets: Array<'dashboard' | 'proofs' | 'incomes' | 'expenses' | 'residents' | 'matrix' | 'kasbon' | 'tunggakan'>
+  ) => {
+    if (!isAuthenticated) return;
+    try {
+      const ts = Date.now();
+      const periodParam = selectedTargetPeriod || '2026-11';
+      const opts = { cache: 'no-store' as RequestCache };
+      const tasks: Promise<void>[] = [];
+
+      if (targets.includes('dashboard')) {
+        tasks.push(
+          fetch(`/api/admin/dashboard?targetPeriod=${periodParam}&year=${matrixYear}&_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((dashRes) => {
+              if (dashRes?.success) {
+                setDashboardData(dashRes);
+                if (dashRes.saldoAwalHistory) setSaldoAwalHistory(dashRes.saldoAwalHistory);
+              }
+            })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('proofs')) {
+        tasks.push(
+          fetch(`/api/admin/proofs?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success) setProofs(res.data); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('incomes')) {
+        tasks.push(
+          fetch(`/api/admin/incomes?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success) setIncomes(res.data || []); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('expenses')) {
+        tasks.push(
+          fetch(`/api/admin/expenses?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success) setExpenses(res.data || []); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('residents')) {
+        tasks.push(
+          fetch(`/api/admin/residents?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success) setResidents(res.data || []); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('matrix')) {
+        tasks.push(
+          fetch(`/api/admin/billing-matrix?year=${matrixYear}&_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success) setMatrixData(res); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('kasbon')) {
+        tasks.push(
+          fetch(`/api/admin/kasbon?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success && Array.isArray(res.data)) setKasbon(res.data); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('tunggakan')) {
+        tasks.push(
+          fetch(`/api/admin/tunggakan?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => { if (res?.success && Array.isArray(res.data)) setTunggakanLama(res.data); })
+            .catch(() => {})
+        );
+      }
+
+      await Promise.all(tasks);
+      setLastUpdated(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch {}
+  };
+
   const handleChangeTargetPeriod = async (newPeriod: string) => {
     setSelectedTargetPeriod(newPeriod);
     try {
@@ -609,6 +705,7 @@ export default function AdminPage() {
 
   // VERIFICATION ACTIONS
   const handleApproveProof = async (proof: ProofSubmission) => {
+    if (isVerifying) return;
     if (!confirm(`Konfirmasi setujui bukti transfer ${proof.id} sebesar ${formatRupiah(proof.nominal)}? Kas masuk akan otomatis bertambah.`)) {
       return;
     }
@@ -621,18 +718,23 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Bukti transfer telah disetujui dan kas masuk berhasil dicatat! Silakan kirim pesan WA konfirmasi verifikasi kepada warga.');
-        setSelectedProof({ ...proof, status: 'Terverifikasi' });
-        refreshAll();
+        const updatedProof = { ...proof, status: 'Terverifikasi' as const, verifiedAt: new Date().toISOString() };
+        setProofs((prev) => prev.map((p) => (p.id === proof.id ? updatedProof : p)));
+        setSelectedProof(updatedProof);
+        showToast(`✓ Bukti ${proof.id} disetujui & masuk kas!`);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
       } else {
         alert(data.error || 'Gagal memverifikasi.');
       }
+    } catch {
+      alert('Gagal menghubungi server.');
     } finally {
       setIsVerifying(false);
     }
   };
 
   const handleRejectProof = async (proof: ProofSubmission) => {
+    if (isVerifying) return;
     const reason = prompt('Masukkan alasan penolakan bukti transfer:', rejectNote || 'Nominal tidak sesuai / bukti buram');
     if (reason === null) return;
 
@@ -645,9 +747,10 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Bukti transfer telah ditolak.');
+        setProofs((prev) => prev.map((p) => (p.id === proof.id ? { ...p, status: 'Ditolak', adminNote: reason } : p)));
         setSelectedProof(null);
-        refreshAll();
+        showToast(`Bukti ${proof.id} ditolak.`);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
       }
     } finally {
       setIsVerifying(false);
@@ -655,6 +758,7 @@ export default function AdminPage() {
   };
 
   const handleCancelProof = async (proof: ProofSubmission) => {
+    if (isVerifying) return;
     if (!confirm(`Kembalikan status bukti transfer ${proof.id} ke antrean verifikasi? Transaksi kas terkait akan dibatalkan.`)) {
       return;
     }
@@ -667,8 +771,10 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
+        setProofs((prev) => prev.map((p) => (p.id === proof.id ? { ...p, status: 'Menunggu Verifikasi' } : p)));
         setSelectedProof(null);
-        refreshAll();
+        showToast(`Status bukti ${proof.id} dikembalikan ke antrean.`);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
       }
     } finally {
       setIsVerifying(false);
@@ -676,6 +782,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteProof = async (proof: ProofSubmission) => {
+    if (isVerifying) return;
     if (
       !confirm(
         `Hapus bukti transaksi ${proof.id} dari ${proof.residentName} (${formatRupiah(
@@ -692,11 +799,12 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Bukti transfer berhasil dihapus dan transaksi telah dibatalkan.');
+        setProofs((prev) => prev.filter((p) => p.id !== proof.id));
         if (selectedProof?.id === proof.id) {
           setSelectedProof(null);
         }
-        refreshAll(true);
+        showToast(`✓ Bukti ${proof.id} dihapus.`);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
       } else {
         alert(data.error || 'Gagal menghapus bukti transfer.');
       }
@@ -710,6 +818,7 @@ export default function AdminPage() {
   // EXPENSE ACTIONS
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingExpense) return;
     if (!newExpenseNominal || Number(newExpenseNominal) <= 0) {
       alert('Nominal pengeluaran wajib diisi.');
       return;
@@ -724,28 +833,41 @@ export default function AdminPage() {
       buktiUrl: newExpenseReceipt,
     };
 
-    let res;
-    if (editingExpenseId) {
-      res = await fetch('/api/admin/expenses', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingExpenseId, action: 'edit', ...payload }),
-      });
-    } else {
-      res = await fetch('/api/admin/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    }
+    setIsSavingExpense(true);
+    try {
+      let res;
+      if (editingExpenseId) {
+        res = await fetch('/api/admin/expenses', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingExpenseId, action: 'edit', ...payload }),
+        });
+      } else {
+        res = await fetch('/api/admin/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
 
-    const d = await res.json();
-    if (d.success) {
-      setShowExpenseModal(false);
-      resetExpenseForm();
-      refreshAll(true);
-    } else {
-      alert(d.error || 'Gagal menyimpan transaksi pengeluaran.');
+      const d = await res.json();
+      if (d.success) {
+        if (d.data) {
+          setExpenses((prev) =>
+            editingExpenseId ? prev.map((x) => (x.id === editingExpenseId ? d.data : x)) : [d.data, ...prev]
+          );
+        }
+        setShowExpenseModal(false);
+        resetExpenseForm();
+        showToast(editingExpenseId ? '✓ Pengeluaran diperbarui!' : '✓ Pengeluaran berhasil dicatat!');
+        refreshSlices(['expenses', 'dashboard']);
+      } else {
+        alert(d.error || 'Gagal menyimpan transaksi pengeluaran.');
+      }
+    } catch {
+      alert('Gagal menghubungi server.');
+    } finally {
+      setIsSavingExpense(false);
     }
   };
 
@@ -757,7 +879,11 @@ export default function AdminPage() {
       body: JSON.stringify({ id, action: 'void' }),
     });
     const d = await res.json();
-    if (d.success) refreshAll();
+    if (d.success) {
+      setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status: 'Dibatalkan' } : e)));
+      showToast('Pengeluaran dibatalkan.');
+      refreshSlices(['expenses', 'dashboard']);
+    }
   };
 
   const handleDeleteExpense = async (id: string, nominal: number, ket: string) => {
@@ -782,8 +908,9 @@ export default function AdminPage() {
             localStorage.setItem('cleopatra_deleted_expenses', JSON.stringify(arr));
           }
         } catch {}
-        alert('Transaksi pengeluaran berhasil dihapus.');
-        refreshAll(true);
+        setExpenses((prev) => prev.filter((e) => e.id !== id));
+        showToast('✓ Transaksi pengeluaran dihapus.');
+        refreshSlices(['expenses', 'dashboard']);
       } else {
         alert(d.error || 'Gagal menghapus pengeluaran.');
       }
@@ -890,6 +1017,7 @@ export default function AdminPage() {
 
   const handleSaveIncome = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingIncome) return;
     const finalSumber = isManualNonWarga
       ? newIncomeNama.trim()
       : newIncomeBlok
@@ -918,29 +1046,43 @@ export default function AdminPage() {
       catatan: newIncomeNote || `${newIncomeCategory} - ${finalSumber}`,
     };
 
-    let res;
-    if (editingIncomeId) {
-      res = await fetch('/api/admin/incomes', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingIncomeId, action: 'edit', ...payload }),
-      });
-    } else {
-      res = await fetch('/api/admin/incomes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    }
+    setIsSavingIncome(true);
+    try {
+      let res;
+      if (editingIncomeId) {
+        res = await fetch('/api/admin/incomes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingIncomeId, action: 'edit', ...payload }),
+        });
+      } else {
+        res = await fetch('/api/admin/incomes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
 
-    const d = await res.json();
-    if (d.success) {
-      alert(editingIncomeId ? 'Transaksi kas masuk berhasil diperbarui!' : 'Transaksi kas masuk berhasil dicatat!');
-      setShowIncomeModal(false);
-      setEditingIncomeId(null);
-      refreshAll(true);
-    } else {
-      alert(d.error || 'Gagal menyimpan transaksi kas masuk.');
+      const d = await res.json();
+      if (d.success) {
+        if (editingIncomeId && d.data) {
+          setIncomes((prev) => prev.map((x) => (x.id === editingIncomeId ? d.data : x)));
+        } else if (Array.isArray(d.created) && d.created.length > 0) {
+          setIncomes((prev) => [...d.created, ...prev]);
+        } else if (d.data) {
+          setIncomes((prev) => [d.data, ...prev]);
+        }
+        setShowIncomeModal(false);
+        setEditingIncomeId(null);
+        showToast(editingIncomeId ? '✓ Kas masuk diperbarui!' : '✓ Transaksi kas masuk berhasil dicatat!');
+        refreshSlices(['incomes', 'dashboard', 'matrix']);
+      } else {
+        alert(d.error || 'Gagal menyimpan transaksi kas masuk.');
+      }
+    } catch {
+      alert('Gagal menghubungi server.');
+    } finally {
+      setIsSavingIncome(false);
     }
   };
 
@@ -952,7 +1094,11 @@ export default function AdminPage() {
       body: JSON.stringify({ id, action: 'void' }),
     });
     const d = await res.json();
-    if (d.success) refreshAll();
+    if (d.success) {
+      setIncomes((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'Dibatalkan' } : x)));
+      showToast('Transaksi kas masuk dibatalkan.');
+      refreshSlices(['incomes', 'dashboard', 'matrix']);
+    }
   };
 
   const handleDeleteIncome = async (id: string, nominal: number, sumber: string) => {
@@ -977,8 +1123,9 @@ export default function AdminPage() {
             localStorage.setItem('cleopatra_deleted_incomes', JSON.stringify(arr));
           }
         } catch {}
-        alert('Transaksi pemasukan berhasil dihapus.');
-        refreshAll(true);
+        setIncomes((prev) => prev.filter((x) => x.id !== id));
+        showToast('✓ Transaksi pemasukan dihapus.');
+        refreshSlices(['incomes', 'proofs', 'dashboard', 'matrix']);
       } else {
         alert(d.error || 'Gagal menghapus pemasukan.');
       }
@@ -1397,48 +1544,62 @@ export default function AdminPage() {
   // RESIDENT ACTIONS
   const handleSaveResident = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingResident) {
-      const res = await fetch('/api/admin/residents', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingResident.id,
-          nama: resNama,
-          blok: resBlok,
-          hp: resHp,
-          tarif: Number(resTarif),
-          status: resStatus,
-        }),
-      });
-      const d = await res.json();
-      if (d.success) {
-        setShowResidentModal(false);
-        setEditingResident(null);
-        alert('Data warga berhasil diperbarui!');
-        refreshAll(true);
+    if (isSavingResident) return;
+    setIsSavingResident(true);
+    try {
+      if (editingResident) {
+        const res = await fetch('/api/admin/residents', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingResident.id,
+            nama: resNama,
+            blok: resBlok,
+            hp: resHp,
+            tarif: Number(resTarif),
+            status: resStatus,
+          }),
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (d.data) {
+            setResidents((prev) => prev.map((r) => (r.id === editingResident.id ? d.data : r)));
+          }
+          setShowResidentModal(false);
+          setEditingResident(null);
+          showToast('✓ Data warga berhasil diperbarui!');
+          refreshSlices(['residents', 'dashboard', 'matrix', 'incomes', 'proofs', 'tunggakan', 'kasbon']);
+        } else {
+          alert(d.error || 'Gagal memperbarui data warga.');
+        }
       } else {
-        alert(d.error || 'Gagal memperbarui data warga.');
+        const res = await fetch('/api/admin/residents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nama: resNama,
+            blok: resBlok,
+            hp: resHp,
+            tarif: Number(resTarif),
+            status: resStatus,
+          }),
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (d.data) {
+            setResidents((prev) => [...prev, d.data]);
+          }
+          setShowResidentModal(false);
+          showToast('✓ Data warga baru ditambahkan!');
+          refreshSlices(['residents', 'dashboard', 'matrix']);
+        } else {
+          alert(d.error || 'Gagal menambahkan data warga.');
+        }
       }
-    } else {
-      const res = await fetch('/api/admin/residents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nama: resNama,
-          blok: resBlok,
-          hp: resHp,
-          tarif: Number(resTarif),
-          status: resStatus,
-        }),
-      });
-      const d = await res.json();
-      if (d.success) {
-        setShowResidentModal(false);
-        alert('Data warga baru berhasil ditambahkan!');
-        refreshAll(true);
-      } else {
-        alert(d.error || 'Gagal menambahkan data warga.');
-      }
+    } catch {
+      alert('Gagal menghubungi server.');
+    } finally {
+      setIsSavingResident(false);
     }
   };
 
@@ -1446,7 +1607,11 @@ export default function AdminPage() {
     if (!confirm(`Hapus data warga ${nama}?`)) return;
     const res = await fetch(`/api/admin/residents?id=${id}`, { method: 'DELETE' });
     const d = await res.json();
-    if (d.success) refreshAll();
+    if (d.success) {
+      setResidents((prev) => prev.filter((r) => r.id !== id));
+      showToast(`Warga ${nama} dihapus.`);
+      refreshSlices(['residents', 'dashboard', 'matrix']);
+    }
   };
 
   const handleDeleteTunggakan = async (item: TunggakanLamaEntry) => {
@@ -5685,9 +5850,17 @@ export default function AdminPage() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition mt-2 shadow-sm"
+                disabled={isSavingExpense}
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs transition mt-2 shadow-sm flex items-center justify-center gap-1.5"
               >
-                {editingExpenseId ? 'Simpan Perubahan Pengeluaran' : 'Simpan Transaksi Pengeluaran'}
+                {isSavingExpense ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan Pengeluaran...</span>
+                  </>
+                ) : (
+                  <span>{editingExpenseId ? 'Simpan Perubahan Pengeluaran' : 'Simpan Transaksi Pengeluaran'}</span>
+                )}
               </button>
             </form>
           </div>
@@ -6082,10 +6255,20 @@ export default function AdminPage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
+                  disabled={isSavingIncome}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{editingIncomeId ? 'Simpan Perubahan Kas Masuk' : 'Simpan Transaksi Kas Masuk'}</span>
+                  {isSavingIncome ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Menyimpan Transaksi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{editingIncomeId ? 'Simpan Perubahan Kas Masuk' : 'Simpan Transaksi Kas Masuk'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -6172,9 +6355,17 @@ export default function AdminPage() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition mt-2 shadow-sm"
+                disabled={isSavingResident}
+                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs transition mt-2 shadow-sm flex items-center justify-center gap-1.5"
               >
-                Simpan Data Warga
+                {isSavingResident ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan Data Warga...</span>
+                  </>
+                ) : (
+                  <span>Simpan Data Warga</span>
+                )}
               </button>
             </form>
           </div>
@@ -7549,6 +7740,18 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating non-blocking status toast */}
+      {refreshToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-[60] max-w-sm px-4 py-3 rounded-xl bg-slate-900/95 text-white text-xs font-semibold shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2.5"
+        >
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="leading-snug">{refreshToast}</span>
         </div>
       )}
     </div>

@@ -479,7 +479,7 @@ export default function PublicPage() {
       img.onload = () => {
         try {
           URL.revokeObjectURL(objectUrl);
-          const maxDim = 1200;
+          const maxDim = 1024;
           let width = img.naturalWidth || img.width;
           let height = img.naturalHeight || img.height;
 
@@ -506,16 +506,15 @@ export default function PublicPage() {
             reject(new Error('Canvas context tidak tersedia'));
             return;
           }
-
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
 
-          let dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          let dataUrl = canvas.toDataURL('image/jpeg', 0.72);
 
-          // Jika masih di atas ~320KB (450k karakter base64), perkecil lagi agar upload HP instan
-          if (dataUrl.length > 450000) {
-            const scale = 900 / Math.max(width, height);
+          // Jika masih di atas ~240KB (330k karakter base64), perkecil lagi agar upload HP instan
+          if (dataUrl.length > 330000) {
+            const scale = 820 / Math.max(width, height);
             if (scale < 1) {
               canvas.width = Math.round(width * scale);
               canvas.height = Math.round(height * scale);
@@ -526,7 +525,7 @@ export default function PublicPage() {
                 ctx2.drawImage(img, 0, 0, canvas.width, canvas.height);
               }
             }
-            dataUrl = canvas.toDataURL('image/jpeg', 0.62);
+            dataUrl = canvas.toDataURL('image/jpeg', 0.60);
           }
 
           resolve(dataUrl);

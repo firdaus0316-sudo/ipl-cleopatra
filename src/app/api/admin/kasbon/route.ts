@@ -116,13 +116,11 @@ export async function POST(req: NextRequest) {
       db.expenses.unshift(newExpense);
       saveDb(db);
 
-      // Otomatis sinkronkan kasbon baru ke sheet DataKasbon & pencairan pengeluaran ke sheet DataPengeluaran
-      try {
-        await appendKasbonToSheet(newKasbon);
-        await appendExpenseToSheet(newExpense, newKasbon.id);
-      } catch (e) {
-        console.error('Auto-sync kasbon to sheets error:', e);
-      }
+      // Otomatis sinkronkan paralel kasbon baru ke sheet DataKasbon & pencairan ke DataPengeluaran
+      await Promise.allSettled([
+        appendKasbonToSheet(newKasbon),
+        appendExpenseToSheet(newExpense, newKasbon.id),
+      ]);
 
       addLog(
         'Pemberian Kasbon Baru Petugas',
@@ -201,8 +199,8 @@ export async function POST(req: NextRequest) {
 
       // Otomatis masukkan pengembalian kasbon ke Google Sheet DataIuran & RiwayatPelunasan
       const targetBulan = tgl.slice(0, 7) || '2026-11';
-      try {
-        await appendIncomesToSheet({
+      await Promise.allSettled([
+        appendIncomesToSheet({
           namaWarga: item.namaPeminjam,
           blok: 'Kasbon Petugas',
           bulanIuran: targetBulan,
@@ -217,9 +215,8 @@ export async function POST(req: NextRequest) {
           bulanAwal: targetBulan,
           bulanAkhir: targetBulan,
           jumlahBulan: 1,
-        });
-
-        await appendPelunasanToSheet({
+        }),
+        appendPelunasanToSheet({
           id: bayarId,
           waktu: tgl,
           jenis: isLunas ? 'Pelunasan Kasbon' : 'Cicilan Kasbon',
@@ -229,13 +226,9 @@ export async function POST(req: NextRequest) {
           sisa: sisaBaru,
           transaksiId: incId,
           admin: 'Admin RT',
-        });
-
-        // Sinkronkan sisa dan status kasbon ke Google Sheet DataKasbon
-        await updateKasbonInSheet(item.id || item.kasbonId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil');
-      } catch (e) {
-        console.error('Auto-sync kasbon payment to sheets error:', e);
-      }
+        }),
+        updateKasbonInSheet(item.id || item.kasbonId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil'),
+      ]);
 
       addLog(
         isLunas ? 'Pelunasan Kasbon Petugas' : 'Pengembalian / Angsuran Kasbon Petugas',

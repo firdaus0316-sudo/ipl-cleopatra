@@ -156,12 +156,13 @@ export async function POST(req: NextRequest) {
     db.expenses.unshift(newExpense);
     saveDb(db);
 
-    // Otomatis sinkronkan ke Google Sheet DataPengeluaran & BuktiStruk
+    // Otomatis sinkronkan paralel ke Google Sheet DataPengeluaran & BuktiStruk
     try {
-      await appendExpenseToSheet(newExpense);
+      const sheetTasks: Promise<any>[] = [appendExpenseToSheet(newExpense)];
       if (newExpense.buktiUrl || newExpense.driveUrl) {
-        await appendBuktiStrukToSheet(newExpense);
+        sheetTasks.push(appendBuktiStrukToSheet(newExpense));
       }
+      await Promise.allSettled(sheetTasks);
     } catch (e) {
       console.error('Auto-sync expense to sheets error:', e);
     }

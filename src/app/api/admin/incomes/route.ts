@@ -235,6 +235,7 @@ export async function POST(req: NextRequest) {
         success: true,
         message: `Transaksi kas masuk berhasil dicatat dan dipecah ke ${numMonths} periode bulanan!`,
         data: createdIncomes[0],
+        created: createdIncomes,
       });
     }
 
@@ -444,40 +445,28 @@ export async function DELETE(req: NextRequest) {
     });
 
     // 2. Jika berasal dari verifikasi bukti transfer:
-    // HAPUS TOTAL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS
+    // HAPUS PARALEL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS
+    const parallelDeletes: Promise<any>[] = [];
     if (relatedBuktiIds.size > 0) {
       for (const bId of Array.from(relatedBuktiIds)) {
         if (!db.deletedIncomeIds.includes(bId)) db.deletedIncomeIds.push(bId);
         if (!db.deletedProofIds.includes(bId)) db.deletedProofIds.push(bId);
-
-        // Hapus baris dari Google Sheet BuktiTransfer secara real-time
-        try {
-          await deleteProofFromSheet(bId);
-        } catch (e: any) {
-          console.warn('Gagal menghapus dari Sheet BuktiTransfer:', e.message);
-        }
-
-        // Hapus pencatatan pelunasan terkait di Google Sheet RiwayatPelunasan
-        try {
-          await deletePelunasanFromSheet(`VERIF-${bId}`);
-          await deletePelunasanFromSheet(bId);
-        } catch {}
+        parallelDeletes.push(
+          deleteProofFromSheet(bId),
+          deletePelunasanFromSheet(`VERIF-${bId}`),
+          deletePelunasanFromSheet(bId)
+        );
       }
 
-      // Hapus bukti transfer dari memori lokal db.proofs
       db.proofs = (db.proofs || []).filter((p) => !relatedBuktiIds.has(p.id));
 
-      // Hapus seluruh transaksi pecahan multi-bulan lain yang berasal dari bukti yang sama
       const siblingIncomes = (db.incomes || []).filter(
         (other) => other.buktiId && relatedBuktiIds.has(other.buktiId) && other.id !== inc.id
       );
 
       for (const sib of siblingIncomes) {
         if (!db.deletedIncomeIds.includes(sib.id)) db.deletedIncomeIds.push(sib.id);
-        try {
-          await deleteIncomeFromSheet(sib.id);
-          await deletePelunasanFromSheet(sib.id);
-        } catch {}
+        parallelDeletes.push(deleteIncomeFromSheet(sib.id), deletePelunasanFromSheet(sib.id));
       }
 
       db.incomes = db.incomes.filter((other) => !other.buktiId || !relatedBuktiIds.has(other.buktiId));
@@ -541,13 +530,9 @@ export async function DELETE(req: NextRequest) {
     db.incomes = db.incomes.filter((i) => i.id !== inc.id);
     saveDb(db);
 
-    // 5. Hapus dari Google Sheet DataIuran & RiwayatPelunasan secara real-time
-    try {
-      await deleteIncomeFromSheet(inc.id);
-      await deletePelunasanFromSheet(inc.id);
-    } catch (e: any) {
-      console.warn('Gagal sinkronisasi hapus ke Google Sheet DataIuran:', e.message);
-    }
+    // 5. Hapus paralel seluruh data terkait dari Google Sheet DataIuran, BuktiTransfer & RiwayatPelunasan
+    parallelDeletes.push(deleteIncomeFromSheet(inc.id), deletePelunasanFromSheet(inc.id));
+    await Promise.allSettled(parallelDeletes);
 
     addLog(
       'Hapus Pemasukan & Bukti Terkait',
