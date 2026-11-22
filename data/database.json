@@ -3638,119 +3638,122 @@
   "tunggakanLama": [
     {
       "id": "bd5a6ff6-00f3-4be8-b2ab-77fbaa0a8254",
-      "tanggal": "2026-11-02",
+      "tanggal": "11/2/2026 ",
       "namaWarga": "Iwan Rio",
+      "blok": "E-1/33",
       "jumlah": 2100000,
       "nominalAwal": 2100000,
+      "terbayar": 0,
       "keterangan": "Oktober 2023 - Oktober 2026",
       "status": "Belum Lunas",
       "tunggakanId": "bd5a6ff6-00f3-4be8-b2ab-77fbaa0a8254",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "15e374ce-2718-4357-82c4-b841561eb4bf"
     },
     {
       "id": "c62f1688-c349-45a3-adff-81b0e7b4bada",
-      "tanggal": "2026-11-02",
-      "namaWarga": "Agung",
+      "tanggal": "11/2/2026 ",
+      "namaWarga": "Agung Barata",
+      "blok": "H-13/9",
       "jumlah": 2750000,
       "nominalAwal": 2750000,
+      "terbayar": 0,
       "keterangan": "Mei 2025 - Oktober 2026",
       "status": "Belum Lunas",
       "tunggakanId": "c62f1688-c349-45a3-adff-81b0e7b4bada",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "f3727e51-9fe1-4907-ad23-f8279035e729"
     },
     {
       "id": "3b056b15-58f2-4dbd-b0a8-bc38920e7df9",
-      "tanggal": "2026-11-02",
-      "namaWarga": "Wisnu/Panji",
+      "tanggal": "11/2/2026 ",
+      "namaWarga": "Panji Sabdho Waluyo",
+      "blok": "H-12/9",
       "jumlah": 1600000,
       "nominalAwal": 1600000,
+      "terbayar": 0,
       "keterangan": "November 2024 - Januari 2026",
       "status": "Belum Lunas",
       "tunggakanId": "3b056b15-58f2-4dbd-b0a8-bc38920e7df9",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "58789148-4dda-475b-89f7-9dd10427e342"
     },
     {
       "id": "842f8f4a-c796-4397-8163-c77ea47ebb50",
-      "tanggal": "2026-11-02",
+      "tanggal": "11/2/2026 ",
       "namaWarga": "Wawan Hermawan",
+      "blok": "H-13/1",
       "jumlah": 8760000,
       "nominalAwal": 8760000,
+      "terbayar": 0,
       "keterangan": "Juni 2022 - Oktober 2026",
       "status": "Belum Lunas",
       "tunggakanId": "842f8f4a-c796-4397-8163-c77ea47ebb50",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "6d911497-3fc5-40a3-b307-a9bced312677"
     },
     {
       "id": "f08b2a02-61ca-433a-9878-eab8c5d618bf",
-      "tanggal": "2026-11-02",
-      "namaWarga": "Yunus",
+      "tanggal": "11/2/2026 ",
+      "namaWarga": "Muhamad Yunus Mustaqim",
+      "blok": "H-12/10",
       "jumlah": 6300000,
       "nominalAwal": 6300000,
+      "terbayar": 0,
       "keterangan": "Juli 2023 - Oktober 2026",
       "status": "Belum Lunas",
       "tunggakanId": "f08b2a02-61ca-433a-9878-eab8c5d618bf",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "b3357d63-5b3f-426b-8d40-cdda503ed321"
     },
     {
       "id": "e650d136-994d-497f-bbad-f7d1d5ef22d1",
-      "tanggal": "2026-11-07",
+      "tanggal": "11/7/2026 ",
       "namaWarga": "Rudi (Mega)",
+      "blok": "H-14/50-52-53",
       "jumlah": 1275000,
       "nominalAwal": 1275000,
+      "terbayar": 0,
       "keterangan": "Apri-Juni 2026",
       "status": "Belum Lunas",
       "tunggakanId": "e650d136-994d-497f-bbad-f7d1d5ef22d1",
-      "wargaId": "b14c2111-6f75-47e6-91e0-d99f5c59e94e",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "b14c2111-6f75-47e6-91e0-d99f5c59e94e"
     },
     {
       "id": "4a351758-166d-47e9-9891-f85b08b0868b",
-      "tanggal": "2026-11-07",
-      "namaWarga": "Wiwit/Suryanto Mess",
+      "tanggal": "11/7/2026 ",
+      "namaWarga": "Wiwit/Sujiono",
+      "blok": "H-14/45",
       "jumlah": 450000,
       "nominalAwal": 450000,
+      "terbayar": 0,
       "keterangan": "Agustus-Oktober 2026",
       "status": "Belum Lunas",
       "tunggakanId": "4a351758-166d-47e9-9891-f85b08b0868b",
-      "wargaId": "6bf73389-cfcd-4a08-818e-cbea716480ec",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "wargaId": "6bf73389-cfcd-4a08-818e-cbea716480ec"
     },
     {
       "id": "TUNG-1794143530491",
-      "tanggal": "2026-11-02",
+      "tanggal": "11/2/2026 ",
       "namaWarga": "Lia",
       "blok": "N/A",
       "jumlah": 3240000,
       "nominalAwal": 3240000,
+      "terbayar": 0,
       "keterangan": "Agustus 2021 - Juni 2023",
       "status": "Belum Lunas",
       "tipeWarga": "Pindah",
       "catatanPindah": "Bekas warga (sudah pindah rumah), masih ada sisa tunggakan",
-      "tunggakanId": "TUNG-1794143530491",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "tunggakanId": "TUNG-1794143530491"
     },
     {
       "id": "TUNG-1794143436744",
-      "tanggal": "2026-11-02",
+      "tanggal": "11/2/2026 ",
       "namaWarga": "Hermanto",
       "blok": "N/a",
-      "jumlah": 3960000,
+      "jumlah": 3660000,
       "nominalAwal": 3960000,
+      "terbayar": 300000,
       "keterangan": "Juli 2020 - Desember 2024",
-      "status": "Belum Lunas",
+      "status": "Dicicil",
       "tipeWarga": "Pindah",
       "catatanPindah": "Bekas warga (sudah pindah rumah), masih ada sisa tunggakan",
-      "tunggakanId": "TUNG-1794143436744",
-      "terbayar": 0,
-      "riwayatPembayaran": []
+      "tunggakanId": "TUNG-1794143436744"
     }
   ],
   "kasbon": [
@@ -3760,11 +3763,11 @@
       "namaPeminjam": "Rahmat Security",
       "nominal": 400000,
       "nominalAwal": 400000,
+      "terbayar": 0,
       "keterangan": "Keluarga",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-05",
-      "kasbonId": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f",
-      "riwayatPembayaran": []
+      "kasbonId": "e15b3b9c-389b-49ab-a53e-0cac9b10ea4f"
     },
     {
       "id": "bdfa85fd-f0c1-4077-911c-0ea4316071cb",
@@ -3772,11 +3775,11 @@
       "namaPeminjam": "Agus Security",
       "nominal": 300000,
       "nominalAwal": 300000,
+      "terbayar": 0,
       "keterangan": "Keluarga",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-05",
-      "kasbonId": "bdfa85fd-f0c1-4077-911c-0ea4316071cb",
-      "riwayatPembayaran": []
+      "kasbonId": "bdfa85fd-f0c1-4077-911c-0ea4316071cb"
     },
     {
       "id": "3dc69dec-fca1-44ef-8d90-95ffc0c6fabc",
@@ -3784,11 +3787,11 @@
       "namaPeminjam": "Pepen Security",
       "nominal": 400000,
       "nominalAwal": 400000,
+      "terbayar": 0,
       "keterangan": "Keluarga",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-05",
-      "kasbonId": "3dc69dec-fca1-44ef-8d90-95ffc0c6fabc",
-      "riwayatPembayaran": []
+      "kasbonId": "3dc69dec-fca1-44ef-8d90-95ffc0c6fabc"
     },
     {
       "id": "cac91796-641d-4dae-97a7-759bd77297ac",
@@ -3796,11 +3799,11 @@
       "namaPeminjam": "Mulyadi Security",
       "nominal": 300000,
       "nominalAwal": 300000,
+      "terbayar": 0,
       "keterangan": "Keluarga",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-01",
-      "kasbonId": "cac91796-641d-4dae-97a7-759bd77297ac",
-      "riwayatPembayaran": []
+      "kasbonId": "cac91796-641d-4dae-97a7-759bd77297ac"
     },
     {
       "id": "KSB-1794402191518",
@@ -3808,11 +3811,11 @@
       "namaPeminjam": "Agus Security",
       "nominal": 100000,
       "nominalAwal": 100000,
+      "terbayar": 0,
       "keterangan": "Ban Motor",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-11",
-      "kasbonId": "KSB-1794402191518",
-      "riwayatPembayaran": []
+      "kasbonId": "KSB-1794402191518"
     },
     {
       "id": "KSB-1794470947235",
@@ -3820,11 +3823,23 @@
       "namaPeminjam": "Dede Maulana",
       "nominal": 500000,
       "nominalAwal": 500000,
+      "terbayar": 0,
       "keterangan": "Keluarga",
       "status": "Belum Lunas",
       "tglBackdate": "2026-11-12",
-      "kasbonId": "KSB-1794470947235",
-      "riwayatPembayaran": []
+      "kasbonId": "KSB-1794470947235"
+    },
+    {
+      "id": "KSB-1794521420307",
+      "timestamp": "11/12/2026 22:10:20",
+      "namaPeminjam": "Dede Maulana",
+      "nominal": 100000,
+      "nominalAwal": 100000,
+      "terbayar": 0,
+      "keterangan": "Sisa Kasbon Bulan Oktober",
+      "status": "Belum Lunas",
+      "tglBackdate": "2026-11-12",
+      "kasbonId": "KSB-1794521420307"
     }
   ],
   "saldoAwalHistory": [

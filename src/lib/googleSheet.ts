@@ -1,4 +1,4 @@
-import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema } from '@/types';
+import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord } from '@/types';
 import { normalizeBlokCode, isIuranBulananCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
@@ -547,8 +547,16 @@ export async function fetchTunggakanLamaFromSheet(): Promise<{ success: boolean;
 
       const jumlah = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       const nominalAwal = nominalAwalRaw ? parseInt(nominalAwalRaw, 10) : jumlah;
+      const terbayar = Math.max(0, nominalAwal - jumlah);
 
-      if (!namaWarga || jumlah <= 0) continue;
+      if (!namaWarga || (jumlah <= 0 && nominalAwal <= 0)) continue;
+
+      const status: 'Belum Lunas' | 'Dicicil' | 'Lunas' =
+        (statusRaw.includes('lunas') && !statusRaw.includes('belum')) || jumlah <= 0
+          ? 'Lunas'
+          : statusRaw.includes('cicil') || terbayar > 0
+            ? 'Dicicil'
+            : 'Belum Lunas';
 
       tunggakan.push({
         id: tunggakanId,
@@ -557,8 +565,9 @@ export async function fetchTunggakanLamaFromSheet(): Promise<{ success: boolean;
         blok,
         jumlah,
         nominalAwal,
+        terbayar,
         keterangan,
-        status: statusRaw.includes('lunas') && !statusRaw.includes('belum') ? 'Lunas' : 'Belum Lunas',
+        status,
         tunggakanId,
         wargaId,
       });
@@ -595,8 +604,16 @@ export async function fetchTunggakanNonWargaFromSheet(): Promise<{ success: bool
 
       const jumlah = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       const nominalAwal = nominalAwalRaw ? parseInt(nominalAwalRaw, 10) : jumlah;
+      const terbayar = Math.max(0, nominalAwal - jumlah);
 
       if (!namaWarga || jumlah <= 0) continue;
+
+      const status: 'Belum Lunas' | 'Dicicil' | 'Lunas' =
+        statusRaw.includes('lunas') && !statusRaw.includes('belum')
+          ? 'Lunas'
+          : statusRaw.includes('cicil') || terbayar > 0
+            ? 'Dicicil'
+            : 'Belum Lunas';
 
       tunggakan.push({
         id: tunggakanId,
@@ -605,8 +622,9 @@ export async function fetchTunggakanNonWargaFromSheet(): Promise<{ success: bool
         blok,
         jumlah,
         nominalAwal,
+        terbayar,
         keterangan,
-        status: statusRaw.includes('lunas') && !statusRaw.includes('belum') ? 'Lunas' : 'Belum Lunas',
+        status,
         tipeWarga: 'Pindah',
         catatanPindah,
         tunggakanId,
@@ -644,8 +662,16 @@ export async function fetchKasbonFromSheet(): Promise<{ success: boolean; kasbon
 
       const nominal = nominalRaw ? parseInt(nominalRaw, 10) : 0;
       const nominalAwal = nominalAwalRaw ? parseInt(nominalAwalRaw, 10) : nominal;
+      const terbayar = Math.max(0, nominalAwal - nominal);
 
-      if (!namaPeminjam || nominal <= 0) continue;
+      if (!namaPeminjam || (nominal <= 0 && nominalAwal <= 0)) continue;
+
+      const status: 'Belum Lunas' | 'Dicicil' | 'Lunas' =
+        (statusRaw.includes('lunas') && !statusRaw.includes('belum')) || nominal <= 0
+          ? 'Lunas'
+          : statusRaw.includes('cicil') || terbayar > 0
+            ? 'Dicicil'
+            : 'Belum Lunas';
 
       kasbon.push({
         id: kasbonId,
@@ -653,8 +679,9 @@ export async function fetchKasbonFromSheet(): Promise<{ success: boolean; kasbon
         namaPeminjam,
         nominal,
         nominalAwal,
+        terbayar,
         keterangan,
-        status: statusRaw.includes('lunas') && !statusRaw.includes('belum') ? 'Lunas' : 'Belum Lunas',
+        status,
         tglBackdate,
         kasbonId,
         wargaId,
@@ -675,6 +702,52 @@ export async function fetchKasbonFromSheet(): Promise<{ success: boolean; kasbon
   } catch (err: any) {
     return { success: false, kasbon: [], error: err.message };
   }
+}
+
+/**
+ * 6b. Fetch Riwayat Pelunasan / Angsuran (Sheet RiwayatPelunasan, GID 1531683437)
+ * Dipetakan per Referensi ID (Tunggakan ID / Kasbon ID) agar riwayat cicilan
+ * tidak pernah hilang saat serverless restart.
+ */
+export async function fetchPelunasanHistoryMapFromSheet(): Promise<Map<string, PembayaranRecord[]>> {
+  const map = new Map<string, PembayaranRecord[]>();
+  try {
+    const csvText = await fetchCsvByGid(SHEET_GIDS.riwayatpelunasan);
+    const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCsvLine(lines[i]);
+      if (cols.length < 6) continue;
+      const pelId = (cols[0] || '').trim();
+      const waktu = (cols[1] || '').trim();
+      const jenis = (cols[2] || '').trim();
+      const refId = (cols[3] || '').trim();
+      const nominalRaw = (cols[5] || '').replace(/[^0-9]/g, '');
+      const sisaRaw = (cols[6] || '').replace(/[^0-9]/g, '');
+      const txId = (cols[7] || '').trim();
+
+      if (!refId || (!pelId.startsWith('BYR-') && !/tunggakan|kasbon/i.test(jenis))) continue;
+      const nom = nominalRaw ? parseInt(nominalRaw, 10) : 0;
+      if (nom <= 0) continue;
+      const sisa = sisaRaw ? parseInt(sisaRaw, 10) : 0;
+
+      const list = map.get(refId) || [];
+      if (!list.some((r) => r.id === pelId)) {
+        list.unshift({
+          id: pelId,
+          tanggal: parseDateFlexible(waktu),
+          nominal: nom,
+          metode: 'Transfer',
+          catatan: `${jenis} (Sisa setelah bayar: Rp ${sisa.toLocaleString('id-ID')})`,
+          incomeId: txId || undefined,
+          createdAt: parseDateFlexible(waktu),
+        });
+        map.set(refId, list);
+      }
+    }
+  } catch (err) {
+    console.warn('fetchPelunasanHistoryMapFromSheet error:', err);
+  }
+  return map;
 }
 
 export function getMonthsBetween(start: string, end: string): string[] {
@@ -814,7 +887,7 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
  * 8. SINKRONISASI LENGKAP SEMUA SHEET
  */
 export async function syncAllGoogleSheetsData() {
-  const [resRes, saldoRes, incRes, expRes, tungRes, tungNonRes, kasbonRes, proofRes] = await Promise.all([
+  const [resRes, saldoRes, incRes, expRes, tungRes, tungNonRes, kasbonRes, proofRes, pelunasanMap] = await Promise.all([
     fetchResidentsFromSheet(),
     fetchSaldoAwalFromSheet(),
     fetchIncomesFromSheet(),
@@ -823,9 +896,17 @@ export async function syncAllGoogleSheetsData() {
     fetchTunggakanNonWargaFromSheet(),
     fetchKasbonFromSheet(),
     fetchProofsFromSheet(),
+    fetchPelunasanHistoryMapFromSheet(),
   ]);
 
-  const allTunggakan = [...(tungRes.tunggakan || []), ...(tungNonRes.tunggakan || [])];
+  const allTunggakan = [...(tungRes.tunggakan || []), ...(tungNonRes.tunggakan || [])].map((t) => ({
+    ...t,
+    riwayatPembayaran: pelunasanMap.get(t.id) || t.riwayatPembayaran || [],
+  }));
+  const allKasbon = (kasbonRes.kasbon || []).map((k) => ({
+    ...k,
+    riwayatPembayaran: pelunasanMap.get(k.id) || k.riwayatPembayaran || [],
+  }));
 
   return {
     success: resRes.success,
@@ -837,7 +918,7 @@ export async function syncAllGoogleSheetsData() {
     tunggakanLama: allTunggakan,
     tunggakanWarga: tungRes.tunggakan || [],
     tunggakanNonWarga: tungNonRes.tunggakan || [],
-    kasbon: kasbonRes.kasbon || [],
+    kasbon: allKasbon,
     proofs: proofRes.proofs || [],
     errors: [resRes.error, saldoRes.error, incRes.error, expRes.error, tungRes.error, tungNonRes.error, kasbonRes.error, proofRes.error].filter(Boolean),
   };

@@ -84,48 +84,37 @@ export async function POST(req: NextRequest) {
 
       const mergedSheetTunggakan = result.tunggakanLama.map((sheetItem) => {
         const localItem = existingTunggakanMap.get(sheetItem.id);
-        if (localItem && (localItem.riwayatPembayaran?.length || 0) > 0) {
-          // Pertahankan sisa, nominal terbayar, dan riwayat pembayaran cicilan lokal
-          return {
-            ...sheetItem,
-            jumlah: localItem.jumlah,
-            terbayar: localItem.terbayar || 0,
-            status: localItem.status,
-            riwayatPembayaran: localItem.riwayatPembayaran,
-          };
-        }
+        const sheetTerbayar = sheetItem.terbayar ?? Math.max(0, (sheetItem.nominalAwal || sheetItem.jumlah) - sheetItem.jumlah);
+        const riwayat = (localItem?.riwayatPembayaran?.length || 0) > 0
+          ? localItem!.riwayatPembayaran!
+          : (sheetItem.riwayatPembayaran || []);
         return {
           ...sheetItem,
           nominalAwal: sheetItem.nominalAwal || sheetItem.jumlah,
-          terbayar: sheetItem.terbayar || 0,
-          riwayatPembayaran: sheetItem.riwayatPembayaran || [],
+          terbayar: sheetTerbayar > 0 ? sheetTerbayar : (localItem?.terbayar || 0),
+          riwayatPembayaran: riwayat,
         };
       });
 
       db.tunggakanLama = [...localOnlyTunggakan, ...mergedSheetTunggakan];
     }
 
-    // 6. Data Kasbon - Pertahankan riwayat pembayaran kasbon & kasbon baru lokal
+    // 6. Data Kasbon - Selalu hitung terbayar dari selisih Nominal Awal vs Sisa di Sheet
     if (result.kasbon.length > 0) {
       const existingKasbonMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
       const localOnlyKasbon = (db.kasbon || []).filter((k) => k.id.startsWith('KSB-'));
 
       const mergedSheetKasbon = result.kasbon.map((sheetItem) => {
         const localItem = existingKasbonMap.get(sheetItem.id);
-        if (localItem && (localItem.riwayatPembayaran?.length || 0) > 0) {
-          return {
-            ...sheetItem,
-            nominal: localItem.nominal,
-            terbayar: localItem.terbayar || 0,
-            status: localItem.status,
-            riwayatPembayaran: localItem.riwayatPembayaran,
-          };
-        }
+        const sheetTerbayar = sheetItem.terbayar ?? Math.max(0, (sheetItem.nominalAwal || sheetItem.nominal) - sheetItem.nominal);
+        const riwayat = (localItem?.riwayatPembayaran?.length || 0) > 0
+          ? localItem!.riwayatPembayaran!
+          : (sheetItem.riwayatPembayaran || []);
         return {
           ...sheetItem,
           nominalAwal: sheetItem.nominalAwal || sheetItem.nominal,
-          terbayar: sheetItem.terbayar || 0,
-          riwayatPembayaran: sheetItem.riwayatPembayaran || [],
+          terbayar: sheetTerbayar > 0 ? sheetTerbayar : (localItem?.terbayar || 0),
+          riwayatPembayaran: riwayat,
         };
       });
 

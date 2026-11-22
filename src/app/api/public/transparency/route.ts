@@ -8,6 +8,7 @@ import {
   fetchKasbonFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
+  fetchPelunasanHistoryMapFromSheet,
   fetchSaldoAwalFromSheet,
   fetchResidentsFromSheet,
   syncAllDbNamesWithMaster,
@@ -24,10 +25,11 @@ export async function GET() {
 
     // Auto-sync live data dari Google Sheets secara real-time
     try {
-      const [kasbonRes, tungWRes, tungNWRes, expRes, incRes, saldoRes, resRes] = await Promise.all([
+      const [kasbonRes, tungWRes, tungNWRes, pelunasanMap, expRes, incRes, saldoRes, resRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] })),
         fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
         fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
+        fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] })),
         fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
         fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
@@ -42,7 +44,13 @@ export async function GET() {
         const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
         db.kasbon = kasbonRes.kasbon.map((s) => {
           const local = localMap.get(s.id);
-          return { ...s, riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [] };
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.nominal) - s.nominal);
+          const sheetHistory = pelunasanMap.get(s.id);
+          return {
+            ...s,
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
+          };
         });
       }
 
@@ -51,10 +59,12 @@ export async function GET() {
         const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
         db.tunggakanLama = combinedTung.map((s) => {
           const local = localMap.get(s.id);
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.jumlah) - s.jumlah);
+          const sheetHistory = pelunasanMap.get(s.id);
           return {
             ...s,
-            terbayar: local?.terbayar || s.terbayar || 0,
-            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
           };
         });
       }
@@ -190,13 +200,19 @@ export async function GET() {
     const tunggakanLamaList = db.tunggakanLama || [];
     const tunggakanBelumLunas = tunggakanLamaList.filter((t) => t.status !== 'Lunas');
     const totalTunggakanAwal = tunggakanLamaList.reduce((sum, t) => sum + (t.nominalAwal || t.jumlah), 0);
-    const totalTunggakanTerbayar = tunggakanLamaList.reduce((sum, t) => sum + (t.terbayar || 0), 0);
+    const totalTunggakanTerbayar = tunggakanLamaList.reduce(
+      (sum, t) => sum + (t.terbayar ?? Math.max(0, (t.nominalAwal || t.jumlah) - t.jumlah)),
+      0
+    );
     const sisaTunggakanBelumBayar = tunggakanBelumLunas.reduce((sum, t) => sum + t.jumlah, 0);
 
     const kasbonList = db.kasbon || [];
     const kasbonBelumLunas = kasbonList.filter((k) => k.status !== 'Lunas');
     const totalKasbonAwal = kasbonList.reduce((sum, k) => sum + (k.nominalAwal || k.nominal), 0);
-    const totalKasbonTerbayar = kasbonList.reduce((sum, k) => sum + (k.terbayar || 0), 0);
+    const totalKasbonTerbayar = kasbonList.reduce(
+      (sum, k) => sum + (k.terbayar ?? Math.max(0, (k.nominalAwal || k.nominal) - k.nominal)),
+      0
+    );
     const sisaKasbonBelumKembali = kasbonBelumLunas.reduce((sum, k) => sum + k.nominal, 0);
 
     // Monthly flow breakdown for Bar Chart (Year 2026 / current year):

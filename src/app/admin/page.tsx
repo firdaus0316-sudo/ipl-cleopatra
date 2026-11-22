@@ -5099,7 +5099,7 @@ export default function AdminPage() {
               <div className="bg-white p-4 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-xs">
                 <div className="text-xs font-bold text-amber-700">Belum Lunas</div>
                 <div className="text-2xl font-black text-amber-700 mt-1">
-                  {tunggakanLama.filter((t) => t.status === 'Belum Lunas').length} Rumah
+                  {tunggakanLama.filter((t) => t.status !== 'Lunas').length} Rumah
                 </div>
                 <div className="text-[11px] text-amber-600 mt-0.5">Memerlukan penagihan lanjutan</div>
               </div>
@@ -5108,7 +5108,7 @@ export default function AdminPage() {
                 <div className="text-2xl font-black text-rose-700 mt-1">
                   {formatRupiah(
                     tunggakanLama
-                      .filter((t) => t.status === 'Belum Lunas')
+                      .filter((t) => t.status !== 'Lunas')
                       .reduce((sum, t) => sum + t.jumlah, 0)
                   )}
                 </div>
@@ -5353,7 +5353,7 @@ export default function AdminPage() {
               <div className="bg-white p-4 rounded-2xl border border-cyan-200 bg-cyan-50/30 shadow-xs">
                 <div className="text-xs font-bold text-cyan-700">Kasbon Belum Lunas</div>
                 <div className="text-2xl font-black text-cyan-700 mt-1">
-                  {kasbon.filter((k) => k.status === 'Belum Lunas').length} Orang
+                  {kasbon.filter((k) => k.status !== 'Lunas').length} Orang
                 </div>
                 <div className="text-[11px] text-cyan-600 mt-0.5">Sisa pinjaman yang berjalan</div>
               </div>
@@ -5362,7 +5362,7 @@ export default function AdminPage() {
                 <div className="text-2xl font-black text-rose-700 mt-1">
                   {formatRupiah(
                     kasbon
-                      .filter((k) => k.status === 'Belum Lunas')
+                      .filter((k) => k.status !== 'Lunas')
                       .reduce((sum, k) => sum + k.nominal, 0)
                   )}
                 </div>

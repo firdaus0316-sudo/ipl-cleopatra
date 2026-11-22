@@ -12,6 +12,7 @@ import {
   deleteExpenseFromSheet,
   deleteExpenseByRefIdFromSheet,
   fetchKasbonFromSheet,
+  fetchPelunasanHistoryMapFromSheet,
   fetchResidentsFromSheet,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
@@ -27,8 +28,9 @@ export async function GET(req: NextRequest) {
 
     // Ambil data kasbon terkini secara langsung dari Google Sheet DataKasbon & MasterWarga
     try {
-      const [sheetRes, resRes] = await Promise.all([
+      const [sheetRes, pelunasanMap, resRes] = await Promise.all([
         fetchKasbonFromSheet(),
+        fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
       ]);
       if (resRes.success && resRes.residents && resRes.residents.length > 0) {
@@ -38,9 +40,12 @@ export async function GET(req: NextRequest) {
         const localMap = new Map(kasbonList.map((k) => [k.id, k]));
         db.kasbon = sheetRes.kasbon.map((s) => {
           const local = localMap.get(s.id);
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.nominal) - s.nominal);
+          const sheetHistory = pelunasanMap.get(s.id);
           return {
             ...s,
-            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
           };
         });
       }
@@ -138,6 +143,22 @@ export async function POST(req: NextRequest) {
 
     // ACTION 2: BAYAR / KEMBALIKAN KASBON (BISA CICIL MAUPUN CASH / LUNAS)
     if (action === 'bayar') {
+      // Sync kondisi terbaru dari Google Sheet DataKasbon agar sisa & terbayar tidak pernah stale
+      try {
+        const sheetRes = await fetchKasbonFromSheet();
+        if (sheetRes.success && sheetRes.kasbon.length > 0) {
+          const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
+          db.kasbon = sheetRes.kasbon.map((s) => {
+            const local = localMap.get(s.id);
+            return {
+              ...s,
+              terbayar: s.terbayar ?? Math.max(0, (s.nominalAwal || s.nominal) - s.nominal),
+              riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            };
+          });
+        }
+      } catch {}
+
       const item = (db.kasbon || []).find((k) => k.id === id || k.kasbonId === id);
       if (!item) {
         return NextResponse.json({ success: false, error: 'Data kasbon tidak ditemukan.' }, { status: 404 });

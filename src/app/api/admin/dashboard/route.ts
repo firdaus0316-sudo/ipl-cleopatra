@@ -6,6 +6,7 @@ import {
   fetchKasbonFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
+  fetchPelunasanHistoryMapFromSheet,
   fetchExpensesFromSheet,
   appendExpenseToSheet,
   fetchIncomesFromSheet,
@@ -48,10 +49,11 @@ export async function GET(req: NextRequest) {
     let sheetExpOk = false;
     let sheetKasbonOk = false;
     try {
-      const [kasbonRes, wRes, nwRes, expRes, resRes, incRes, proofsRes, saldoRes] = await Promise.all([
+      const [kasbonRes, wRes, nwRes, pelunasanMap, expRes, resRes, incRes, proofsRes, saldoRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] as any[] })),
         fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
         fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
+        fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] as any[] })),
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
         fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
@@ -68,9 +70,12 @@ export async function GET(req: NextRequest) {
         const localMap = new Map((db.kasbon || []).map((k) => [k.id, k]));
         db.kasbon = kasbonRes.kasbon.map((s) => {
           const local = localMap.get(s.id);
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.nominal) - s.nominal);
+          const sheetHistory = pelunasanMap.get(s.id);
           return {
             ...s,
-            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
           };
         });
       }
@@ -80,10 +85,12 @@ export async function GET(req: NextRequest) {
         const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
         db.tunggakanLama = combinedTung.map((s) => {
           const local = localMap.get(s.id);
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.jumlah) - s.jumlah);
+          const sheetHistory = pelunasanMap.get(s.id);
           return {
             ...s,
-            terbayar: local?.terbayar || s.terbayar || 0,
-            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
           };
         });
       }
@@ -180,13 +187,19 @@ export async function GET(req: NextRequest) {
     // STATISTIK TUNGGAKAN LAMA (TERPISAH SEBAGAI PIUTANG)
     const tunggakanBelumLunas = tunggakanLamaList.filter((t) => t.status !== 'Lunas');
     const totalTunggakanAwal = tunggakanLamaList.reduce((sum, t) => sum + (t.nominalAwal || t.jumlah), 0);
-    const totalTunggakanTerbayar = tunggakanLamaList.reduce((sum, t) => sum + (t.terbayar || 0), 0);
+    const totalTunggakanTerbayar = tunggakanLamaList.reduce(
+      (sum, t) => sum + (t.terbayar ?? Math.max(0, (t.nominalAwal || t.jumlah) - t.jumlah)),
+      0
+    );
     const sisaTunggakanBelumBayar = tunggakanBelumLunas.reduce((sum, t) => sum + t.jumlah, 0);
 
     // STATISTIK KASBON PETUGAS (TERPISAH SEBAGAI PINJAMAN BERJALAN)
     const kasbonBelumLunas = kasbonList.filter((k) => k.status !== 'Lunas');
     const totalKasbonAwal = kasbonList.reduce((sum, k) => sum + (k.nominalAwal || k.nominal), 0);
-    const totalKasbonTerbayar = kasbonList.reduce((sum, k) => sum + (k.terbayar || 0), 0);
+    const totalKasbonTerbayar = kasbonList.reduce(
+      (sum, k) => sum + (k.terbayar ?? Math.max(0, (k.nominalAwal || k.nominal) - k.nominal)),
+      0
+    );
     const sisaKasbonBelumKembali = kasbonBelumLunas.reduce((sum, k) => sum + k.nominal, 0);
 
     // ==========================================

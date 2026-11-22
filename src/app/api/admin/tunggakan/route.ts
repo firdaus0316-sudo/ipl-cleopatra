@@ -11,6 +11,7 @@ import {
   deleteTunggakanFromSheet,
   fetchTunggakanLamaFromSheet,
   fetchTunggakanNonWargaFromSheet,
+  fetchPelunasanHistoryMapFromSheet,
   fetchResidentsFromSheet,
   syncAllDbNamesWithMaster,
   extractNameAndBlok,
@@ -26,9 +27,10 @@ export async function GET(req: NextRequest) {
     let tunggakanList = db.tunggakanLama || [];
 
     try {
-      const [wargaRes, nonWargaRes, resRes] = await Promise.all([
+      const [wargaRes, nonWargaRes, pelunasanMap, resRes] = await Promise.all([
         fetchTunggakanLamaFromSheet(),
         fetchTunggakanNonWargaFromSheet(),
+        fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
       ]);
 
@@ -41,10 +43,12 @@ export async function GET(req: NextRequest) {
         const localMap = new Map(tunggakanList.map((t) => [t.id, t]));
         db.tunggakanLama = combined.map((s) => {
           const local = localMap.get(s.id);
+          const sheetTerbayar = s.terbayar ?? Math.max(0, (s.nominalAwal || s.jumlah) - s.jumlah);
+          const sheetHistory = pelunasanMap.get(s.id);
           return {
             ...s,
-            terbayar: local?.terbayar || s.terbayar || 0,
-            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+            terbayar: sheetTerbayar,
+            riwayatPembayaran: (sheetHistory && sheetHistory.length > 0 ? sheetHistory : local?.riwayatPembayaran) || s.riwayatPembayaran || [],
           };
         });
       }
@@ -132,6 +136,26 @@ export async function POST(req: NextRequest) {
         data: newTunggakan,
       });
     }
+
+    // Sync kondisi terbaru dari Google Sheet sebelum memproses bayar/update agar sisa & terbayar tidak pernah stale
+    try {
+      const [wRes, nwRes] = await Promise.all([
+        fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
+        fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] as any[] })),
+      ]);
+      const combined = [...(wRes.tunggakan || []), ...(nwRes.tunggakan || [])];
+      if (combined.length > 0) {
+        const localMap = new Map((db.tunggakanLama || []).map((t) => [t.id, t]));
+        db.tunggakanLama = combined.map((s) => {
+          const local = localMap.get(s.id);
+          return {
+            ...s,
+            terbayar: s.terbayar ?? Math.max(0, (s.nominalAwal || s.jumlah) - s.jumlah),
+            riwayatPembayaran: local?.riwayatPembayaran || s.riwayatPembayaran || [],
+          };
+        });
+      }
+    } catch {}
 
     const item = (db.tunggakanLama || []).find((t) => t.id === id || t.tunggakanId === id);
 
