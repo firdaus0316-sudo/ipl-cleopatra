@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   alamat: 'Kel. Sukamaju, Kec. Cilodong',
   namaBank: 'BCA',
   nomorRekening: '6831361830',
-  atasNama: 'KAS RT 011 CLEOPATRA',
+  atasNama: 'Triana Iswahyuni',
   qrisUrl: '',
   nomorWaAdmin: '6281234567890',
   pesanPengumuman: 'Pembayaran iuran bulanan dibuka sampai tanggal 10 setiap bulannya. Mohon upload bukti transfer agar diverifikasi oleh bendahara.',

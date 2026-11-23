@@ -1424,7 +1424,7 @@ export default function PublicPage() {
 
               <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-slate-600">
                 <div>
-                  Atas Nama: <strong className="text-slate-900">{settings?.atasNama || 'KAS RT 011 CLEOPATRA'}</strong>
+                  Atas Nama : <strong className="text-slate-900">{settings?.atasNama || 'Triana Iswahyuni'}</strong>
                 </div>
                 <div>
                   Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
