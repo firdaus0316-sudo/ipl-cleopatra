@@ -2014,11 +2014,11 @@ export default function AdminPage() {
 
   // ADMIN DASHBOARD SHELL
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col md:flex-row">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-slate-100 text-slate-900 flex flex-col md:flex-row">
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col md:min-h-screen border-r border-slate-800 flex-shrink-0">
+      <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col md:h-screen md:overflow-hidden border-r border-slate-800 flex-shrink-0 sticky top-0 z-40">
         {/* Brand & Mobile Hamburger */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <img
               src="/logo-cleopatra.jpg"
@@ -2046,7 +2046,7 @@ export default function AdminPage() {
         </div>
 
         {/* Collapsible Container on Mobile */}
-        <div className={`flex-col md:flex md:flex-1 ${isMobileNavOpen ? 'flex' : 'hidden'}`}>
+        <div className={`flex-col md:flex md:flex-1 md:min-h-0 ${isMobileNavOpen ? 'flex' : 'hidden'}`}>
         {/* Menu Items */}
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto text-xs font-semibold">
           <button
@@ -2212,7 +2212,7 @@ export default function AdminPage() {
       </aside>
 
       {/* MAIN ADMIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 md:h-screen overflow-y-auto p-4 sm:p-6 md:p-8">
         {/* GLOBAL HEADER: REAL-TIME DATA REFRESH BAR */}
         <div className="mb-6 bg-white rounded-2xl p-3 sm:p-3.5 shadow-xs border border-slate-200/90 flex flex-wrap items-center justify-between gap-3">
           {/* Sisi Kiri: Status Data Kas, Terakhir Diperbarui, dan Pilihan Tahun */}

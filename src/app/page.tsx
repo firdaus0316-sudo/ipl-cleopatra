@@ -809,9 +809,9 @@ export default function PublicPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans flex flex-col lg:flex-row pb-20 lg:pb-0">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#f8fafc] text-slate-800 font-sans flex flex-col lg:flex-row pb-20 lg:pb-0">
       {/* SIDEBAR NAVIGATION (Modern Dark Slate Layout matching Admin Cleopatra) */}
-      <aside className="w-full lg:w-64 bg-[#0b1329] text-white shrink-0 lg:min-h-screen border-r border-slate-800/80 flex flex-col justify-between sticky top-0 z-40">
+      <aside className="w-full lg:w-64 bg-[#0b1329] text-white shrink-0 lg:h-screen lg:overflow-y-auto border-r border-slate-800/80 flex flex-col justify-between sticky top-0 z-40">
         <div>
           {/* BRAND HEADER */}
           <div className="p-4 sm:p-5 border-b border-slate-800/80 flex items-center justify-between">
@@ -957,7 +957,7 @@ export default function PublicPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 lg:pb-8">
+      <main className="flex-1 min-w-0 lg:h-screen overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
         {/* TOP GREETING BAR */}
         <div className="mb-6 bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
