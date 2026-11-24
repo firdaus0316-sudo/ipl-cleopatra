@@ -13,6 +13,7 @@ import {
   fetchProofsFromSheet,
   fetchResidentsFromSheet, fetchSaldoAwalFromSheet,
   syncAllDbNamesWithMaster,
+  reconcileVerifiedProofsToIncomes,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +49,9 @@ export async function GET(req: NextRequest) {
     // Auto-sync seluruh data Google Sheets secara paralel agar sangat cepat
     let sheetExpOk = false;
     let sheetKasbonOk = false;
+    let sheetIncOk = false;
+    let sheetProofsOk = false;
+    let sheetVoidedIds: string[] = [];
     try {
       const [kasbonRes, wRes, nwRes, pelunasanMap, expRes, resRes, incRes, proofsRes, saldoRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] as any[] })),
@@ -56,12 +60,15 @@ export async function GET(req: NextRequest) {
         fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] as any[] })),
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] as any[] })),
-        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] as any[], voidedIds: [] as string[] })),
         fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
         fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
       ]);
       sheetExpOk = Boolean(expRes.success);
       sheetKasbonOk = Boolean(kasbonRes.success);
+      sheetIncOk = Boolean(incRes.success);
+      sheetProofsOk = Boolean(proofsRes.success);
+      sheetVoidedIds = incRes.voidedIds || [];
       if (saldoRes.success && saldoRes.saldoAwal) {
         db.settings.saldoAwal = saldoRes.saldoAwal;
       }
@@ -167,6 +174,13 @@ export async function GET(req: NextRequest) {
         }
       }
     } catch {}
+
+    // Auto-reconciliation BuktiTransfer (Terverifikasi) -> DataIuran (hanya bila kedua Sheet sukses dibaca)
+    if (sheetIncOk && sheetProofsOk) {
+      try {
+        await reconcileVerifiedProofsToIncomes(db, sheetVoidedIds);
+      } catch {}
+    }
 
     // Pastikan seluruh data transaksi, bukti, tunggakan, dan kasbon selalu tersinkronisasi dengan nama resmi Master Warga
     syncAllDbNamesWithMaster(db);

@@ -15,6 +15,7 @@ import {
   fetchResidentsFromSheet,
   syncAllDbNamesWithMaster,
   extractNameAndBlok,
+  executeSheetWritesWithRetry,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -113,14 +114,24 @@ export async function POST(req: NextRequest) {
       saveDb(db);
 
       // Otomatis sinkronkan catatan tunggakan ke sheet TunggakanLama atau TunggakanNonWarga
-      try {
-        if (tipeWarga === 'Pindah' || tipeWarga === 'Non-Warga') {
-          await appendTunggakanNonWargaToSheet(newTunggakan);
-        } else {
-          await appendTunggakanLamaToSheet(newTunggakan);
-        }
-      } catch (e) {
-        console.error('Auto-sync tunggakan to sheet error:', e);
+      const isPindahOrNon = tipeWarga === 'Pindah' || tipeWarga === 'Non-Warga';
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: isPindahOrNon ? 'TunggakanNonWarga' : 'TunggakanLama',
+          critical: true,
+          run: () => (isPindahOrNon ? appendTunggakanNonWargaToSheet(newTunggakan) : appendTunggakanLamaToSheet(newTunggakan)),
+        },
+      ]);
+      if (!writeRes.success) {
+        db.tunggakanLama = (db.tunggakanLama || []).filter((t) => t.id !== newTunggakan.id);
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal menyimpan catatan tunggakan ke Google Sheet. Data dibatalkan agar tetap sinkron.',
+          },
+          { status: 502 }
+        );
       }
 
       const labelWarga = tipeWarga === 'Pindah' ? 'Bekas Warga (Pindah)' : tipeWarga === 'Non-Warga' ? 'Non-Warga' : 'Warga RT';
@@ -180,6 +191,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const prevJumlah = item.jumlah;
+      const prevTerbayar = item.terbayar;
+      const prevStatus = item.status;
+      const prevHistoryLen = (item.riwayatPembayaran || []).length;
+
       const sisaBaru = Math.max(0, item.jumlah - bayarNominal);
       item.jumlah = sisaBaru;
       item.terbayar = (item.terbayar || 0) + bayarNominal;
@@ -220,39 +236,71 @@ export async function POST(req: NextRequest) {
       db.incomes.unshift(newIncome);
       saveDb(db);
 
-      // Otomatis masukkan pembayaran tunggakan ke Google Sheet DataIuran & RiwayatPelunasan
+      // Otomatis masukkan pembayaran tunggakan ke Google Sheet DataIuran, RiwayatPelunasan & Sheet Tunggakan (wajib berhasil)
       const { nama: rNama, blok: rBlok, wargaId } = extractNameAndBlok(namaSumber, (item as any).residentId || '', db.residents);
       const targetBulan = tgl.slice(0, 7) || '2026-11';
-      await Promise.allSettled([
-        appendIncomesToSheet({
-          namaWarga: rNama || item.namaWarga,
-          blok: rBlok || item.blok || '',
-          bulanIuran: targetBulan,
-          jumlah: bayarNominal,
-          status: 'Lunas',
-          kategori: isLunas ? 'Pelunasan Tunggakan' : 'Cicilan Tunggakan',
-          tarif: bayarNominal,
-          transaksiId: incId,
-          wargaId: wargaId || (item as any).residentId || '',
-          statusTransaksi: 'Aktif',
-          buktiId: met,
-          bulanAwal: targetBulan,
-          bulanAkhir: targetBulan,
-          jumlahBulan: 1,
-        }),
-        appendPelunasanToSheet({
-          id: bayarId,
-          waktu: tgl,
-          jenis: item.tipeWarga === 'Pindah' ? 'Tunggakan Non-Warga' : 'Tunggakan Warga',
-          referensiId: item.id || item.tunggakanId || '',
-          nama: namaSumber,
-          nominal: bayarNominal,
-          sisa: sisaBaru,
-          transaksiId: incId,
-          admin: 'Admin RT',
-        }),
-        updateTunggakanInSheet(item.id || item.tunggakanId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil', item.tipeWarga),
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: 'DataIuran',
+          critical: true,
+          run: () =>
+            appendIncomesToSheet({
+              namaWarga: rNama || item.namaWarga,
+              blok: rBlok || item.blok || '',
+              bulanIuran: targetBulan,
+              jumlah: bayarNominal,
+              status: 'Lunas',
+              kategori: isLunas ? 'Pelunasan Tunggakan' : 'Cicilan Tunggakan',
+              tarif: bayarNominal,
+              transaksiId: incId,
+              wargaId: wargaId || (item as any).residentId || '',
+              statusTransaksi: 'Aktif',
+              buktiId: met,
+              bulanAwal: targetBulan,
+              bulanAkhir: targetBulan,
+              jumlahBulan: 1,
+            }),
+        },
+        {
+          label: 'RiwayatPelunasan',
+          critical: false,
+          run: () =>
+            appendPelunasanToSheet({
+              id: bayarId,
+              waktu: tgl,
+              jenis: item.tipeWarga === 'Pindah' ? 'Tunggakan Non-Warga' : 'Tunggakan Warga',
+              referensiId: item.id || item.tunggakanId || '',
+              nama: namaSumber,
+              nominal: bayarNominal,
+              sisa: sisaBaru,
+              transaksiId: incId,
+              admin: 'Admin RT',
+            }),
+        },
+        {
+          label: item.tipeWarga === 'Pindah' || item.tipeWarga === 'Non-Warga' ? 'TunggakanNonWarga' : 'TunggakanLama',
+          critical: true,
+          run: () => updateTunggakanInSheet(item.id || item.tunggakanId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil', item.tipeWarga),
+        },
       ]);
+
+      if (!writeRes.success) {
+        item.jumlah = prevJumlah;
+        item.terbayar = prevTerbayar;
+        item.status = prevStatus;
+        if (item.riwayatPembayaran && item.riwayatPembayaran.length > prevHistoryLen) {
+          item.riwayatPembayaran.shift();
+        }
+        db.incomes = (db.incomes || []).filter((i) => i.id !== incId);
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal mencatat pembayaran tunggakan ke Google Sheet. Data dibatalkan agar laporan tetap sinkron.',
+          },
+          { status: 502 }
+        );
+      }
 
       addLog(
         isLunas ? 'Pelunasan Tunggakan Warga' : 'Pembayaran Cicilan Tunggakan Warga',
@@ -272,16 +320,29 @@ export async function POST(req: NextRequest) {
 
     // ACTION: UBAH STATUS MANUAL JIKA DIPERLUKAN
     if (status) {
+      const prevStatus = item.status;
+      const prevJumlah = item.jumlah;
       item.status = status;
       if (status === 'Lunas') {
         item.jumlah = 0;
       }
       saveDb(db);
 
-      try {
-        await updateTunggakanInSheet(item.id || item.tunggakanId || '', item.jumlah, item.status, item.tipeWarga);
-      } catch (e) {
-        console.error('Auto-sync tunggakan status to sheets error:', e);
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: item.tipeWarga === 'Pindah' || item.tipeWarga === 'Non-Warga' ? 'TunggakanNonWarga' : 'TunggakanLama',
+          critical: true,
+          run: () => updateTunggakanInSheet(item.id || item.tunggakanId || '', item.jumlah, item.status, item.tipeWarga),
+        },
+      ]);
+      if (!writeRes.success) {
+        item.status = prevStatus;
+        item.jumlah = prevJumlah;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memperbarui status tunggakan di Google Sheet.' },
+          { status: 502 }
+        );
       }
 
       addLog(
@@ -323,10 +384,20 @@ export async function DELETE(req: NextRequest) {
     db.tunggakanLama = (db.tunggakanLama || []).filter((t) => t.id !== id && t.tunggakanId !== id);
     saveDb(db);
 
-    try {
-      await deleteTunggakanFromSheet(itemToDelete.id || itemToDelete.tunggakanId || id, itemToDelete.tipeWarga);
-    } catch (e) {
-      console.error('Auto-sync delete tunggakan from sheets error:', e);
+    const writeRes = await executeSheetWritesWithRetry([
+      {
+        label: itemToDelete.tipeWarga === 'Pindah' || itemToDelete.tipeWarga === 'Non-Warga' ? 'TunggakanNonWarga' : 'TunggakanLama',
+        critical: true,
+        run: () => deleteTunggakanFromSheet(itemToDelete.id || itemToDelete.tunggakanId || id, itemToDelete.tipeWarga),
+      },
+    ]);
+    if (!writeRes.success) {
+      db.tunggakanLama.unshift(itemToDelete);
+      saveDb(db);
+      return NextResponse.json(
+        { success: false, error: writeRes.error || 'Gagal menghapus data tunggakan dari Google Sheet.' },
+        { status: 502 }
+      );
     }
 
     addLog(

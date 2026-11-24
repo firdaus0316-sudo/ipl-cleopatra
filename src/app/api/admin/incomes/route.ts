@@ -15,6 +15,7 @@ import {
   fetchResidentsFromSheet,
   updateIncomeInSheet,
   syncAllDbNamesWithMaster,
+  executeSheetWritesWithRetry,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -219,10 +220,20 @@ export async function POST(req: NextRequest) {
         bulanAkhir: inc.bulan?.[0] || '2026-11',
         jumlahBulan: 1,
       }));
-      try {
-        await appendIncomesToSheet(rowsToAppend);
-      } catch (e) {
-        console.error('Auto-sync income to sheet error:', e);
+      const createdIdSet = new Set(createdIncomes.map((c) => c.id));
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataIuran', critical: true, run: () => appendIncomesToSheet(rowsToAppend) },
+      ]);
+      if (!writeRes.success) {
+        db.incomes = (db.incomes || []).filter((i) => !createdIdSet.has(i.id));
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal menyimpan transaksi ke Google Sheet DataIuran. Transaksi dibatalkan agar saldo tetap sinkron.',
+          },
+          { status: 502 }
+        );
       }
 
       addLog(
@@ -263,27 +274,41 @@ export async function POST(req: NextRequest) {
     db.incomes.unshift(newIncome);
     saveDb(db);
 
-    // Otomatis sinkronkan dan masukkan ke sheet DataIuran secara sinkron sebelum mengembalikan respons
+    // Otomatis sinkronkan dan masukkan ke sheet DataIuran secara sinkron dengan retry + validasi wajib
     const { nama: rNamaSingle, blok: rBlokSingle, wargaId: wIdSingle } = extractNameAndBlok(sumber, residentId, db.residents);
-    try {
-      await appendIncomesToSheet({
-        namaWarga: rNamaSingle,
-        blok: rBlokSingle,
-        bulanIuran: singlePeriod,
-        jumlah: newIncome.nominal,
-        status: 'Lunas',
-        kategori: newIncome.kategori,
-        tarif: newIncome.nominal,
-        transaksiId: newIncome.id,
-        wargaId: wIdSingle,
-        statusTransaksi: 'Aktif',
-        buktiId: '',
-        bulanAwal: singlePeriod,
-        bulanAkhir: singlePeriod,
-        jumlahBulan: 1,
-      });
-    } catch (e) {
-      console.error('Auto-sync single income to sheet error:', e);
+    const writeRes = await executeSheetWritesWithRetry([
+      {
+        label: 'DataIuran',
+        critical: true,
+        run: () =>
+          appendIncomesToSheet({
+            namaWarga: rNamaSingle,
+            blok: rBlokSingle,
+            bulanIuran: singlePeriod,
+            jumlah: newIncome.nominal,
+            status: 'Lunas',
+            kategori: newIncome.kategori,
+            tarif: newIncome.nominal,
+            transaksiId: newIncome.id,
+            wargaId: wIdSingle,
+            statusTransaksi: 'Aktif',
+            buktiId: '',
+            bulanAwal: singlePeriod,
+            bulanAkhir: singlePeriod,
+            jumlahBulan: 1,
+          }),
+      },
+    ]);
+    if (!writeRes.success) {
+      db.incomes = (db.incomes || []).filter((i) => i.id !== newIncome.id);
+      saveDb(db);
+      return NextResponse.json(
+        {
+          success: false,
+          error: writeRes.error || 'Gagal menyimpan transaksi kas masuk ke Google Sheet DataIuran. Transaksi dibatalkan agar saldo tetap sinkron.',
+        },
+        { status: 502 }
+      );
     }
 
     addLog(
@@ -337,6 +362,7 @@ export async function PUT(req: NextRequest) {
       if (sumber) inc.sumber = sumber.trim();
       if (residentId !== undefined) inc.residentId = residentId || undefined;
       if (kategori) inc.kategori = kategori.trim();
+      const prevInc = { ...inc, bulan: [...(inc.bulan || [])] };
       if (nominal !== undefined && Number(nominal) > 0) inc.nominal = Number(nominal);
       if (catatan !== undefined) inc.catatan = catatan.trim();
 
@@ -354,12 +380,18 @@ export async function PUT(req: NextRequest) {
 
       saveDb(db);
 
-      // Auto sync update ke Google Sheet DataIuran
+      // Auto sync update ke Google Sheet DataIuran (wajib berhasil)
       const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
-      try {
-        await updateIncomeInSheet(inc, rNama, rBlok);
-      } catch (err) {
-        console.error('Update income in sheet error:', err);
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataIuran', critical: true, run: () => updateIncomeInSheet(inc, rNama, rBlok) },
+      ]);
+      if (!writeRes.success) {
+        Object.assign(inc, prevInc);
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memperbarui kas masuk di Google Sheet DataIuran.' },
+          { status: 502 }
+        );
       }
 
       addLog(
@@ -376,23 +408,41 @@ export async function PUT(req: NextRequest) {
     }
 
     if (action === 'void') {
+      const prevStatus = inc.status;
       inc.status = 'Dibatalkan';
       saveDb(db);
-      try {
-        const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
-        await updateIncomeInSheet(inc, rNama, rBlok);
-      } catch {}
+      const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataIuran', critical: true, run: () => updateIncomeInSheet(inc, rNama, rBlok) },
+      ]);
+      if (!writeRes.success) {
+        inc.status = prevStatus;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal membatalkan kas masuk di Google Sheet.' },
+          { status: 502 }
+        );
+      }
       addLog('Batalkan Pemasukan', `Pemasukan ${inc.id} dibatalkan / void`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dibatalkan.' });
     }
 
     if (action === 'restore') {
+      const prevStatus = inc.status;
       inc.status = 'Sah';
       saveDb(db);
-      try {
-        const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
-        await updateIncomeInSheet(inc, rNama, rBlok);
-      } catch {}
+      const { nama: rNama, blok: rBlok } = extractNameAndBlok(inc.sumber, inc.residentId, db.residents);
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataIuran', critical: true, run: () => updateIncomeInSheet(inc, rNama, rBlok) },
+      ]);
+      if (!writeRes.success) {
+        inc.status = prevStatus;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memulihkan kas masuk di Google Sheet.' },
+          { status: 502 }
+        );
+      }
       addLog('Pulihkan Pemasukan', `Pemasukan ${inc.id} dipulihkan statusnya menjadi Sah`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dipulihkan.' });
     }
@@ -445,16 +495,16 @@ export async function DELETE(req: NextRequest) {
     });
 
     // 2. Jika berasal dari verifikasi bukti transfer:
-    // HAPUS PARALEL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS
-    const parallelDeletes: Promise<any>[] = [];
+    // HAPUS PARALEL BUKTI TRANSFER & TRANSAKSI TERKAIT DARI APLIKASI DAN GOOGLE SHEETS (dengan retry)
+    const parallelDeletes: Array<{ label: string; critical?: boolean; run: () => Promise<{ success: boolean; error?: string }> }> = [];
     if (relatedBuktiIds.size > 0) {
       for (const bId of Array.from(relatedBuktiIds)) {
         if (!db.deletedIncomeIds.includes(bId)) db.deletedIncomeIds.push(bId);
         if (!db.deletedProofIds.includes(bId)) db.deletedProofIds.push(bId);
         parallelDeletes.push(
-          deleteProofFromSheet(bId),
-          deletePelunasanFromSheet(`VERIF-${bId}`),
-          deletePelunasanFromSheet(bId)
+          { label: `BuktiTransfer (${bId})`, critical: false, run: () => deleteProofFromSheet(bId) },
+          { label: `RiwayatPelunasan (VERIF-${bId})`, critical: false, run: () => deletePelunasanFromSheet(`VERIF-${bId}`) },
+          { label: `RiwayatPelunasan (${bId})`, critical: false, run: () => deletePelunasanFromSheet(bId) }
         );
       }
 
@@ -466,7 +516,10 @@ export async function DELETE(req: NextRequest) {
 
       for (const sib of siblingIncomes) {
         if (!db.deletedIncomeIds.includes(sib.id)) db.deletedIncomeIds.push(sib.id);
-        parallelDeletes.push(deleteIncomeFromSheet(sib.id), deletePelunasanFromSheet(sib.id));
+        parallelDeletes.push(
+          { label: `DataIuran (${sib.id})`, critical: true, run: () => deleteIncomeFromSheet(sib.id) },
+          { label: `RiwayatPelunasan (${sib.id})`, critical: false, run: () => deletePelunasanFromSheet(sib.id) }
+        );
       }
 
       db.incomes = db.incomes.filter((other) => !other.buktiId || !relatedBuktiIds.has(other.buktiId));
@@ -530,9 +583,18 @@ export async function DELETE(req: NextRequest) {
     db.incomes = db.incomes.filter((i) => i.id !== inc.id);
     saveDb(db);
 
-    // 5. Hapus paralel seluruh data terkait dari Google Sheet DataIuran, BuktiTransfer & RiwayatPelunasan
-    parallelDeletes.push(deleteIncomeFromSheet(inc.id), deletePelunasanFromSheet(inc.id));
-    await Promise.allSettled(parallelDeletes);
+    // 5. Hapus paralel seluruh data terkait dari Google Sheet DataIuran, BuktiTransfer & RiwayatPelunasan (dengan retry)
+    parallelDeletes.push(
+      { label: `DataIuran (${inc.id})`, critical: true, run: () => deleteIncomeFromSheet(inc.id) },
+      { label: `RiwayatPelunasan (${inc.id})`, critical: false, run: () => deletePelunasanFromSheet(inc.id) }
+    );
+    const deleteRes = await executeSheetWritesWithRetry(parallelDeletes);
+    if (!deleteRes.success) {
+      return NextResponse.json(
+        { success: false, error: deleteRes.error || 'Gagal menghapus data dari Google Sheet DataIuran.' },
+        { status: 502 }
+      );
+    }
 
     addLog(
       'Hapus Pemasukan & Bukti Terkait',

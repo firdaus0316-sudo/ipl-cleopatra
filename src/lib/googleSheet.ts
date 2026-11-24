@@ -283,11 +283,12 @@ export async function fetchSaldoAwalFromSheet(): Promise<{ success: boolean; sal
 /**
  * 3. Fetch Data Iuran Kas Masuk (Sheet DataIuran, GID 0)
  */
-export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incomes: IncomeTransaction[]; error?: string }> {
+export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incomes: IncomeTransaction[]; voidedIds?: string[]; error?: string }> {
   try {
     const csvText = await fetchCsvByGid(SHEET_GIDS.dataiuran);
     const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     const incomes: IncomeTransaction[] = [];
+    const voidedIds = new Set<string>();
 
     const { getDb } = await import('@/lib/db');
     const db = getDb();
@@ -313,6 +314,10 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       if (!nama || nominal <= 0) continue;
 
       const isVoid = statusTx.includes('batal') || statusRaw.includes('batal');
+      if (isVoid) {
+        if (transaksiId) voidedIds.add(transaksiId);
+        if (buktiId) voidedIds.add(buktiId);
+      }
       if (deletedSet.has(transaksiId) || (buktiId && deletedSet.has(buktiId)) || isVoid) continue;
 
       const tanggal = parseDateFlexible(waktu);
@@ -416,9 +421,9 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
       uniqueIncomes.push(inc);
     }
 
-    return { success: true, incomes: uniqueIncomes };
+    return { success: true, incomes: uniqueIncomes, voidedIds: Array.from(voidedIds) };
   } catch (err: any) {
-    return { success: false, incomes: [], error: err.message };
+    return { success: false, incomes: [], voidedIds: [], error: err.message };
   }
 }
 
@@ -1032,6 +1037,63 @@ async function postWebhookWithRetry(
     await new Promise((r) => setTimeout(r, 350 * attempt));
   }
   throw lastError;
+}
+
+export interface SheetWriteTask {
+  label: string;
+  critical?: boolean;
+  run: () => Promise<{ success: boolean; error?: string }>;
+}
+
+/**
+ * Jalankan penulisan ke beberapa sheet secara paralel lebih dulu (cepat),
+ * lalu periksa hasil setiap tugas dan retry berurutan bila ada yang gagal/timeout.
+ * Jangan pernah membiarkan kegagalan penulisan laporan keuangan berlalu diam-diam.
+ */
+export async function executeSheetWritesWithRetry(
+  tasks: SheetWriteTask[]
+): Promise<{ success: boolean; failedCritical: string[]; failedOptional: string[]; error?: string }> {
+  if (tasks.length === 0) {
+    return { success: true, failedCritical: [], failedOptional: [] };
+  }
+
+  const settled = await Promise.allSettled(tasks.map((t) => t.run()));
+  const pendingRetries: number[] = [];
+
+  for (let i = 0; i < settled.length; i++) {
+    const s = settled[i];
+    if (s.status !== 'fulfilled' || !s.value?.success) {
+      pendingRetries.push(i);
+    }
+  }
+
+  const failedCritical: string[] = [];
+  const failedOptional: string[] = [];
+  let firstError = '';
+
+  for (const idx of pendingRetries) {
+    const task = tasks[idx];
+    await new Promise((r) => setTimeout(r, 450));
+    try {
+      const retryRes = await task.run();
+      if (retryRes?.success) continue;
+      firstError = firstError || retryRes?.error || `Gagal sinkronisasi ke ${task.label}`;
+    } catch (err: any) {
+      firstError = firstError || err?.message || `Gagal sinkronisasi ke ${task.label}`;
+    }
+    if (task.critical === false) {
+      failedOptional.push(task.label);
+    } else {
+      failedCritical.push(task.label);
+    }
+  }
+
+  return {
+    success: failedCritical.length === 0,
+    failedCritical,
+    failedOptional,
+    error: failedCritical.length > 0 ? firstError || `Gagal menulis ke Google Sheet: ${failedCritical.join(', ')}` : undefined,
+  };
 }
 
 export async function deleteRowFromSheet(
@@ -1825,4 +1887,136 @@ export function syncAllDbNamesWithMaster(db: DatabaseSchema): void {
     }
     return k;
   });
+}
+
+/**
+ * 12. Rekonsiliasi Otomatis Bukti Terverifikasi vs DataIuran
+ * Mencegah transaksi pemasukan dari bukti yang sudah berstatus 'Terverifikasi'
+ * hilang diam-diam dari DataIuran tanpa membangkitkan transaksi Void/Hapus.
+ */
+export async function reconcileVerifiedProofsToIncomes(
+  db: DatabaseSchema,
+  voidedIds: string[] = []
+): Promise<number> {
+  const proofs = db.proofs || [];
+  if (proofs.length === 0) return 0;
+
+  const blockedSet = new Set<string>([
+    ...(db.deletedIncomeIds || []),
+    ...(db.deletedProofIds || []),
+    ...voidedIds,
+  ]);
+  const existingTxIds = new Set((db.incomes || []).map((i) => i.id).filter(Boolean));
+  const existingBuktiIds = new Set((db.incomes || []).map((i) => i.buktiId).filter(Boolean));
+  const existingBlockMonth = new Set<string>();
+
+  for (const inc of db.incomes || []) {
+    if (!inc || inc.status === 'Dibatalkan' || !isIuranBulananCategory(inc.kategori)) continue;
+    const parsed = extractNameAndBlok(inc.sumber || '');
+    const bk = normalizeBlokCode(parsed.blok || inc.residentId || inc.sumber || '');
+    const months = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [inc.bulan] : [];
+    for (const m of months) {
+      const norm = normalizePeriodCode(m);
+      if (bk && norm) existingBlockMonth.add(`${bk}_${norm}`);
+    }
+  }
+
+  let healedCount = 0;
+
+  for (const proof of proofs) {
+    if (!proof || proof.status !== 'Terverifikasi') continue;
+    if (blockedSet.has(proof.id) || existingBuktiIds.has(proof.id)) continue;
+
+    const txIds = (proof.transactionId || '')
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.startsWith('INC-'));
+    if (txIds.length === 0) continue;
+    if (txIds.some((id) => blockedSet.has(id) || existingTxIds.has(id))) continue;
+
+    const proofKategori = proof.kategori || 'Iuran Bulanan';
+    const isRegularIuran = isIuranBulananCategory(proofKategori);
+    const monthsList = (Array.isArray(proof.bulan) ? proof.bulan : proof.bulan ? [proof.bulan] : [])
+      .map(normalizePeriodCode)
+      .filter(Boolean);
+    if (monthsList.length === 0) monthsList.push('2026-11');
+
+    const bk = normalizeBlokCode(proof.blok || proof.residentId || proof.residentName || '');
+    if (isRegularIuran && bk && monthsList.some((m) => existingBlockMonth.has(`${bk}_${m}`))) {
+      continue;
+    }
+
+    const numMonths = monthsList.length;
+    const basePerMonth = isRegularIuran ? Math.floor(proof.nominal / numMonths) : proof.nominal;
+    const remainder = isRegularIuran ? proof.nominal - basePerMonth * numMonths : 0;
+    const verifiedDate = (proof.verifiedAt || proof.createdAt || new Date().toISOString()).slice(0, 10);
+    const formattedTime = formatGoogleSheetTimestamp(new Date(proof.verifiedAt || proof.createdAt || Date.now()));
+    const { nama: rNama, blok: rBlok, wargaId } = extractNameAndBlok(
+      `${proof.residentName} (${proof.blok})`,
+      proof.residentId,
+      db.residents
+    );
+
+    const targetList = isRegularIuran ? monthsList : [monthsList[0]];
+    const rowsToAppend: IncomeRowData[] = [];
+    const newIncomes: IncomeTransaction[] = [];
+
+    targetList.forEach((mCode, idx) => {
+      const txId = txIds[idx] || `${txIds[0]}-${idx + 1}`;
+      const nominalThisMonth = isRegularIuran
+        ? idx === targetList.length - 1
+          ? basePerMonth + remainder
+          : basePerMonth
+        : proof.nominal;
+
+      const inc: IncomeTransaction = {
+        id: txId,
+        tanggal: verifiedDate,
+        sumber: `${rNama || proof.residentName} (${rBlok || proof.blok})`,
+        residentId: wargaId || proof.residentId,
+        kategori: proofKategori,
+        bulan: [mCode],
+        nominal: nominalThisMonth,
+        buktiId: proof.id,
+        status: 'Sah',
+        catatan: `Rekonsiliasi otomatis bukti terverifikasi ${proof.id}`,
+        createdAt: proof.verifiedAt || new Date().toISOString(),
+      };
+      newIncomes.push(inc);
+      rowsToAppend.push({
+        waktu: formattedTime,
+        namaWarga: rNama || proof.residentName,
+        blok: rBlok || proof.blok,
+        bulanIuran: mCode,
+        jumlah: nominalThisMonth,
+        status: 'Lunas',
+        kategori: proofKategori,
+        tarif: nominalThisMonth,
+        transaksiId: txId,
+        wargaId: wargaId || proof.residentId,
+        statusTransaksi: 'Aktif',
+        buktiId: proof.id,
+        bulanAwal: mCode,
+        bulanAkhir: mCode,
+        jumlahBulan: 1,
+      });
+    });
+
+    try {
+      const res = await appendIncomesToSheet(rowsToAppend);
+      if (res.success) {
+        for (const inc of newIncomes) {
+          db.incomes.unshift(inc);
+          existingTxIds.add(inc.id);
+          if (isRegularIuran && bk && inc.bulan?.[0]) {
+            existingBlockMonth.add(`${bk}_${inc.bulan[0]}`);
+          }
+        }
+        existingBuktiIds.add(proof.id);
+        healedCount += newIncomes.length;
+      }
+    } catch {}
+  }
+
+  return healedCount;
 }

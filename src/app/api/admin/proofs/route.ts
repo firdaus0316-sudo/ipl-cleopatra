@@ -16,6 +16,7 @@ import {
   deletePelunasanFromSheet,
   getDirectGoogleDriveImageUrl,
   syncAllDbNamesWithMaster,
+  executeSheetWritesWithRetry,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -420,31 +421,43 @@ export async function POST(req: NextRequest) {
         }
       });
 
+      const prevProof = { ...proof };
       proof.status = 'Ditolak';
       proof.adminNote = adminNote || 'Bukti transfer tidak sesuai atau tidak valid.';
       proof.verifiedAt = new Date().toISOString();
       proof.verifiedBy = 'Bendahara RT';
 
-      // Update status ke Google Sheet BuktiTransfer
-      try {
-        await updateProofInSheet({
-          buktiId: proof.id,
-          status: 'Ditolak',
-          waktuUpload: proof.createdAt,
-          namaWarga: proof.residentName,
-          nominal: proof.nominal,
-          keterangan: proof.catatanWarga || '',
-          fileUrl: proof.driveUrl || proof.buktiUrl,
-          kategori: proof.kategori || 'Iuran Bulanan',
-          bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
-          blok: proof.blok,
-          wargaId: proof.residentId,
-          verifiedAt: new Date().toISOString(),
-          verifiedBy: 'Bendahara RT',
-          adminNote: proof.adminNote,
-        });
-      } catch (e) {
-        console.error('updateProofInSheet error:', e);
+      // Update status ke Google Sheet BuktiTransfer (wajib berhasil)
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: 'BuktiTransfer',
+          critical: true,
+          run: () =>
+            updateProofInSheet({
+              buktiId: proof.id,
+              status: 'Ditolak',
+              waktuUpload: proof.createdAt,
+              namaWarga: proof.residentName,
+              nominal: proof.nominal,
+              keterangan: proof.catatanWarga || '',
+              fileUrl: proof.driveUrl || proof.buktiUrl,
+              kategori: proof.kategori || 'Iuran Bulanan',
+              bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
+              blok: proof.blok,
+              wargaId: proof.residentId,
+              verifiedAt: proof.verifiedAt,
+              verifiedBy: 'Bendahara RT',
+              adminNote: proof.adminNote,
+            }),
+        },
+      ]);
+      if (!writeRes.success) {
+        Object.assign(proof, prevProof);
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memperbarui penolakan bukti ke Google Sheet.' },
+          { status: 502 }
+        );
       }
 
       saveDb(db);
@@ -462,15 +475,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'cancel') {
+      const prevProof = { ...proof };
+      const prevIncStatuses = new Map<string, string>();
       // Batalkan transaksi kas masuk dan kembalikan ke antrean
       const txIdsToVoid = new Set<string>();
       if (proof.transactionId) {
         proof.transactionId.split(',').forEach((s: string) => txIdsToVoid.add(s.trim()));
       }
-      db.incomes.forEach((inc) => {
-        if (inc.buktiId === proof.id || txIdsToVoid.has(inc.id)) {
-          inc.status = 'Dibatalkan';
-        }
+      const affectedIncomes = db.incomes.filter((inc) => inc.buktiId === proof.id || txIdsToVoid.has(inc.id));
+      affectedIncomes.forEach((inc) => {
+        prevIncStatuses.set(inc.id, inc.status);
+        inc.status = 'Dibatalkan';
       });
 
       proof.status = 'Menunggu Verifikasi';
@@ -479,27 +494,49 @@ export async function POST(req: NextRequest) {
       proof.verifiedBy = undefined;
       proof.transactionId = undefined;
 
-      // Update status ke Google Sheet BuktiTransfer
-      try {
-        await updateProofInSheet({
-          buktiId: proof.id,
-          status: 'Menunggu Verifikasi',
-          waktuUpload: proof.createdAt,
-          namaWarga: proof.residentName,
-          nominal: proof.nominal,
-          keterangan: proof.catatanWarga || '',
-          fileUrl: proof.driveUrl || proof.buktiUrl,
-          kategori: proof.kategori || 'Iuran Bulanan',
-          bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
-          blok: proof.blok,
-          wargaId: proof.residentId,
-          verifiedAt: '',
-          verifiedBy: '',
-          adminNote: '',
-          transactionId: '',
+      // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran secara paralel + retry
+      const cancelTasks = [
+        {
+          label: 'BuktiTransfer',
+          critical: true,
+          run: () =>
+            updateProofInSheet({
+              buktiId: proof.id,
+              status: 'Menunggu Verifikasi',
+              waktuUpload: proof.createdAt,
+              namaWarga: proof.residentName,
+              nominal: proof.nominal,
+              keterangan: proof.catatanWarga || '',
+              fileUrl: proof.driveUrl || proof.buktiUrl,
+              kategori: proof.kategori || 'Iuran Bulanan',
+              bulan: Array.isArray(proof.bulan) ? proof.bulan.join(', ') : String(proof.bulan || ''),
+              blok: proof.blok,
+              wargaId: proof.residentId,
+              verifiedAt: '',
+              verifiedBy: '',
+              adminNote: '',
+              transactionId: '',
+            }),
+        },
+        ...Array.from(txIdsToVoid).filter(Boolean).map((txId) => ({
+          label: `DataIuran (${txId})`,
+          critical: false,
+          run: () => deleteIncomeFromSheet(txId),
+        })),
+      ];
+
+      const writeRes = await executeSheetWritesWithRetry(cancelTasks);
+      if (!writeRes.success) {
+        Object.assign(proof, prevProof);
+        affectedIncomes.forEach((inc) => {
+          const ps = prevIncStatuses.get(inc.id);
+          if (ps) inc.status = ps as any;
         });
-      } catch (e) {
-        console.error('updateProofInSheet error:', e);
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal membatalkan status bukti di Google Sheet.' },
+          { status: 502 }
+        );
       }
 
       saveDb(db);
@@ -574,22 +611,36 @@ export async function DELETE(req: NextRequest) {
     if (!db.deletedIncomeIds.includes(proof.id)) db.deletedIncomeIds.push(proof.id);
     if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
 
-    // 2. Hapus paralel seluruh transaksi kas masuk terkait & baris BuktiTransfer + RiwayatPelunasan -> 4x lebih cepat
-    const deleteTasks: Promise<any>[] = [
-      deleteProofFromSheet(id),
-      deletePelunasanFromSheet(`VERIF-${id}`),
-      deletePelunasanFromSheet(id),
+    // 2. Hapus paralel seluruh transaksi kas masuk terkait & baris BuktiTransfer + RiwayatPelunasan dengan retry + verifikasi
+    const deleteTasks = [
+      { label: `BuktiTransfer (${id})`, critical: true, run: () => deleteProofFromSheet(id) },
+      { label: `RiwayatPelunasan (VERIF-${id})`, critical: false, run: () => deletePelunasanFromSheet(`VERIF-${id}`) },
+      { label: `RiwayatPelunasan (${id})`, critical: false, run: () => deletePelunasanFromSheet(id) },
     ];
     for (const txId of Array.from(txIdsToDelete)) {
       if (!db.deletedIncomeIds.includes(txId)) db.deletedIncomeIds.push(txId);
-      deleteTasks.push(deleteIncomeFromSheet(txId), deletePelunasanFromSheet(txId));
+      deleteTasks.push(
+        { label: `DataIuran (${txId})`, critical: true, run: () => deleteIncomeFromSheet(txId) },
+        { label: `RiwayatPelunasan (${txId})`, critical: false, run: () => deletePelunasanFromSheet(txId) }
+      );
     }
 
+    const prevIncomes = [...(db.incomes || [])];
+    const prevProofs = [...(db.proofs || [])];
     db.incomes = (db.incomes || []).filter((inc) => inc.buktiId !== proof.id && !txIdsToDelete.has(inc.id));
     db.proofs = (db.proofs || []).filter((p) => p.id !== id);
     saveDb(db);
 
-    await Promise.allSettled(deleteTasks);
+    const writeRes = await executeSheetWritesWithRetry(deleteTasks);
+    if (!writeRes.success) {
+      db.incomes = prevIncomes;
+      db.proofs = prevProofs;
+      saveDb(db);
+      return NextResponse.json(
+        { success: false, error: writeRes.error || 'Gagal menghapus data dari Google Sheet.' },
+        { status: 502 }
+      );
+    }
 
     addLog(
       'Hapus Bukti Transfer & Transaksi Terkait',

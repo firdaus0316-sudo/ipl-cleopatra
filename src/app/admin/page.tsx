@@ -751,7 +751,11 @@ export default function AdminPage() {
         setSelectedProof(null);
         showToast(`Bukti ${proof.id} ditolak.`);
         refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+      } else {
+        alert(data.error || 'Gagal menolak bukti transfer di Google Sheet.');
       }
+    } catch {
+      alert('Gagal menghubungi server.');
     } finally {
       setIsVerifying(false);
     }
@@ -775,7 +779,11 @@ export default function AdminPage() {
         setSelectedProof(null);
         showToast(`Status bukti ${proof.id} dikembalikan ke antrean.`);
         refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+      } else {
+        alert(data.error || 'Gagal membatalkan status bukti transfer.');
       }
+    } catch {
+      alert('Gagal menghubungi server.');
     } finally {
       setIsVerifying(false);
     }
@@ -873,16 +881,22 @@ export default function AdminPage() {
 
   const handleVoidExpense = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin membatalkan (void) transaksi pengeluaran ini?')) return;
-    const res = await fetch('/api/admin/expenses', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'void' }),
-    });
-    const d = await res.json();
-    if (d.success) {
-      setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status: 'Dibatalkan' } : e)));
-      showToast('Pengeluaran dibatalkan.');
-      refreshSlices(['expenses', 'dashboard']);
+    try {
+      const res = await fetch('/api/admin/expenses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'void' }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status: 'Dibatalkan' } : e)));
+        showToast('Pengeluaran dibatalkan.');
+        refreshSlices(['expenses', 'dashboard']);
+      } else {
+        alert(d.error || 'Gagal membatalkan pengeluaran di Google Sheet.');
+      }
+    } catch {
+      alert('Gagal menghubungi server.');
     }
   };
 
@@ -1088,16 +1102,22 @@ export default function AdminPage() {
 
   const handleVoidIncome = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin membatalkan transaksi pemasukan ini?')) return;
-    const res = await fetch('/api/admin/incomes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'void' }),
-    });
-    const d = await res.json();
-    if (d.success) {
-      setIncomes((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'Dibatalkan' } : x)));
-      showToast('Transaksi kas masuk dibatalkan.');
-      refreshSlices(['incomes', 'dashboard', 'matrix']);
+    try {
+      const res = await fetch('/api/admin/incomes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'void' }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setIncomes((prev) => prev.map((x) => (x.id === id ? { ...x, status: 'Dibatalkan' } : x)));
+        showToast('Transaksi kas masuk dibatalkan.');
+        refreshSlices(['incomes', 'dashboard', 'matrix']);
+      } else {
+        alert(d.error || 'Gagal membatalkan kas masuk di Google Sheet.');
+      }
+    } catch {
+      alert('Gagal menghubungi server.');
     }
   };
 
@@ -1654,15 +1674,21 @@ export default function AdminPage() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
-    const res = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
-    });
-    const d = await res.json();
-    if (d.success) {
-      alert('Pengaturan RT berhasil diperbarui!');
-      refreshAll();
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('✓ Pengaturan RT berhasil diperbarui!');
+        refreshAll();
+      } else {
+        alert(d.error || 'Gagal menyimpan pengaturan RT ke Google Sheet.');
+      }
+    } catch {
+      alert('Gagal menghubungi server.');
     }
   };
 

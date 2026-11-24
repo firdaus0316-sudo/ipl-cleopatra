@@ -15,6 +15,7 @@ import {
   fetchPelunasanHistoryMapFromSheet,
   fetchResidentsFromSheet,
   syncAllDbNamesWithMaster,
+  executeSheetWritesWithRetry,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -121,11 +122,30 @@ export async function POST(req: NextRequest) {
       db.expenses.unshift(newExpense);
       saveDb(db);
 
-      // Otomatis sinkronkan paralel kasbon baru ke sheet DataKasbon & pencairan ke DataPengeluaran
-      await Promise.allSettled([
-        appendKasbonToSheet(newKasbon),
-        appendExpenseToSheet(newExpense, newKasbon.id),
+      // Otomatis sinkronkan paralel kasbon baru ke sheet DataKasbon & pencairan ke DataPengeluaran (wajib berhasil)
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataKasbon', critical: true, run: () => appendKasbonToSheet(newKasbon) },
+        { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(newExpense, newKasbon.id) },
       ]);
+      if (!writeRes.success) {
+        db.kasbon = (db.kasbon || []).filter((k) => k.id !== newKasbon.id);
+        db.expenses = (db.expenses || []).filter((e) => e.id !== newExpense.id);
+        saveDb(db);
+        // Bersihkan partial write bila hanya salah satu yang sempat masuk
+        if (!writeRes.failedCritical.includes('DataKasbon')) {
+          await deleteKasbonFromSheet(newKasbon.id).catch(() => {});
+        }
+        if (!writeRes.failedCritical.includes('DataPengeluaran')) {
+          await deleteExpenseFromSheet(newExpense.id).catch(() => {});
+        }
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal menyimpan kasbon ke Google Sheet. Data dibatalkan agar kas dan piutang tetap sinkron.',
+          },
+          { status: 502 }
+        );
+      }
 
       addLog(
         'Pemberian Kasbon Baru Petugas',
@@ -179,6 +199,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const prevNominal = item.nominal;
+      const prevTerbayar = item.terbayar;
+      const prevStatus = item.status;
+      const prevHistoryLen = (item.riwayatPembayaran || []).length;
+
       const sisaBaru = Math.max(0, item.nominal - bayarNominal);
       item.nominal = sisaBaru;
       item.terbayar = (item.terbayar || 0) + bayarNominal;
@@ -218,38 +243,70 @@ export async function POST(req: NextRequest) {
       db.incomes.unshift(newIncome);
       saveDb(db);
 
-      // Otomatis masukkan pengembalian kasbon ke Google Sheet DataIuran & RiwayatPelunasan
+      // Otomatis masukkan pengembalian kasbon ke Google Sheet DataIuran, RiwayatPelunasan & DataKasbon (wajib berhasil)
       const targetBulan = tgl.slice(0, 7) || '2026-11';
-      await Promise.allSettled([
-        appendIncomesToSheet({
-          namaWarga: item.namaPeminjam,
-          blok: 'Kasbon Petugas',
-          bulanIuran: targetBulan,
-          jumlah: bayarNominal,
-          status: 'Lunas',
-          kategori: isLunas ? 'Pelunasan Kasbon' : 'Pengembalian Kasbon',
-          tarif: bayarNominal,
-          transaksiId: incId,
-          wargaId: '',
-          statusTransaksi: 'Aktif',
-          buktiId: met,
-          bulanAwal: targetBulan,
-          bulanAkhir: targetBulan,
-          jumlahBulan: 1,
-        }),
-        appendPelunasanToSheet({
-          id: bayarId,
-          waktu: tgl,
-          jenis: isLunas ? 'Pelunasan Kasbon' : 'Cicilan Kasbon',
-          referensiId: item.id || item.kasbonId || '',
-          nama: item.namaPeminjam,
-          nominal: bayarNominal,
-          sisa: sisaBaru,
-          transaksiId: incId,
-          admin: 'Admin RT',
-        }),
-        updateKasbonInSheet(item.id || item.kasbonId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil'),
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: 'DataIuran',
+          critical: true,
+          run: () =>
+            appendIncomesToSheet({
+              namaWarga: item.namaPeminjam,
+              blok: 'Kasbon Petugas',
+              bulanIuran: targetBulan,
+              jumlah: bayarNominal,
+              status: 'Lunas',
+              kategori: isLunas ? 'Pelunasan Kasbon' : 'Pengembalian Kasbon',
+              tarif: bayarNominal,
+              transaksiId: incId,
+              wargaId: '',
+              statusTransaksi: 'Aktif',
+              buktiId: met,
+              bulanAwal: targetBulan,
+              bulanAkhir: targetBulan,
+              jumlahBulan: 1,
+            }),
+        },
+        {
+          label: 'RiwayatPelunasan',
+          critical: false,
+          run: () =>
+            appendPelunasanToSheet({
+              id: bayarId,
+              waktu: tgl,
+              jenis: isLunas ? 'Pelunasan Kasbon' : 'Cicilan Kasbon',
+              referensiId: item.id || item.kasbonId || '',
+              nama: item.namaPeminjam,
+              nominal: bayarNominal,
+              sisa: sisaBaru,
+              transaksiId: incId,
+              admin: 'Admin RT',
+            }),
+        },
+        {
+          label: 'DataKasbon',
+          critical: true,
+          run: () => updateKasbonInSheet(item.id || item.kasbonId || '', sisaBaru, isLunas ? 'Lunas' : 'Dicicil'),
+        },
       ]);
+
+      if (!writeRes.success) {
+        item.nominal = prevNominal;
+        item.terbayar = prevTerbayar;
+        item.status = prevStatus;
+        if (item.riwayatPembayaran && item.riwayatPembayaran.length > prevHistoryLen) {
+          item.riwayatPembayaran.shift();
+        }
+        db.incomes = (db.incomes || []).filter((i) => i.id !== incId);
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal mencatat pengembalian kasbon ke Google Sheet. Data dibatalkan agar laporan keuangan tetap konsisten.',
+          },
+          { status: 502 }
+        );
+      }
 
       addLog(
         isLunas ? 'Pelunasan Kasbon Petugas' : 'Pengembalian / Angsuran Kasbon Petugas',
@@ -274,16 +331,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Data kasbon tidak ditemukan.' }, { status: 404 });
       }
 
+      const prevStatus = item.status;
+      const prevNominal = item.nominal;
       item.status = status;
       if (status === 'Lunas') {
         item.nominal = 0;
       }
       saveDb(db);
 
-      try {
-        await updateKasbonInSheet(item.id || item.kasbonId || '', item.nominal, item.status);
-      } catch (e) {
-        console.error('Auto-sync kasbon status to sheets error:', e);
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataKasbon', critical: true, run: () => updateKasbonInSheet(item.id || item.kasbonId || '', item.nominal, item.status) },
+      ]);
+      if (!writeRes.success) {
+        item.status = prevStatus;
+        item.nominal = prevNominal;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memperbarui status kasbon di Google Sheet.' },
+          { status: 502 }
+        );
       }
 
       addLog(
@@ -353,15 +419,26 @@ export async function DELETE(req: NextRequest) {
 
     saveDb(db);
 
-    // 3. Sinkronkan penghapusan ke Google Sheet DataKasbon & DataPengeluaran
-    try {
-      await deleteKasbonFromSheet(kasbonTargetId);
-      if (deletedExpId) {
-        await deleteExpenseFromSheet(deletedExpId);
+    // 3. Sinkronkan penghapusan ke Google Sheet DataKasbon & DataPengeluaran dengan retry + validasi
+    const deleteTasks = [
+      { label: 'DataKasbon', critical: true, run: () => deleteKasbonFromSheet(kasbonTargetId) },
+      ...(deletedExpId
+        ? [{ label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(deletedExpId) }]
+        : []),
+      { label: 'DataPengeluaran (Ref)', critical: false, run: () => deleteExpenseByRefIdFromSheet(kasbonTargetId) },
+    ];
+    const writeRes = await executeSheetWritesWithRetry(deleteTasks);
+    if (!writeRes.success) {
+      db.kasbon.unshift(itemToDelete);
+      if (linkedExp) {
+        db.expenses.unshift(linkedExp);
+        db.deletedExpenseIds = (db.deletedExpenseIds || []).filter((eid) => eid !== linkedExp.id);
       }
-      await deleteExpenseByRefIdFromSheet(kasbonTargetId);
-    } catch (e) {
-      console.error('Auto-sync delete kasbon and linked expense from sheets error:', e);
+      saveDb(db);
+      return NextResponse.json(
+        { success: false, error: writeRes.error || 'Gagal menghapus data kasbon dari Google Sheet.' },
+        { status: 502 }
+      );
     }
 
     addLog(

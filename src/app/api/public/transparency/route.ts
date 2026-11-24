@@ -11,6 +11,8 @@ import {
   fetchPelunasanHistoryMapFromSheet,
   fetchSaldoAwalFromSheet,
   fetchResidentsFromSheet,
+  fetchProofsFromSheet,
+  reconcileVerifiedProofsToIncomes,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
@@ -25,13 +27,14 @@ export async function GET() {
 
     // Auto-sync live data dari Google Sheets secara real-time
     try {
-      const [kasbonRes, tungWRes, tungNWRes, pelunasanMap, expRes, incRes, saldoRes, resRes] = await Promise.all([
+      const [kasbonRes, tungWRes, tungNWRes, pelunasanMap, expRes, incRes, proofsRes, saldoRes, resRes] = await Promise.all([
         fetchKasbonFromSheet().catch(() => ({ success: false, kasbon: [] })),
         fetchTunggakanLamaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
         fetchTunggakanNonWargaFromSheet().catch(() => ({ success: false, tunggakan: [] })),
         fetchPelunasanHistoryMapFromSheet().catch(() => new Map()),
         fetchExpensesFromSheet().catch(() => ({ success: false, expenses: [] })),
-        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [] })),
+        fetchIncomesFromSheet().catch(() => ({ success: false, incomes: [], voidedIds: [] as string[] })),
+        fetchProofsFromSheet().catch(() => ({ success: false, proofs: [] as any[] })),
         fetchSaldoAwalFromSheet().catch(() => ({ success: false, saldoAwal: db.settings.saldoAwal })),
         fetchResidentsFromSheet().catch(() => ({ success: false, residents: [] })),
       ]);
@@ -125,6 +128,15 @@ export async function GET() {
           const local = localMap.get(s.id);
           return { ...s, buktiId: local?.buktiId || s.buktiId };
         });
+      }
+
+      if (proofsRes.success && proofsRes.proofs) {
+        const deletedProofSet = new Set([...(db.deletedIncomeIds || []), ...(db.deletedProofIds || [])]);
+        db.proofs = proofsRes.proofs.filter((p) => !deletedProofSet.has(p.id));
+      }
+
+      if (incRes.success && proofsRes.success) {
+        await reconcileVerifiedProofsToIncomes(db, (incRes as any).voidedIds || []).catch(() => 0);
       }
 
       if (saldoRes.success && saldoRes.saldoAwal) {

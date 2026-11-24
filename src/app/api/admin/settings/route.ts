@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
-import { appendSaldoAwalToSheet } from '@/lib/googleSheet';
+import { appendSaldoAwalToSheet, executeSheetWritesWithRetry } from '@/lib/googleSheet';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
@@ -38,17 +38,31 @@ export async function POST(req: NextRequest) {
 
     saveDb(db);
 
-    // Otomatis sinkronkan jika Saldo Awal diubah
+    // Otomatis sinkronkan jika Saldo Awal diubah (wajib berhasil di Google Sheet)
     if (!isNaN(newSaldoAwal) && newSaldoAwal !== oldSaldoAwal) {
-      try {
-        await appendSaldoAwalToSheet({
-          tanggal: new Date().toISOString(),
-          keterangan: 'Pembaruan Saldo Awal Pengaturan RT',
-          jumlah: newSaldoAwal,
-          transaksiId: `SA-${Date.now()}`,
-        });
-      } catch (e) {
-        console.error('Auto-sync saldo awal to sheet error:', e);
+      const writeRes = await executeSheetWritesWithRetry([
+        {
+          label: 'SaldoAwal',
+          critical: true,
+          run: () =>
+            appendSaldoAwalToSheet({
+              tanggal: new Date().toISOString(),
+              keterangan: 'Pembaruan Saldo Awal Pengaturan RT',
+              jumlah: newSaldoAwal,
+              transaksiId: `SA-${Date.now()}`,
+            }),
+        },
+      ]);
+      if (!writeRes.success) {
+        db.settings.saldoAwal = oldSaldoAwal;
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal menyimpan pembaruan Saldo Awal ke Google Sheet.',
+          },
+          { status: 502 }
+        );
       }
     }
 

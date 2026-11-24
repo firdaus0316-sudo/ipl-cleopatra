@@ -11,6 +11,7 @@ import {
   fetchExpensesFromSheet,
   fetchKasbonFromSheet,
   updateExpenseInSheet,
+  executeSheetWritesWithRetry,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -156,15 +157,24 @@ export async function POST(req: NextRequest) {
     db.expenses.unshift(newExpense);
     saveDb(db);
 
-    // Otomatis sinkronkan paralel ke Google Sheet DataPengeluaran & BuktiStruk
-    try {
-      const sheetTasks: Promise<any>[] = [appendExpenseToSheet(newExpense)];
-      if (newExpense.buktiUrl || newExpense.driveUrl) {
-        sheetTasks.push(appendBuktiStrukToSheet(newExpense));
-      }
-      await Promise.allSettled(sheetTasks);
-    } catch (e) {
-      console.error('Auto-sync expense to sheets error:', e);
+    // Otomatis sinkronkan paralel ke Google Sheet DataPengeluaran & BuktiStruk dengan retry + validasi wajib
+    const sheetTasks = [
+      { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(newExpense) },
+      ...(newExpense.buktiUrl || newExpense.driveUrl
+        ? [{ label: 'BuktiStruk', critical: false, run: () => appendBuktiStrukToSheet(newExpense) }]
+        : []),
+    ];
+    const writeRes = await executeSheetWritesWithRetry(sheetTasks);
+    if (!writeRes.success) {
+      db.expenses = (db.expenses || []).filter((e) => e.id !== newExpense.id);
+      saveDb(db);
+      return NextResponse.json(
+        {
+          success: false,
+          error: writeRes.error || 'Gagal menyimpan pengeluaran ke Google Sheet DataPengeluaran. Transaksi dibatalkan agar laporan tetap sinkron.',
+        },
+        { status: 502 }
+      );
     }
 
     addLog(
@@ -233,6 +243,7 @@ export async function PUT(req: NextRequest) {
         finalDriveUrl = '';
       }
 
+      const prevExp = { ...exp };
       if (tanggal) exp.tanggal = tanggal.slice(0, 10);
       if (kategori) exp.kategori = kategori.trim();
       if (nominal !== undefined && Number(nominal) > 0) exp.nominal = Number(nominal);
@@ -243,11 +254,17 @@ export async function PUT(req: NextRequest) {
 
       saveDb(db);
 
-      // Real-time auto sync ke Google Sheet DataPengeluaran & BuktiStruk (update in-place, tanpa duplikasi)
-      try {
-        await updateExpenseInSheet(exp);
-      } catch (sheetErr) {
-        console.error('Update expense in sheet error:', sheetErr);
+      // Real-time auto sync ke Google Sheet DataPengeluaran & BuktiStruk (wajib berhasil)
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataPengeluaran', critical: true, run: () => updateExpenseInSheet(exp) },
+      ]);
+      if (!writeRes.success) {
+        Object.assign(exp, prevExp);
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memperbarui pengeluaran di Google Sheet DataPengeluaran.' },
+          { status: 502 }
+        );
       }
 
       addLog(
@@ -264,21 +281,39 @@ export async function PUT(req: NextRequest) {
     }
 
     if (action === 'void') {
+      const prevStatus = exp.status;
       exp.status = 'Dibatalkan';
       saveDb(db);
-      try {
-        await updateExpenseInSheet(exp);
-      } catch {}
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataPengeluaran', critical: true, run: () => updateExpenseInSheet(exp) },
+      ]);
+      if (!writeRes.success) {
+        exp.status = prevStatus;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal membatalkan pengeluaran di Google Sheet.' },
+          { status: 502 }
+        );
+      }
       addLog('Batalkan Pengeluaran', `Pengeluaran ${exp.id} dibatalkan / void`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dibatalkan.' });
     }
 
     if (action === 'restore') {
+      const prevStatus = exp.status;
       exp.status = 'Sah';
       saveDb(db);
-      try {
-        await updateExpenseInSheet(exp);
-      } catch {}
+      const writeRes = await executeSheetWritesWithRetry([
+        { label: 'DataPengeluaran', critical: true, run: () => updateExpenseInSheet(exp) },
+      ]);
+      if (!writeRes.success) {
+        exp.status = prevStatus;
+        saveDb(db);
+        return NextResponse.json(
+          { success: false, error: writeRes.error || 'Gagal memulihkan pengeluaran di Google Sheet.' },
+          { status: 502 }
+        );
+      }
       addLog('Pulihkan Pengeluaran', `Pengeluaran ${exp.id} dipulihkan statusnya menjadi Sah`, 'Admin');
       return NextResponse.json({ success: true, message: 'Transaksi berhasil dipulihkan.' });
     }
@@ -322,10 +357,17 @@ export async function DELETE(req: NextRequest) {
     db.expenses.splice(idx, 1);
     saveDb(db);
 
-    try {
-      await deleteExpenseFromSheet(exp.id || id);
-    } catch (e) {
-      console.error('Auto-sync delete expense from sheets error:', e);
+    const writeRes = await executeSheetWritesWithRetry([
+      { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(exp.id || id) },
+    ]);
+    if (!writeRes.success) {
+      db.expenses.splice(idx, 0, exp);
+      db.deletedExpenseIds = (db.deletedExpenseIds || []).filter((eid) => eid !== exp.id);
+      saveDb(db);
+      return NextResponse.json(
+        { success: false, error: writeRes.error || 'Gagal menghapus pengeluaran di Google Sheet DataPengeluaran.' },
+        { status: 502 }
+      );
     }
 
     addLog(
