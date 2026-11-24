@@ -322,38 +322,73 @@ export async function POST(req: NextRequest) {
         proof.driveUrl = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
       }
 
-      // 3. Sinkronkan paralel ke Google Sheets (DataIuran, RiwayatPelunasan, & BuktiTransfer) -> 3x lebih cepat
-      await Promise.allSettled([
+      // 3. Sinkronkan paralel ke Google Sheets (DataIuran, RiwayatPelunasan, & BuktiTransfer) dengan verifikasi hasil + retry otomatis
+      const pelunasanPayload = {
+        id: `VERIF-${proof.id}`,
+        waktu: nowIso,
+        jenis: isRegularIuran ? 'Iuran Warga (Transfer)' : `${proofKategori} (Transfer)`,
+        referensiId: proof.id,
+        nama: `${proof.residentName} (${proof.blok})`,
+        nominal: proof.nominal,
+        sisa: 0,
+        transaksiId: createdTxIds.join(', '),
+        admin: 'Bendahara RT',
+      };
+      const proofUpdatePayload = {
+        buktiId: proof.id,
+        status: 'Terverifikasi' as const,
+        waktuUpload: proof.createdAt || nowIso,
+        namaWarga: proof.residentName,
+        nominal: proof.nominal,
+        keterangan: proof.catatanWarga || '',
+        fileUrl: proof.driveUrl || proof.buktiUrl,
+        kategori: proof.kategori || 'Iuran Bulanan',
+        bulan: monthsList.join(', '),
+        blok: proof.blok,
+        wargaId: proof.residentId,
+        verifiedAt: nowIso,
+        verifiedBy: 'Bendahara RT',
+        adminNote: proof.adminNote,
+        transactionId: proof.transactionId,
+      };
+
+      const [incSettled, pelSettled, proofSettled] = await Promise.allSettled([
         appendIncomesToSheet(rowsToAppend),
-        appendPelunasanToSheet({
-          id: `VERIF-${proof.id}`,
-          waktu: nowIso,
-          jenis: isRegularIuran ? 'Iuran Warga (Transfer)' : `${proofKategori} (Transfer)`,
-          referensiId: proof.id,
-          nama: `${proof.residentName} (${proof.blok})`,
-          nominal: proof.nominal,
-          sisa: 0,
-          transaksiId: createdTxIds.join(', '),
-          admin: 'Bendahara RT',
-        }),
-        updateProofInSheet({
-          buktiId: proof.id,
-          status: 'Terverifikasi',
-          waktuUpload: proof.createdAt || nowIso,
-          namaWarga: proof.residentName,
-          nominal: proof.nominal,
-          keterangan: proof.catatanWarga || '',
-          fileUrl: proof.driveUrl || proof.buktiUrl,
-          kategori: proof.kategori || 'Iuran Bulanan',
-          bulan: monthsList.join(', '),
-          blok: proof.blok,
-          wargaId: proof.residentId,
-          verifiedAt: nowIso,
-          verifiedBy: 'Bendahara RT',
-          adminNote: proof.adminNote,
-          transactionId: proof.transactionId,
-        }),
+        appendPelunasanToSheet(pelunasanPayload),
+        updateProofInSheet(proofUpdatePayload),
       ]);
+
+      let incSaved = incSettled.status === 'fulfilled' && incSettled.value?.success;
+      if (!incSaved) {
+        // Retry sekuensial bila eksekusi paralel ke Apps Script mengalami lock contention/timeout
+        await new Promise((r) => setTimeout(r, 400));
+        const retryInc = await appendIncomesToSheet(rowsToAppend);
+        incSaved = Boolean(retryInc?.success);
+      }
+
+      if (!incSaved) {
+        // Batalkan status lokal agar BuktiTransfer tidak Terverifikasi tanpa baris DataIuran
+        db.incomes = (db.incomes || []).filter((i) => !createdTxIds.includes(i.id));
+        proof.status = 'Menunggu Verifikasi';
+        delete proof.verifiedAt;
+        delete proof.verifiedBy;
+        delete proof.transactionId;
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Gagal menulis transaksi ke Google Sheet DataIuran. Silakan coba verifikasi ulang.',
+          },
+          { status: 502 }
+        );
+      }
+
+      if (!(pelSettled.status === 'fulfilled' && pelSettled.value?.success)) {
+        await appendPelunasanToSheet(pelunasanPayload).catch(() => {});
+      }
+      if (!(proofSettled.status === 'fulfilled' && proofSettled.value?.success)) {
+        await updateProofInSheet(proofUpdatePayload).catch(() => {});
+      }
 
       saveDb(db);
       addLog(

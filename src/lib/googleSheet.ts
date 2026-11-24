@@ -1002,6 +1002,38 @@ export async function appendIncomesToSheet(
   }
 }
 
+async function postWebhookWithRetry(
+  webhookUrl: string,
+  payload: unknown,
+  contentType: string,
+  maxAttempts = 3
+): Promise<Response> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 13000);
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': contentType },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok || attempt === maxAttempts) {
+        return res;
+      }
+      lastError = new Error(`Webhook HTTP ${res.status}`);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      if (attempt === maxAttempts) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 350 * attempt));
+  }
+  throw lastError;
+}
+
 export async function deleteRowFromSheet(
   sheetName: string,
   idColIndex: number,
@@ -1011,25 +1043,20 @@ export async function deleteRowFromSheet(
   try {
     if (!rowId) return { success: true };
 
-    // 1. Prioritaskan Webhook Apps Script (Sangat Cepat & Berjalan di Cloud/Vercel)
+    // 1. Prioritaskan Webhook Apps Script (dengan retry otomatis)
     const { getDb } = await import('@/lib/db');
     const db = getDb();
     const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
     const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8500);
       try {
-        const res = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'delete_row', sheetName, rowId, colIndex: idColIndex }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
+        const res = await postWebhookWithRetry(
+          webhookUrl,
+          { action: 'delete_row', sheetName, rowId, colIndex: idColIndex },
+          'text/plain;charset=utf-8'
+        );
         if (res.ok) return { success: true };
       } catch (webhookErr) {
-        clearTimeout(timeoutId);
         console.warn(`Webhook deleteRowFromSheet error:`, webhookErr);
       }
     }
@@ -1099,31 +1126,22 @@ export async function updateRowInSheet(
     const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
     const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (webhookUrl && webhookUrl.startsWith('http')) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8500);
-      try {
-        const res = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'update_row', sheetName, rowId, idColIndex, updates }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          try {
-            const json = await res.json();
-            if (json.updated === false) {
-              console.warn(`updateRowInSheet [${sheetName}] row not updated:`, json.message);
-              return { success: false, error: json.message || 'Baris tidak ditemukan di Google Sheets.' };
-            }
-            return { success: true };
-          } catch {
-            return { success: true };
+      const res = await postWebhookWithRetry(
+        webhookUrl,
+        { action: 'update_row', sheetName, rowId, idColIndex, updates },
+        'application/json'
+      );
+      if (res.ok) {
+        try {
+          const json = await res.json();
+          if (json.updated === false) {
+            console.warn(`updateRowInSheet [${sheetName}] row not updated:`, json.message);
+            return { success: false, error: json.message || 'Baris tidak ditemukan di Google Sheets.' };
           }
+          return { success: true };
+        } catch {
+          return { success: true };
         }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        throw err;
       }
     }
 
@@ -1376,15 +1394,12 @@ export function escapeGsheetCell(val: any): string {
 }
 
 async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][]): Promise<{ success: boolean; count: number; error?: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8500);
   try {
     const { getDb } = await import('@/lib/db');
     const db = getDb();
     const rawWebhook = process.env.GOOGLE_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_WEBHOOK_URL || db.settings.googleDriveWebhookUrl;
     const webhookUrl = rawWebhook && rawWebhook.includes('script.google.com') ? rawWebhook : DEFAULT_WEBHOOK_URL;
     if (!webhookUrl || !webhookUrl.startsWith('http')) {
-      clearTimeout(timeoutId);
       return { success: false, count: 0, error: 'Webhook URL belum dikonfigurasi' };
     }
 
@@ -1394,24 +1409,29 @@ async function appendViaWebhook(sheetTitle: string, rows: (string | number)[][])
       rows: rows,
     };
 
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      if (data.success) {
-        return { success: true, count: rows.length };
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await postWebhookWithRetry(webhookUrl, payload, 'text/plain;charset=utf-8', 2);
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data.success) {
+            return { success: true, count: rows.length };
+          }
+          if (attempt === 3) {
+            return { success: false, count: 0, error: data.error || 'Webhook returned error' };
+          }
+        } else if (attempt === 3) {
+          return { success: false, count: 0, error: `Webhook HTTP ${res.status}` };
+        }
+      } catch (err: any) {
+        if (attempt === 3) {
+          return { success: false, count: 0, error: err.message };
+        }
       }
-      return { success: false, count: 0, error: data.error || 'Webhook returned error' };
+      await new Promise((r) => setTimeout(r, 400 * attempt));
     }
-    return { success: false, count: 0, error: `Webhook HTTP ${res.status}` };
+    return { success: false, count: 0, error: 'Gagal mengirim data ke Google Sheets' };
   } catch (err: any) {
-    clearTimeout(timeoutId);
     return { success: false, count: 0, error: err.message };
   }
 }
