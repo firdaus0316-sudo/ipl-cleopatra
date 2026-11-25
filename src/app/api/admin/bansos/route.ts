@@ -6,9 +6,10 @@ import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth
 import {
   fetchBansosFromSheets,
   computeBansosSummary,
+  appendBansosToSheet,
   appendExpenseToSheet,
   appendBuktiStrukToSheet,
-  appendPelunasanToSheet,
+  deleteBansosFromSheet,
   deleteExpenseFromSheet,
   deletePelunasanFromSheet,
   deleteRowFromSheet,
@@ -155,21 +156,24 @@ export async function POST(req: NextRequest) {
       db.expenses.unshift(createdExpense);
       saveDb(db);
 
+      const nextBalanceAfterTransfer = currentBansosSummary.saldoBansos + parsedNominal;
       const sheetTasks = [
         { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(createdExpense!) },
+        { label: 'KasBansos', critical: true, run: () => appendBansosToSheet(newEntry, nextBalanceAfterTransfer, entryId) },
         ...(createdExpense.buktiUrl || createdExpense.driveUrl
           ? [{ label: 'BuktiStruk', critical: false, run: () => appendBuktiStrukToSheet(createdExpense!) }]
           : []),
       ];
       const writeRes = await executeSheetWritesWithRetry(sheetTasks);
       if (!writeRes.success) {
+        await Promise.allSettled([deleteExpenseFromSheet(entryId), deleteBansosFromSheet(entryId)]);
         db.bansos = (db.bansos || []).filter((b) => b.id !== entryId);
         db.expenses = (db.expenses || []).filter((e) => e.id !== entryId);
         saveDb(db);
         return NextResponse.json(
           {
             success: false,
-            error: writeRes.error || 'Gagal mencatat pemindahan dana Bansos ke Google Sheet DataPengeluaran.',
+            error: writeRes.error || 'Gagal mencatat pemindahan dana Bansos ke Google Sheet DataPengeluaran / KasBansos.',
           },
           { status: 502 }
         );
@@ -177,20 +181,20 @@ export async function POST(req: NextRequest) {
 
       addLog(
         'Pemindahan Dana ke Kas Bansos',
-        `Memindahkan dana Rp ${parsedNominal.toLocaleString('id-ID')} dari Kas Utama ke Pos Kas Bansos (${cleanPihak}: ${cleanKet}). Saldo Kas Utama berkurang otomatis.`,
+        `Memindahkan dana Rp ${parsedNominal.toLocaleString('id-ID')} dari Kas Utama ke Pos Kas Bansos (${cleanPihak}: ${cleanKet}). Saldo Kas Utama berkurang & sheet KasBansos terisi otomatis.`,
         'Admin'
       );
 
       return NextResponse.json({
         success: true,
-        message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Bansos berhasil dicatat (Kas Utama berkurang otomatis)!`,
+        message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Bansos berhasil dicatat ke Google Sheet KasBansos (Kas Utama berkurang otomatis)!`,
         data: newEntry,
         expense: createdExpense,
         summary: computeBansosSummary(db.bansos),
       });
     }
 
-    // 2. Penyaluran / Dana Masuk Khusus Bansos -> Dicatat TERPISAH di RiwayatPelunasan (tidak memengaruhi Kas Utama)
+    // 2. Penyaluran / Dana Masuk Khusus Bansos -> Dicatat TERPISAH ke Google Sheet KasBansos (tidak memengaruhi Kas Utama)
     saveDb(db);
     const nextBalance =
       jenis === 'penyaluran'
@@ -200,20 +204,9 @@ export async function POST(req: NextRequest) {
     const pelunasanLabel = jenis === 'penyaluran' ? 'Penyaluran Dana Bansos' : 'Dana Masuk Bansos';
     const writeTasks = [
       {
-        label: 'RiwayatPelunasan (Kas Bansos)',
+        label: 'KasBansos',
         critical: true,
-        run: () =>
-          appendPelunasanToSheet({
-            id: entryId,
-            waktu: tgl,
-            jenis: pelunasanLabel,
-            referensiId: 'BANSOS',
-            nama: `${cleanPihak} | ${cleanKet}`,
-            nominal: parsedNominal,
-            sisa: nextBalance,
-            transaksiId: entryId,
-            admin: 'Admin RT',
-          }),
+        run: () => appendBansosToSheet(newEntry, nextBalance, entryId),
       },
       ...(finalBuktiUrl || driveUrl
         ? [
@@ -310,9 +303,13 @@ export async function DELETE(req: NextRequest) {
     saveDb(db);
 
     const deleteTasks = isPemindahan
-      ? [{ label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) }]
+      ? [
+          { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) },
+          { label: 'KasBansos', critical: false, run: () => deleteBansosFromSheet(id) },
+        ]
       : [
-          { label: 'RiwayatPelunasan', critical: true, run: () => deletePelunasanFromSheet(id) },
+          { label: 'KasBansos', critical: true, run: () => deleteBansosFromSheet(id) },
+          { label: 'RiwayatPelunasan', critical: false, run: () => deletePelunasanFromSheet(id) },
           {
             label: 'BuktiStruk',
             critical: false,

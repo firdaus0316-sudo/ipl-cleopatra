@@ -16,6 +16,7 @@ export const SHEET_GIDS = {
   kasbon: '1031321249',
   buktistruk: '762023314',
   buktitransfer: '4652474',
+  kasbansos: '13680223',
 };
 
 export const SHEET_GID = SHEET_GIDS.masterwarga;
@@ -2066,11 +2067,48 @@ export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
   };
 }
 
+// 10.10 KasBansos (Sheet Terpisah Khusus Pos Kas Kecil Dana Bansos)
+export async function appendBansosToSheet(
+  entry: BansosEntry,
+  saldoAfter: number,
+  referensiId?: string
+): Promise<{ success: boolean; error?: string }> {
+  const jenisLabel =
+    entry.jenis === 'pemindahan'
+      ? 'Pemindahan dari Kas Utama'
+      : entry.jenis === 'penyaluran'
+        ? 'Penyaluran Dana Bansos'
+        : 'Dana Masuk Bansos';
+  const danaMasuk = entry.jenis === 'penyaluran' ? 0 : Number(entry.nominal) || 0;
+  const danaKeluar = entry.jenis === 'penyaluran' ? Number(entry.nominal) || 0 : 0;
+
+  const row = [
+    escapeGsheetCell(entry.id),
+    escapeGsheetCell(entry.tanggal || new Date().toISOString().slice(0, 10)),
+    escapeGsheetCell(jenisLabel),
+    escapeGsheetCell(entry.pihakTerkait),
+    escapeGsheetCell(entry.keterangan),
+    danaMasuk,
+    danaKeluar,
+    Math.max(0, Number(saldoAfter) || 0),
+    escapeGsheetCell(entry.status || 'Sah'),
+    escapeGsheetCell(entry.driveUrl || entry.buktiUrl || ''),
+    escapeGsheetCell(referensiId || entry.sourceExpenseId || entry.id),
+  ].join(',');
+
+  return appendRowsToSheet('KasBansos', [row]);
+}
+
+export async function deleteBansosFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('KasBansos', 1, entryId, SHEET_GIDS.kasbansos);
+}
+
 export async function fetchBansosFromSheets(
   preloadedExpenses?: ExpenseTransaction[]
 ): Promise<{ success: boolean; entries: BansosEntry[]; summary: BansosSummary; error?: string }> {
   try {
-    const [expRes, pelCsvText, strukCsvText] = await Promise.all([
+    const [kasBansosCsvText, expRes, pelCsvText, strukCsvText] = await Promise.all([
+      fetchCsvByGid(SHEET_GIDS.kasbansos).catch(() => ''),
       preloadedExpenses ? Promise.resolve({ success: true, expenses: preloadedExpenses }) : fetchExpensesFromSheet(),
       fetchCsvByGid(SHEET_GIDS.riwayatpelunasan).catch(() => ''),
       fetchCsvByGid(SHEET_GIDS.buktistruk).catch(() => ''),
@@ -2092,7 +2130,57 @@ export async function fetchBansosFromSheets(
     const entries: BansosEntry[] = [];
     const seenIds = new Set<string>();
 
-    // 1. Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Bansos')
+    // 1. Sumber Utama: Sheet khusus "KasBansos" (sinkronisasi 2-arah langsung dengan Google Sheet KasBansos)
+    if (kasBansosCsvText) {
+      const kbLines = kasBansosCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < kbLines.length; i++) {
+        const cols = parseCsvLine(kbLines[i]);
+        if (cols.length < 6) continue;
+        const rowId = (cols[0] || '').trim();
+        const tglRaw = (cols[1] || '').trim();
+        const jenisRaw = (cols[2] || '').trim();
+        const pihakTerkait = (cols[3] || '').trim() || 'Pos Kas Bansos RT 011';
+        const keterangan = (cols[4] || '').trim() || jenisRaw || 'Transaksi Kas Bansos';
+        const masukRaw = (cols[5] || '').replace(/[^0-9]/g, '');
+        const keluarRaw = (cols[6] || '').replace(/[^0-9]/g, '');
+        const statusCol = (cols[8] || 'Sah').trim();
+        const linkCol = (cols[9] || '').trim();
+        const refCol = (cols[10] || '').trim();
+
+        if (!rowId || /dibatalkan|batal|hapus/i.test(statusCol)) continue;
+        if (seenIds.has(rowId)) continue;
+
+        const masuk = masukRaw ? parseInt(masukRaw, 10) : 0;
+        const keluar = keluarRaw ? parseInt(keluarRaw, 10) : 0;
+        let jenis: BansosEntry['jenis'] = 'masuk_langsung';
+        if (/pemindahan/i.test(jenisRaw) || rowId.startsWith('EXP-')) {
+          jenis = 'pemindahan';
+        } else if (/penyaluran|keluar/i.test(jenisRaw) || keluar > 0 || rowId.startsWith('BANSOS-OUT-')) {
+          jenis = 'penyaluran';
+        }
+
+        const nominal = jenis === 'penyaluran' ? (keluar || masuk) : (masuk || keluar);
+        if (nominal <= 0) continue;
+        seenIds.add(rowId);
+
+        const rawUrl = linkCol || strukUrlByTxId.get(rowId) || strukUrlByTxId.get(refCol) || '';
+        entries.push({
+          id: rowId,
+          tanggal: parseDateFlexible(tglRaw),
+          jenis,
+          nominal,
+          pihakTerkait,
+          keterangan,
+          status: 'Sah',
+          buktiUrl: rawUrl ? getDirectGoogleDriveImageUrl(rawUrl) : undefined,
+          driveUrl: rawUrl || undefined,
+          sourceExpenseId: jenis === 'pemindahan' ? (refCol || rowId) : undefined,
+          createdAt: parseDateFlexible(tglRaw),
+        });
+      }
+    }
+
+    // 2. Fallback / Sinkronisasi Silang: Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Bansos')
     for (const exp of expRes.expenses || []) {
       if (!exp || exp.status !== 'Sah' || !isPemindahanBansosCategory(exp.kategori)) continue;
       if (seenIds.has(exp.id)) continue;
@@ -2112,7 +2200,7 @@ export async function fetchBansosFromSheets(
       });
     }
 
-    // 2. Mutasi khusus Dana Bansos (Penyaluran & Masuk Langsung) di RiwayatPelunasan
+    // 3. Fallback Historis: Mutasi khusus Dana Bansos di RiwayatPelunasan
     if (pelCsvText) {
       const lines = pelCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
       for (let i = 1; i < lines.length; i++) {

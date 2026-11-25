@@ -4,6 +4,7 @@ import { IncomeTransaction, BansosEntry } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import { isIuranBulananCategory, isBansosProofCategory, safeNumber, safeTimestamp } from '@/lib/format';
 import {
+  appendBansosToSheet,
   appendIncomesToSheet,
   appendPelunasanToSheet,
   appendBuktiStrukToSheet,
@@ -14,6 +15,7 @@ import {
   fetchProofsFromSheet,
   fetchResidentsFromSheet,
   updateProofInSheet,
+  deleteBansosFromSheet,
   deleteProofFromSheet,
   deleteIncomeFromSheet,
   deletePelunasanFromSheet,
@@ -270,20 +272,9 @@ export async function POST(req: NextRequest) {
 
         const bansosWriteRes = await executeSheetWritesWithRetry([
           {
-            label: 'RiwayatPelunasan (Kas Kecil Bansos)',
+            label: 'KasBansos',
             critical: true,
-            run: () =>
-              appendPelunasanToSheet({
-                id: bansosId,
-                waktu: nowIso,
-                jenis: 'Dana Masuk Bansos',
-                referensiId: proof.id,
-                nama: `${senderLabel.replace(/[|,]/g, ' ')} | ${ketText}`,
-                nominal: proofNominalSafe,
-                sisa: nextBalance,
-                transaksiId: bansosId,
-                admin: 'Bendahara RT',
-              }),
+            run: () => appendBansosToSheet(newBansosEntry, nextBalance, proof.id),
           },
           {
             label: 'BuktiTransfer',
@@ -712,11 +703,18 @@ export async function POST(req: NextRequest) {
           critical: false,
           run: () => deleteIncomeFromSheet(txId),
         })),
-        ...Array.from(affectedBansosIds).map((bId) => ({
-          label: `RiwayatPelunasan (${bId})`,
-          critical: false,
-          run: () => deletePelunasanFromSheet(bId),
-        })),
+        ...Array.from(affectedBansosIds).flatMap((bId) => [
+          {
+            label: `KasBansos (${bId})`,
+            critical: false,
+            run: () => deleteBansosFromSheet(bId),
+          },
+          {
+            label: `RiwayatPelunasan (${bId})`,
+            critical: false,
+            run: () => deletePelunasanFromSheet(bId),
+          },
+        ]),
       ];
 
       const writeRes = await executeSheetWritesWithRetry(cancelTasks);
@@ -836,6 +834,7 @@ export async function DELETE(req: NextRequest) {
     }
     for (const bId of Array.from(bansosIdsToDelete)) {
       deleteTasks.push(
+        { label: `KasBansos (${bId})`, critical: false, run: () => deleteBansosFromSheet(bId) },
         { label: `RiwayatPelunasan (${bId})`, critical: false, run: () => deletePelunasanFromSheet(bId) }
       );
     }
