@@ -221,7 +221,7 @@ export default function PublicPage() {
     }
   };
 
-  // Modals for Pos Piutang, Kasbon & Kas Kecil Bansos
+  // Modals for Pos Piutang, Kasbon & Kas Kecil Dansos
   const [showTunggakanDetailModal, setShowTunggakanDetailModal] = useState(false);
   const [showKasbonDetailModal, setShowKasbonDetailModal] = useState(false);
   const [showBansosDetailModal, setShowBansosDetailModal] = useState(false);
@@ -936,7 +936,7 @@ export default function PublicPage() {
               </div>
             </button>
 
-            {/* 2b. Sumbang Dana Bansos (Kas Kecil Bansos) */}
+            {/* 2b. Sumbang Dana Dansos (Kas Kecil Dansos) */}
             <button
               onClick={openBansosDonationForm}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition text-left ${
@@ -948,12 +948,12 @@ export default function PublicPage() {
               <HeartHandshake className={`w-4 h-4 shrink-0 ${tab === 'upload' && isBansosProofCategory(kategori) ? 'text-white' : 'text-rose-400'}`} />
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <span>Sumbang Dana Bansos</span>
+                  <span>Sumbang Dana Dansos</span>
                   <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/20 text-rose-200">
                     Kas Kecil
                   </span>
                 </div>
-                <div className="text-[10px] font-normal opacity-80">Masuk ke Kas Bansos (terpisah)</div>
+                <div className="text-[10px] font-normal opacity-80">Masuk ke Kas Dansos (terpisah)</div>
               </div>
             </button>
 
@@ -1247,7 +1247,7 @@ export default function PublicPage() {
               </div>
             </div>
 
-            {/* POS DANA KHUSUS DI DASHBOARD WARGA: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+            {/* POS DANA KHUSUS DI DASHBOARD WARGA: KAS KECIL DANSOS (TERPISAH DARI KAS UTAMA) */}
             <div className="bg-white border border-rose-200/90 rounded-2xl p-4 sm:p-5 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -1257,14 +1257,14 @@ export default function PublicPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm sm:text-base font-black text-slate-900">
-                        Pos Dana Sosial: Kas Kecil Bansos
+                        Pos Dana Sosial: Kas Kecil Dansos
                       </h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
                         Terpisah dari Kas Utama RT
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Transparansi dana Bantuan Sosial warga. Sumbangan warga lewat tombol Bansos langsung masuk ke pos ini setelah diverifikasi Bendahara RT.
+                      Transparansi dana Bantuan Sosial warga. Sumbangan warga lewat tombol Dansos langsung masuk ke pos ini setelah diverifikasi Bendahara RT.
                     </p>
                   </div>
                 </div>
@@ -1276,7 +1276,7 @@ export default function PublicPage() {
                     className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition shadow-sm cursor-pointer active:scale-95"
                   >
                     <HeartHandshake className="w-3.5 h-3.5" />
-                    <span>Sumbang Dana Bansos</span>
+                    <span>Sumbang Dana Dansos</span>
                   </button>
                   <button
                     type="button"
@@ -1291,7 +1291,7 @@ export default function PublicPage() {
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
                 <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-3.5 border border-rose-200/80">
-                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Bansos Tersedia</div>
+                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Dansos Tersedia</div>
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
                   </div>
@@ -1505,9 +1505,9 @@ export default function PublicPage() {
             {/* 5. QUICK ACTION HERO BANNER */}
             <div className="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-5 text-white shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
-                <h4 className="text-base font-extrabold">Sudah Transfer Iuran Bulanan atau Sumbangan Dana Bansos?</h4>
+                <h4 className="text-base font-extrabold">Sudah Transfer Iuran Bulanan atau Sumbangan Dana Dansos?</h4>
                 <p className="text-xs text-emerald-100 mt-1 max-w-xl">
-                  Lampirkan bukti transfer melalui formulir konfirmasi. Khusus tombol <strong>Sumbang Dana Bansos</strong>, dana setelah diverifikasi langsung masuk ke <strong>Kas Kecil Bansos</strong> (bukan Kas Utama).
+                  Lampirkan bukti transfer melalui formulir konfirmasi. Khusus tombol <strong>Sumbang Dana Dansos</strong>, dana setelah diverifikasi langsung masuk ke <strong>Kas Kecil Dansos</strong> (bukan Kas Utama).
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -1527,7 +1527,7 @@ export default function PublicPage() {
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition shadow-sm border border-rose-400/40 cursor-pointer"
                 >
                   <HeartHandshake className="w-3.5 h-3.5" />
-                  <span>Sumbang Dana Bansos</span>
+                  <span>Sumbang Dana Dansos</span>
                 </button>
                 <button
                   type="button"
@@ -1594,7 +1594,7 @@ export default function PublicPage() {
                     Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
                   </div>
                   <div>
-                    Saldo Kas Kecil Bansos: <strong className="text-rose-600">{formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}</strong>
+                    Saldo Kas Kecil Dansos: <strong className="text-rose-600">{formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}</strong>
                   </div>
                 </div>
               </div>
@@ -1622,17 +1622,17 @@ export default function PublicPage() {
                 <div>
                   <h2 className="text-base font-black text-slate-900">
                     {isBansosProofCategory(kategori)
-                      ? 'Formulir Konfirmasi Sumbangan Dana Bansos'
+                      ? 'Formulir Konfirmasi Sumbangan Dana Dansos'
                       : 'Formulir Konfirmasi Pembayaran'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {isBansosProofCategory(kategori)
-                      ? 'Dana sumbangan Anda akan diverifikasi Bendahara RT dan langsung masuk ke Pos Kas Kecil Bansos (bukan Kas Utama).'
+                      ? 'Dana sumbangan Anda akan diverifikasi Bendahara RT dan langsung masuk ke Pos Kas Kecil Dansos (bukan Kas Utama).'
                       : 'Isi data nama warga dan lampirkan foto bukti transfer untuk diverifikasi oleh bendahara RT.'}
                   </p>
                 </div>
 
-                {/* Tombol Pemilihan Tujuan Dana: Iuran/Kas Utama vs Sumbangan Dana Bansos */}
+                {/* Tombol Pemilihan Tujuan Dana: Iuran/Kas Utama vs Sumbangan Dana Dansos */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     type="button"
@@ -1660,7 +1660,7 @@ export default function PublicPage() {
                     }`}
                   >
                     <HeartHandshake className="w-4 h-4 shrink-0" />
-                    <span>Sumbangan Dana Bansos (Kas Kecil)</span>
+                    <span>Sumbangan Dana Dansos (Kas Kecil)</span>
                   </button>
                 </div>
               </div>
@@ -1686,7 +1686,7 @@ export default function PublicPage() {
                       <span className="text-slate-500">Kategori / Tujuan:</span>
                       <strong className={isBansosProofCategory(submitSuccess.kategori) ? 'text-rose-700' : 'text-slate-900'}>
                         {submitSuccess.kategori || 'Iuran Bulanan'}
-                        {isBansosProofCategory(submitSuccess.kategori) ? ' → Pos Kas Kecil Bansos' : ''}
+                        {isBansosProofCategory(submitSuccess.kategori) ? ' → Pos Kas Kecil Dansos' : ''}
                       </strong>
                     </div>
                     <div className="flex justify-between">
@@ -1721,8 +1721,8 @@ export default function PublicPage() {
                     <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-2.5">
                       <HeartHandshake className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                       <div className="text-[11px] leading-relaxed">
-                        <strong className="block text-rose-950">Mode Sumbangan Dana Bansos Aktif</strong>
-                        Bukti transfer Anda tetap diverifikasi oleh Bendahara RT seperti biasa, namun setelah disetujui, dananya otomatis masuk ke <strong>Saldo Kas Kecil Bansos</strong> (pencatatan terpisah dari Kas Utama RT).
+                        <strong className="block text-rose-950">Mode Sumbangan Dana Dansos Aktif</strong>
+                        Bukti transfer Anda tetap diverifikasi oleh Bendahara RT seperti biasa, namun setelah disetujui, dananya otomatis masuk ke <strong>Saldo Kas Kecil Dansos</strong> (pencatatan terpisah dari Kas Utama RT).
                       </div>
                     </div>
                   )}
@@ -1857,7 +1857,7 @@ export default function PublicPage() {
                     <div>
                       <label className="block font-bold text-slate-800 mb-1">
                         {isBansosProofCategory(kategori)
-                          ? 'Nominal Sumbangan Dana Bansos (Rp)'
+                          ? 'Nominal Sumbangan Dana Dansos (Rp)'
                           : 'Total Nominal Kas Masuk (Rp)'}{' '}
                         <span className="text-rose-500">*</span>
                       </label>
@@ -1876,7 +1876,7 @@ export default function PublicPage() {
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block font-medium">
                         {isBansosProofCategory(kategori)
-                          ? 'Masuk penuh ke Pos Kas Kecil Bansos setelah diverifikasi Bendahara RT (terpisah dari Kas Utama)'
+                          ? 'Masuk penuh ke Pos Kas Kecil Dansos setelah diverifikasi Bendahara RT (terpisah dari Kas Utama)'
                           : kategori === 'Iuran Bulanan'
                           ? `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`
                           : isUntargetedKategori(kategori)
@@ -1996,7 +1996,7 @@ export default function PublicPage() {
                       <>
                         <span>
                           {isBansosProofCategory(kategori)
-                            ? 'Kirim Bukti Sumbangan Dana Bansos'
+                            ? 'Kirim Bukti Sumbangan Dana Dansos'
                             : 'Kirim Bukti Pembayaran'}
                         </span>
                         <ArrowRight className="w-4 h-4" />
@@ -2286,7 +2286,7 @@ export default function PublicPage() {
               </div>
             </div>
 
-            {/* POS KAS KECIL DANA BANSOS (TERPISAH DARI KAS UTAMA) */}
+            {/* POS KAS KECIL DANA DANSOS (TERPISAH DARI KAS UTAMA) */}
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-rose-200/80 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -2295,13 +2295,13 @@ export default function PublicPage() {
                   </div>
                   <div>
                     <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2 flex-wrap">
-                      <span>Pos Kas Kecil Dana Bansos</span>
+                      <span>Pos Kas Kecil Dana Dansos</span>
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                         Pencatatan Terpisah dari Kas Utama
                       </span>
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Dana bansos dikelola seperti kas kecil tersendiri. Pemindahan dari Kas Utama masuk ke pos ini, lalu penyaluran hanya memotong Saldo Kas Bansos.
+                      Dana dansos dikelola seperti kas kecil tersendiri. Pemindahan dari Kas Utama masuk ke pos ini, lalu penyaluran hanya memotong Saldo Kas Dansos.
                     </p>
                   </div>
                 </div>
@@ -2310,14 +2310,14 @@ export default function PublicPage() {
                   onClick={() => setShowBansosDetailModal(true)}
                   className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
                 >
-                  <span>Lihat Rincian Mutasi Kas Bansos</span>
+                  <span>Lihat Rincian Mutasi Kas Dansos</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
                 <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-3.5 border border-rose-200/80">
-                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Bansos Tersedia</div>
+                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Dansos Tersedia</div>
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
                   </div>
@@ -2340,7 +2340,7 @@ export default function PublicPage() {
                 </div>
 
                 <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
-                  <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Bansos</div>
+                  <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Dansos</div>
                   <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight mt-1">
                     {formatRupiah(transparencyData?.bansos?.totalMasukKhusus ?? 0)}
                   </div>
@@ -2961,7 +2961,7 @@ export default function PublicPage() {
         </div>
       )}
 
-      {/* MODAL RINCIAN KAS KECIL BANSOS */}
+      {/* MODAL RINCIAN KAS KECIL DANSOS */}
       {showBansosDetailModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
@@ -2978,7 +2978,7 @@ export default function PublicPage() {
               </div>
               <div>
                 <h3 className="font-extrabold text-slate-900 text-base">
-                  Rincian Mutasi Pos Kas Kecil Dana Bansos
+                  Rincian Mutasi Pos Kas Kecil Dana Dansos
                 </h3>
                 <p className="text-xs text-slate-500">
                   Pencatatan khusus Bantuan Sosial (terpisah dari saldo operasional Kas Utama RT)
@@ -2988,7 +2988,7 @@ export default function PublicPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-4 text-xs">
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-                <div className="text-[10px] font-bold text-rose-700">Saldo Kas Bansos</div>
+                <div className="text-[10px] font-bold text-rose-700">Saldo Kas Dansos</div>
                 <div className="text-sm font-black text-rose-900 mt-0.5">
                   {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
                 </div>
@@ -3016,7 +3016,7 @@ export default function PublicPage() {
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
               {(transparencyData?.bansos?.list || []).length === 0 ? (
                 <div className="text-center py-10 text-xs text-slate-400">
-                  Belum ada mutasi transaksi di Pos Kas Kecil Bansos.
+                  Belum ada mutasi transaksi di Pos Kas Kecil Dansos.
                 </div>
               ) : (
                 (transparencyData?.bansos?.list || []).map((item: any) => {
@@ -3045,7 +3045,7 @@ export default function PublicPage() {
                             {isTransfer
                               ? 'Pemindahan dari Kas Utama'
                               : isOut
-                                ? 'Penyaluran Bansos'
+                                ? 'Penyaluran Dansos'
                                 : 'Dana Masuk Khusus'}
                           </span>
                         </div>

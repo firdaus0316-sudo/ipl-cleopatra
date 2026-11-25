@@ -228,12 +228,12 @@ export async function POST(req: NextRequest) {
           saveDb(db);
           return NextResponse.json({
             success: true,
-            message: `Bukti Sumbangan Bansos ${proof.id} sudah tercatat di Pos Kas Kecil Bansos.`,
+            message: `Bukti Sumbangan Dansos ${proof.id} sudah tercatat di Pos Kas Kecil Dansos.`,
             data: proof,
           });
         }
 
-        const bansosId = `BANSOS-IN-${Date.now()}`;
+        const bansosId = `DANSOS-IN-${Date.now()}`;
         const currentSummary = computeBansosSummary(liveBansosEntries);
         const nextBalance = currentSummary.saldoBansos + proofNominalSafe;
         const cleanNote = (proof.catatanWarga || '').trim().replace(/[|,]/g, ' ');
@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
         if (!db.bansos) db.bansos = [];
         db.bansos.unshift(newBansosEntry);
         proof.status = 'Terverifikasi';
-        proof.adminNote = adminNote || 'Sumbangan Dana Bansos valid — masuk ke Kas Kecil Bansos';
+        proof.adminNote = adminNote || 'Sumbangan Dana Dansos valid — masuk ke Kas Kecil Dansos';
         proof.verifiedAt = nowIso;
         proof.verifiedBy = 'Bendahara RT';
         proof.transactionId = bansosId;
@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
 
         const bansosWriteRes = await executeSheetWritesWithRetry([
           {
-            label: 'KasBansos',
+            label: 'KasDansos',
             critical: true,
             run: () => appendBansosToSheet(newBansosEntry, nextBalance, proof.id),
           },
@@ -302,13 +302,13 @@ export async function POST(req: NextRequest) {
           ...(proof.driveUrl || proof.buktiUrl
             ? [
                 {
-                  label: 'BuktiStruk (Bansos)',
+                  label: 'BuktiStruk (Dansos)',
                   critical: false,
                   run: () =>
                     appendBuktiStrukToSheet({
                       id: bansosId,
                       tanggal: todayDate,
-                      kategori: 'Dana Masuk Bansos',
+                      kategori: 'Dana Masuk Dansos',
                       nominal: proofNominalSafe,
                       penerima: senderLabel,
                       keterangan: ketText,
@@ -329,21 +329,21 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: bansosWriteRes.error || 'Gagal mencatat sumbangan Bansos ke Google Sheet.',
+              error: bansosWriteRes.error || 'Gagal mencatat sumbangan Dansos ke Google Sheet.',
             },
             { status: 502 }
           );
         }
 
         addLog(
-          'Verifikasi Sumbangan Bansos',
-          `Bukti ${proof.id} (${proofKategori}) dari ${senderLabel} disetujui Rp ${proofNominalSafe.toLocaleString('id-ID')} → langsung masuk ke Saldo Kas Kecil Bansos (${bansosId}), terpisah dari Kas Utama.`,
+          'Verifikasi Sumbangan Dansos',
+          `Bukti ${proof.id} (${proofKategori}) dari ${senderLabel} disetujui Rp ${proofNominalSafe.toLocaleString('id-ID')} → langsung masuk ke Saldo Kas Kecil Dansos (${bansosId}), terpisah dari Kas Utama.`,
           'Admin'
         );
 
         return NextResponse.json({
           success: true,
-          message: `Bukti Sumbangan Bansos ${proof.id} disetujui! Dana Rp ${proofNominalSafe.toLocaleString('id-ID')} masuk ke Saldo Kas Kecil Bansos (bukan Kas Utama).`,
+          message: `Bukti Sumbangan Dansos ${proof.id} disetujui! Dana Rp ${proofNominalSafe.toLocaleString('id-ID')} masuk ke Saldo Kas Kecil Dansos (bukan Kas Utama).`,
           data: proof,
           bansosEntry: newBansosEntry,
         });
@@ -656,7 +656,7 @@ export async function POST(req: NextRequest) {
         }
       });
       Array.from(txIdsToVoid).forEach((txId) => {
-        if (txId.startsWith('BANSOS-IN-')) affectedBansosIds.add(txId);
+        if (txId.startsWith('BANSOS-IN-') || txId.startsWith('DANSOS-IN-')) affectedBansosIds.add(txId);
       });
       if (affectedBansosIds.size > 0) {
         if (!db.deletedBansosIds) db.deletedBansosIds = [];
@@ -672,9 +672,9 @@ export async function POST(req: NextRequest) {
       proof.verifiedBy = undefined;
       proof.transactionId = undefined;
 
-      // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran / RiwayatPelunasan secara paralel + retry
+      // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran / KasDansos / RiwayatPelunasan secara paralel + retry
       const incomeTxIdsToDelete = Array.from(txIdsToVoid).filter(
-        (txId) => Boolean(txId) && !txId.startsWith('BANSOS-')
+        (txId) => Boolean(txId) && !txId.startsWith('BANSOS-') && !txId.startsWith('DANSOS-')
       );
       const cancelTasks = [
         {
@@ -706,7 +706,7 @@ export async function POST(req: NextRequest) {
         })),
         ...Array.from(affectedBansosIds).flatMap((bId) => [
           {
-            label: `KasBansos (${bId})`,
+            label: `KasDansos (${bId})`,
             critical: false,
             run: () => deleteBansosFromSheet(bId),
           },
@@ -795,7 +795,7 @@ export async function DELETE(req: NextRequest) {
       proof.transactionId.split(',').forEach((t) => {
         const clean = t.trim();
         if (!clean) return;
-        if (clean.startsWith('BANSOS-')) bansosIdsToDelete.add(clean);
+        if (clean.startsWith('BANSOS-') || clean.startsWith('DANSOS-')) bansosIdsToDelete.add(clean);
         else txIdsToDelete.add(clean);
       });
     }
@@ -820,7 +820,7 @@ export async function DELETE(req: NextRequest) {
       if (!db.deletedBansosIds.includes(bId)) db.deletedBansosIds.push(bId);
     }
 
-    // 2. Hapus paralel seluruh transaksi kas masuk / bansos terkait & baris BuktiTransfer + RiwayatPelunasan dengan retry + verifikasi
+    // 2. Hapus paralel seluruh transaksi kas masuk / dansos terkait & baris BuktiTransfer + KasDansos + RiwayatPelunasan dengan retry + verifikasi
     const deleteTasks = [
       { label: `BuktiTransfer (${id})`, critical: true, run: () => deleteProofFromSheet(id) },
       { label: `RiwayatPelunasan (VERIF-${id})`, critical: false, run: () => deletePelunasanFromSheet(`VERIF-${id}`) },
@@ -835,7 +835,7 @@ export async function DELETE(req: NextRequest) {
     }
     for (const bId of Array.from(bansosIdsToDelete)) {
       deleteTasks.push(
-        { label: `KasBansos (${bId})`, critical: false, run: () => deleteBansosFromSheet(bId) },
+        { label: `KasDansos (${bId})`, critical: false, run: () => deleteBansosFromSheet(bId) },
         { label: `RiwayatPelunasan (${bId})`, critical: false, run: () => deletePelunasanFromSheet(bId) }
       );
     }

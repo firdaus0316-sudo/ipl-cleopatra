@@ -99,21 +99,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Saldo Kas Bansos (Rp ${currentBansosSummary.saldoBansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
+          error: `Saldo Kas Dansos (Rp ${currentBansosSummary.saldoBansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
         },
         { status: 400 }
       );
     }
 
     const prefix =
-      jenis === 'pemindahan' ? 'EXP-BANSOS' : jenis === 'penyaluran' ? 'BANSOS-OUT' : 'BANSOS-IN';
+      jenis === 'pemindahan' ? 'EXP-DANSOS' : jenis === 'penyaluran' ? 'DANSOS-OUT' : 'DANSOS-IN';
     const entryId = `${prefix}-${ts}`;
 
     let finalBuktiUrl = buktiUrl || '';
     let driveUrl = '';
     if (buktiUrl && (buktiUrl.startsWith('data:image') || buktiUrl.startsWith('data:application/pdf'))) {
       const cleanName = cleanPihak.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Bansos_${entryId}_${cleanName}.jpg`;
+      const filename = `Dansos_${entryId}_${cleanName}.jpg`;
       const webhookUrl = db.settings.googleDriveWebhookUrl || db.settings.linkPenyimpananBuktiDrive;
       const driveRes = await uploadToGoogleDrive(buktiUrl, filename, webhookUrl);
       if (driveRes.success && driveRes.fileUrl) {
@@ -145,10 +145,10 @@ export async function POST(req: NextRequest) {
       createdExpense = {
         id: entryId,
         tanggal: tgl,
-        kategori: 'Pemindahan Dana Bansos',
+        kategori: 'Pemindahan Dana Dansos',
         nominal: parsedNominal,
         penerima: cleanPihak,
-        keterangan: `Pemindahan Dana ke Kas Bansos: ${cleanKet}`,
+        keterangan: `Pemindahan Dana ke Kas Dansos: ${cleanKet}`,
         buktiUrl: finalBuktiUrl || undefined,
         driveUrl: driveUrl || undefined,
         status: 'Sah',
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
       const nextBalanceAfterTransfer = currentBansosSummary.saldoBansos + parsedNominal;
       const sheetTasks = [
         { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(createdExpense!) },
-        { label: 'KasBansos', critical: true, run: () => appendBansosToSheet(newEntry, nextBalanceAfterTransfer, entryId) },
+        { label: 'KasDansos', critical: true, run: () => appendBansosToSheet(newEntry, nextBalanceAfterTransfer, entryId) },
         ...(createdExpense.buktiUrl || createdExpense.driveUrl
           ? [{ label: 'BuktiStruk', critical: false, run: () => appendBuktiStrukToSheet(createdExpense!) }]
           : []),
@@ -174,45 +174,45 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: writeRes.error || 'Gagal mencatat pemindahan dana Bansos ke Google Sheet DataPengeluaran / KasBansos.',
+            error: writeRes.error || 'Gagal mencatat pemindahan dana Dansos ke Google Sheet DataPengeluaran / KasDansos.',
           },
           { status: 502 }
         );
       }
 
       addLog(
-        'Pemindahan Dana ke Kas Bansos',
-        `Memindahkan dana Rp ${parsedNominal.toLocaleString('id-ID')} dari Kas Utama ke Pos Kas Bansos (${cleanPihak}: ${cleanKet}). Saldo Kas Utama berkurang & sheet KasBansos terisi otomatis.`,
+        'Pemindahan Dana ke Kas Dansos',
+        `Memindahkan dana Rp ${parsedNominal.toLocaleString('id-ID')} dari Kas Utama ke Pos Kas Dansos (${cleanPihak}: ${cleanKet}). Saldo Kas Utama berkurang & sheet KasDansos terisi otomatis.`,
         'Admin'
       );
 
       return NextResponse.json({
         success: true,
-        message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Bansos berhasil dicatat ke Google Sheet KasBansos (Kas Utama berkurang otomatis)!`,
+        message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Dansos berhasil dicatat ke Google Sheet KasDansos (Kas Utama berkurang otomatis)!`,
         data: newEntry,
         expense: createdExpense,
         summary: computeBansosSummary(db.bansos),
       });
     }
 
-    // 2. Penyaluran / Dana Masuk Khusus Bansos -> Dicatat TERPISAH ke Google Sheet KasBansos (tidak memengaruhi Kas Utama)
+    // 2. Penyaluran / Dana Masuk Khusus Dansos -> Dicatat TERPISAH ke Google Sheet KasDansos (tidak memengaruhi Kas Utama)
     saveDb(db);
     const nextBalance =
       jenis === 'penyaluran'
         ? Math.max(0, currentBansosSummary.saldoBansos - parsedNominal)
         : currentBansosSummary.saldoBansos + parsedNominal;
 
-    const pelunasanLabel = jenis === 'penyaluran' ? 'Penyaluran Dana Bansos' : 'Dana Masuk Bansos';
+    const pelunasanLabel = jenis === 'penyaluran' ? 'Penyaluran Dana Dansos' : 'Dana Masuk Dansos';
     const writeTasks = [
       {
-        label: 'KasBansos',
+        label: 'KasDansos',
         critical: true,
         run: () => appendBansosToSheet(newEntry, nextBalance, entryId),
       },
       ...(finalBuktiUrl || driveUrl
         ? [
             {
-              label: 'BuktiStruk (Bansos)',
+              label: 'BuktiStruk (Dansos)',
               critical: false,
               run: () =>
                 appendBuktiStrukToSheet({
@@ -239,15 +239,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: writeRes.error || 'Gagal menyimpan transaksi Kas Bansos ke Google Sheet.',
+          error: writeRes.error || 'Gagal menyimpan transaksi Kas Dansos ke Google Sheet.',
         },
         { status: 502 }
       );
     }
 
     addLog(
-      jenis === 'penyaluran' ? 'Penyaluran Dana Bansos' : 'Dana Masuk Khusus Bansos',
-      `${pelunasanLabel} Rp ${parsedNominal.toLocaleString('id-ID')} (${cleanPihak}: ${cleanKet}) dicatat pada Kas Kecil Bansos (terpisah dari Kas Utama).`,
+      jenis === 'penyaluran' ? 'Penyaluran Dana Dansos' : 'Dana Masuk Khusus Dansos',
+      `${pelunasanLabel} Rp ${parsedNominal.toLocaleString('id-ID')} (${cleanPihak}: ${cleanKet}) dicatat pada Kas Kecil Dansos (terpisah dari Kas Utama).`,
       'Admin'
     );
 
@@ -255,8 +255,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message:
         jenis === 'penyaluran'
-          ? `Penyaluran Bansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat dari Saldo Kas Bansos (terpisah dari Kas Utama)!`
-          : `Dana masuk khusus Bansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat ke Kas Bansos!`,
+          ? `Penyaluran Dansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat dari Saldo Kas Dansos (terpisah dari Kas Utama)!`
+          : `Dana masuk khusus Dansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat ke Kas Dansos!`,
       data: newEntry,
       summary: computeBansosSummary(db.bansos),
     });
@@ -271,7 +271,7 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {
-      return NextResponse.json({ success: false, error: 'ID transaksi Bansos wajib diisi.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'ID transaksi Dansos wajib diisi.' }, { status: 400 });
     }
 
     const db = getDb();
@@ -288,7 +288,7 @@ export async function DELETE(req: NextRequest) {
     const target = prevBansos.find((b) => b.id === id);
 
     if (!target) {
-      return NextResponse.json({ success: false, error: 'Transaksi Kas Bansos tidak ditemukan.' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Transaksi Kas Dansos tidak ditemukan.' }, { status: 404 });
     }
 
     if (!db.deletedBansosIds) db.deletedBansosIds = [];
@@ -306,10 +306,10 @@ export async function DELETE(req: NextRequest) {
     const deleteTasks = isPemindahan
       ? [
           { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) },
-          { label: 'KasBansos', critical: false, run: () => deleteBansosFromSheet(id) },
+          { label: 'KasDansos', critical: false, run: () => deleteBansosFromSheet(id) },
         ]
       : [
-          { label: 'KasBansos', critical: true, run: () => deleteBansosFromSheet(id) },
+          { label: 'KasDansos', critical: true, run: () => deleteBansosFromSheet(id) },
           { label: 'RiwayatPelunasan', critical: false, run: () => deletePelunasanFromSheet(id) },
           {
             label: 'BuktiStruk',
@@ -328,20 +328,20 @@ export async function DELETE(req: NextRequest) {
       }
       saveDb(db);
       return NextResponse.json(
-        { success: false, error: writeRes.error || 'Gagal menghapus transaksi Bansos dari Google Sheet.' },
+        { success: false, error: writeRes.error || 'Gagal menghapus transaksi Dansos dari Google Sheet.' },
         { status: 502 }
       );
     }
 
     addLog(
-      'Hapus Transaksi Kas Bansos',
-      `Menghapus transaksi Bansos ${id} (${target.pihakTerkait} - Rp ${target.nominal.toLocaleString('id-ID')})`,
+      'Hapus Transaksi Kas Dansos',
+      `Menghapus transaksi Dansos ${id} (${target.pihakTerkait} - Rp ${target.nominal.toLocaleString('id-ID')})`,
       'Admin'
     );
 
     return NextResponse.json({
       success: true,
-      message: 'Transaksi Kas Bansos berhasil dihapus.',
+      message: 'Transaksi Kas Dansos berhasil dihapus.',
       summary: computeBansosSummary(db.bansos),
     });
   } catch (error: any) {

@@ -186,9 +186,9 @@ export async function POST(req: NextRequest) {
 
     const isBansosDonation = isBansosProofCategory(newProof.kategori);
     addLog(
-      isBansosDonation ? 'Pengajuan Sumbangan Dana Bansos' : 'Pengajuan Bukti Transfer',
+      isBansosDonation ? 'Pengajuan Sumbangan Dana Dansos' : 'Pengajuan Bukti Transfer',
       isBansosDonation
-        ? `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti sumbangan Bansos ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')} (tujuan: Kas Kecil Bansos)`
+        ? `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti sumbangan Dansos ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')} (tujuan: Kas Kecil Dansos)`
         : `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti transfer ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')}`,
       'Warga'
     );
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       data: newProof,
       sheetSynced: true,
       message: isBansosDonation
-        ? 'Bukti Sumbangan Dana Bansos berhasil dikirim! Setelah diverifikasi Bendahara RT, dana otomatis masuk ke Pos Kas Kecil Bansos.'
+        ? 'Bukti Sumbangan Dana Dansos berhasil dikirim! Setelah diverifikasi Bendahara RT, dana otomatis masuk ke Pos Kas Kecil Dansos.'
         : 'Bukti pembayaran berhasil dikirim! Menunggu verifikasi dari bendahara/admin.',
     });
   } catch (error: any) {

@@ -777,7 +777,7 @@ export default function AdminPage() {
     if (isVerifying) return;
     const isBansosProof = isBansosProofCategory(proof.kategori);
     const confirmMsg = isBansosProof
-      ? `Konfirmasi setujui sumbangan dana Bansos ${proof.id} sebesar ${formatRupiah(proof.nominal)}?\n\nDana akan langsung masuk ke Saldo Kas Kecil Bansos (TERPISAH dari Kas Utama RT).`
+      ? `Konfirmasi setujui sumbangan dana Dansos ${proof.id} sebesar ${formatRupiah(proof.nominal)}?\n\nDana akan langsung masuk ke Saldo Kas Kecil Dansos (TERPISAH dari Kas Utama RT).`
       : `Konfirmasi setujui bukti transfer ${proof.id} sebesar ${formatRupiah(proof.nominal)}? Kas masuk akan otomatis bertambah.`;
     if (!confirm(confirmMsg)) {
       return;
@@ -796,7 +796,7 @@ export default function AdminPage() {
         setSelectedProof(updatedProof);
         showToast(
           isBansosProof
-            ? `✓ Sumbangan Bansos ${proof.id} masuk ke Saldo Kas Kecil Bansos!`
+            ? `✓ Sumbangan Dansos ${proof.id} masuk ke Saldo Kas Kecil Dansos!`
             : `✓ Bukti ${proof.id} disetujui & masuk kas!`
         );
         refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix', 'bansos']);
@@ -1769,14 +1769,14 @@ export default function AdminPage() {
     }
   };
 
-  // === HANDLERS KAS BANSOS (POS TERPISAH DARI KAS UTAMA) ===
+  // === HANDLERS KAS DANSOS (POS TERPISAH DARI KAS UTAMA) ===
   const handleOpenBansosModal = (jenis: BansosTransactionType = 'pemindahan') => {
     setBansosFormJenis(jenis);
     setBansosFormTanggal(new Date().toISOString().split('T')[0]);
     setBansosFormNominal('');
     setBansosFormPihak(
       jenis === 'pemindahan'
-        ? 'Bendahara / Pos Kas Bansos RT 011'
+        ? 'Bendahara / Pos Kas Dansos RT 011'
         : ''
     );
     setBansosFormKet('');
@@ -1804,7 +1804,7 @@ export default function AdminPage() {
     e.preventDefault();
     const nominalVal = Number(bansosFormNominal);
     if (!nominalVal || nominalVal <= 0) {
-      alert('Nominal transaksi Kas Bansos harus lebih dari Rp 0.');
+      alert('Nominal transaksi Kas Dansos harus lebih dari Rp 0.');
       return;
     }
     if (!bansosFormPihak.trim() || !bansosFormKet.trim()) {
@@ -1813,7 +1813,7 @@ export default function AdminPage() {
     }
     if (bansosFormJenis === 'penyaluran' && nominalVal > bansosSummary.saldoBansos) {
       alert(
-        `Saldo Kas Bansos tersedia (${formatRupiah(bansosSummary.saldoBansos)}) tidak mencukupi untuk penyaluran ${formatRupiah(nominalVal)}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`
+        `Saldo Kas Dansos tersedia (${formatRupiah(bansosSummary.saldoBansos)}) tidak mencukupi untuk penyaluran ${formatRupiah(nominalVal)}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`
       );
       return;
     }
@@ -1835,13 +1835,13 @@ export default function AdminPage() {
       const d = await res.json();
       if (d.success) {
         setShowBansosModal(false);
-        showToast(`✓ ${d.message || 'Transaksi Kas Bansos berhasil dicatat!'}`);
+        showToast(`✓ ${d.message || 'Transaksi Kas Dansos berhasil dicatat!'}`);
         await refreshAll();
       } else {
-        alert(d.error || 'Gagal menyimpan transaksi Kas Bansos.');
+        alert(d.error || 'Gagal menyimpan transaksi Kas Dansos.');
       }
     } catch {
-      alert('Gagal menghubungi server saat mencatat Kas Bansos.');
+      alert('Gagal menghubungi server saat mencatat Kas Dansos.');
     } finally {
       setIsSubmittingBansos(false);
     }
@@ -1852,8 +1852,8 @@ export default function AdminPage() {
       item.jenis === 'pemindahan'
         ? 'Pemindahan dari Kas Utama'
         : item.jenis === 'penyaluran'
-          ? 'Penyaluran Bansos'
-          : 'Dana Masuk Khusus Bansos';
+          ? 'Penyaluran Dansos'
+          : 'Dana Masuk Khusus Dansos';
     if (
       !confirm(
         `Hapus catatan ${labelJenis} (${item.pihakTerkait} - ${formatRupiah(item.nominal)})?${
@@ -1872,10 +1872,10 @@ export default function AdminPage() {
       );
       const d = await res.json();
       if (d.success) {
-        showToast(`✓ ${d.message || 'Catatan Kas Bansos dihapus.'}`);
+        showToast(`✓ ${d.message || 'Catatan Kas Dansos dihapus.'}`);
         await refreshAll();
       } else {
-        alert(d.error || 'Gagal menghapus catatan Kas Bansos.');
+        alert(d.error || 'Gagal menghapus catatan Kas Dansos.');
       }
     } catch (err: any) {
       alert('Terjadi kesalahan: ' + (err?.message || 'Unknown error'));
@@ -2392,7 +2392,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center gap-3">
               <HeartHandshake className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>Kas Dana Bansos</span>
+              <span>Kas Dana Dansos</span>
             </div>
             {bansosSummary.saldoBansos > 0 && (
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
@@ -2903,7 +2903,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* POS DANA KHUSUS: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+            {/* POS DANA KHUSUS: KAS KECIL DANSOS (TERPISAH DARI KAS UTAMA) */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-rose-200/80 space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -2913,14 +2913,14 @@ export default function AdminPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-extrabold text-slate-900 text-base">
-                        Pos Dana Khusus: Kas Kecil Bansos
+                        Pos Dana Khusus: Kas Kecil Dansos
                       </h3>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
                         Terpisah dari Saldo Kas Utama
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Pemindahan dana mengurangi saldo Kas Utama dan otomatis masuk ke Saldo Kas Bansos. Penyaluran bansos selanjutnya hanya memotong Saldo Kas Bansos.
+                      Pemindahan dana mengurangi saldo Kas Utama dan otomatis masuk ke Saldo Kas Dansos. Penyaluran dansos selanjutnya hanya memotong Saldo Kas Dansos.
                     </p>
                   </div>
                 </div>
@@ -2932,7 +2932,7 @@ export default function AdminPage() {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5" />
-                    <span>+ Pemindahan ke Kas Bansos</span>
+                    <span>+ Pemindahan ke Kas Dansos</span>
                   </button>
                   <button
                     type="button"
@@ -2940,14 +2940,14 @@ export default function AdminPage() {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Penyaluran Bansos</span>
+                    <span>+ Penyaluran Dansos</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab('bansos')}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold transition cursor-pointer"
                   >
-                    <span>Kelola Kas Bansos</span>
+                    <span>Kelola Kas Dansos</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -2955,7 +2955,7 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <div className="rounded-2xl p-4 bg-gradient-to-br from-rose-50 via-white to-rose-50/40 border border-rose-200">
-                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Bansos Tersedia</div>
+                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Dansos Tersedia</div>
                   <div className="text-2xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(dashboardData.stats.saldoBansos ?? bansosSummary.saldoBansos)}
                   </div>
@@ -2978,7 +2978,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
-                  <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Bansos</div>
+                  <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Dansos</div>
                   <div className="text-xl font-black text-emerald-700 tracking-tight mt-1">
                     {formatRupiah(dashboardData.stats.totalMasukKhususBansos ?? bansosSummary.totalMasukKhusus)}
                   </div>
@@ -3636,7 +3636,7 @@ export default function AdminPage() {
                             <div className="font-mono font-bold text-slate-800">{formatPeriodCode(slice.periodCode)}</div>
                             {isBansosProofCategory(p.kategori) ? (
                               <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-extrabold">
-                                {p.kategori} → Kas Kecil Bansos
+                                {p.kategori} → Kas Kecil Dansos
                               </span>
                             ) : (
                               p.kategori &&
@@ -5840,7 +5840,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 10: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+        {/* TAB 10: KAS KECIL DANSOS (TERPISAH DARI KAS UTAMA) */}
         {activeTab === 'bansos' && (() => {
           const q = bansosSearch.trim().toLowerCase();
           const filteredBansos = bansosList.filter((item) => {
@@ -5860,17 +5860,17 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2.5 flex-wrap">
                     <HeartHandshake className="w-6 h-6 text-rose-600" />
-                    <span>Kas Kecil Dana Bansos (Bantuan Sosial)</span>
+                    <span>Kas Kecil Dana Dansos (Dana Sosial)</span>
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
                       Saldo & Buku Terpisah dari Kas Utama
                     </span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Pemindahan dana mengurangi Kas Utama ke Pos Bansos. Penyaluran bantuan & donasi khusus Bansos dicatat terpisah tanpa memengaruhi Kas Utama.
+                    Pemindahan dana mengurangi Kas Utama ke Pos Dansos. Penyaluran bantuan & donasi khusus Dansos dicatat terpisah tanpa memengaruhi Kas Utama.
                   </p>
                 </div>
 
-                {/* Tombol Transaksi Khusus Kas Bansos */}
+                {/* Tombol Transaksi Khusus Kas Dansos */}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -5894,16 +5894,16 @@ export default function AdminPage() {
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Catat Penyaluran Bansos</span>
+                    <span>Catat Penyaluran Dansos</span>
                   </button>
                 </div>
               </div>
 
-              {/* 4 KPI Cards Kas Bansos */}
+              {/* 4 KPI Cards Kas Dansos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-rose-50 via-white to-rose-50/40 rounded-2xl p-5 border border-rose-200 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-rose-700">Saldo Kas Bansos</span>
+                    <span className="text-xs font-bold text-rose-700">Saldo Kas Dansos</span>
                     <HeartHandshake className="w-4 h-4 text-rose-600" />
                   </div>
                   <div className="text-2xl font-black text-rose-900 mt-1.5 tracking-tight">
@@ -5936,7 +5936,7 @@ export default function AdminPage() {
                     {formatRupiah(bansosSummary.totalMasukKhusus)}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    {bansosSummary.countMasukKhusus}x donasi/setoran langsung Bansos
+                    {bansosSummary.countMasukKhusus}x donasi/setoran langsung Dansos
                   </div>
                 </div>
 
@@ -5949,7 +5949,7 @@ export default function AdminPage() {
                     {formatRupiah(bansosSummary.totalPenyaluran)}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    {bansosSummary.countPenyaluran}x penyaluran (hanya potong Kas Bansos)
+                    {bansosSummary.countPenyaluran}x penyaluran (hanya potong Kas Dansos)
                   </div>
                 </div>
               </div>
@@ -6008,7 +6008,7 @@ export default function AdminPage() {
                       {filteredBansos.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="py-12 text-center text-slate-400">
-                            Belum ada transaksi Kas Bansos yang sesuai filter. Gunakan tombol di atas untuk memindahkan dana dari Kas Utama atau mencatat penyaluran Bansos.
+                            Belum ada transaksi Kas Dansos yang sesuai filter. Gunakan tombol di atas untuk memindahkan dana dari Kas Utama atau mencatat penyaluran Dansos.
                           </td>
                         </tr>
                       ) : (
@@ -6034,7 +6034,7 @@ export default function AdminPage() {
                                   {isTransfer
                                     ? 'Pemindahan dari Kas Utama'
                                     : isOut
-                                      ? 'Penyaluran Bansos'
+                                      ? 'Penyaluran Dansos'
                                       : 'Dana Masuk Khusus'}
                                 </span>
                               </td>
@@ -6070,7 +6070,7 @@ export default function AdminPage() {
                                   type="button"
                                   onClick={() => handleDeleteBansos(item)}
                                   className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
-                                  title="Hapus Transaksi Kas Bansos"
+                                  title="Hapus Transaksi Kas Dansos"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -6162,7 +6162,7 @@ export default function AdminPage() {
                   }`}
                 >
                   {selectedProof.kategori || 'Iuran Bulanan'}
-                  {isBansosProofCategory(selectedProof.kategori) ? ' (Masuk Kas Kecil Bansos)' : ''}
+                  {isBansosProofCategory(selectedProof.kategori) ? ' (Masuk Kas Kecil Dansos)' : ''}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -6175,7 +6175,7 @@ export default function AdminPage() {
               </div>
               {isBansosProofCategory(selectedProof.kategori) && (
                 <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-medium">
-                  <strong>Catatan Sistem:</strong> Menyetujui bukti ini akan memasukkan dana ke <strong>Saldo Kas Kecil Bansos</strong> di Google Sheets (<em>tidak masuk Kas Utama</em>).
+                  <strong>Catatan Sistem:</strong> Menyetujui bukti ini akan memasukkan dana ke <strong>Saldo Kas Kecil Dansos</strong> di Google Sheets (<em>tidak masuk Kas Utama</em>).
                 </div>
               )}
               {(() => {
@@ -6224,7 +6224,7 @@ export default function AdminPage() {
                     <CheckCircle2 className="w-4 h-4" />
                     <span>
                       {isBansosProofCategory(selectedProof.kategori)
-                        ? 'Setujui (Kas Kecil Bansos)'
+                        ? 'Setujui (Kas Kecil Dansos)'
                         : 'Setujui (Kas Masuk)'}
                     </span>
                   </button>
@@ -6346,7 +6346,7 @@ export default function AdminPage() {
                     <option value="Fixed">Fixed</option>
                     <option value="Variabel">Variabel</option>
                     <option value="Kasbon">Kasbon</option>
-                    <option value="Pemindahan Dana Bansos">Pemindahan Dana Bansos</option>
+                    <option value="Pemindahan Dana Dansos">Pemindahan Dana Dansos</option>
                   </select>
                 </div>
               </div>
@@ -8396,7 +8396,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL TRANSAKSI KAS KECIL BANSOS */}
+      {/* MODAL TRANSAKSI KAS KECIL DANSOS */}
       {showBansosModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
@@ -8414,10 +8414,10 @@ export default function AdminPage() {
               </div>
               <div>
                 <h3 className="font-extrabold text-slate-900 text-base">
-                  Transaksi Kas Kecil Bansos
+                  Transaksi Kas Kecil Dansos
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Saldo Kas Bansos saat ini: <strong className="text-rose-700">{formatRupiah(bansosSummary.saldoBansos)}</strong>
+                  Saldo Kas Dansos saat ini: <strong className="text-rose-700">{formatRupiah(bansosSummary.saldoBansos)}</strong>
                 </p>
               </div>
             </div>
@@ -8428,7 +8428,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setBansosFormJenis('pemindahan');
-                  if (!bansosFormPihak) setBansosFormPihak('Bendahara / Pos Kas Bansos RT 011');
+                  if (!bansosFormPihak) setBansosFormPihak('Bendahara / Pos Kas Dansos RT 011');
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   bansosFormJenis === 'pemindahan'
@@ -8442,7 +8442,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setBansosFormJenis('penyaluran');
-                  if (bansosFormPihak === 'Bendahara / Pos Kas Bansos RT 011') setBansosFormPihak('');
+                  if (bansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011') setBansosFormPihak('');
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   bansosFormJenis === 'penyaluran'
@@ -8450,13 +8450,13 @@ export default function AdminPage() {
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                Penyaluran Bansos
+                Penyaluran Dansos
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setBansosFormJenis('masuk_langsung');
-                  if (bansosFormPihak === 'Bendahara / Pos Kas Bansos RT 011') setBansosFormPihak('');
+                  if (bansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011') setBansosFormPihak('');
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   bansosFormJenis === 'masuk_langsung'
@@ -8478,10 +8478,10 @@ export default function AdminPage() {
               }`}
             >
               {bansosFormJenis === 'pemindahan'
-                ? 'Dana dipindahkan dari Kas Utama RT ke Kas Kecil Bansos: mengurangi saldo Kas Utama dan menambah saldo Kas Bansos.'
+                ? 'Dana dipindahkan dari Kas Utama RT ke Kas Kecil Dansos: mengurangi saldo Kas Utama dan menambah saldo Kas Dansos.'
                 : bansosFormJenis === 'penyaluran'
-                  ? 'Penyaluran Bantuan Sosial hanya memotong saldo Kas Bansos dan TIDAK mengurangi Kas Utama RT.'
-                  : 'Penerimaan donasi/sumbangan khusus Bansos dari luar Kas Utama: langsung menambah saldo Kas Bansos tanpa memengaruhi Kas Utama.'}
+                  ? 'Penyaluran Bantuan Sosial hanya memotong saldo Kas Dansos dan TIDAK mengurangi Kas Utama RT.'
+                  : 'Penerimaan donasi/sumbangan khusus Dansos dari luar Kas Utama: langsung menambah saldo Kas Dansos tanpa memengaruhi Kas Utama.'}
             </div>
 
             <form onSubmit={handleSaveBansos} className="space-y-3.5 text-xs">
@@ -8523,7 +8523,7 @@ export default function AdminPage() {
                   required
                   placeholder={
                     bansosFormJenis === 'pemindahan'
-                      ? 'Contoh: Pos Kas Bansos RT 011'
+                      ? 'Contoh: Pos Kas Dansos RT 011'
                       : bansosFormJenis === 'penyaluran'
                         ? 'Contoh: Bpk. Ahmad / Keluarga Dhuafa Blok C'
                         : 'Contoh: Hamba Allah / Sumbangan Warga'
@@ -8541,10 +8541,10 @@ export default function AdminPage() {
                   required
                   placeholder={
                     bansosFormJenis === 'pemindahan'
-                      ? 'Contoh: Alokasi dana kas kecil Bansos bulan ini'
+                      ? 'Contoh: Alokasi dana kas kecil Dansos bulan ini'
                       : bansosFormJenis === 'penyaluran'
                         ? 'Contoh: Santunan warga sakit / bantuan sembako'
-                        : 'Contoh: Titipan donasi khusus program Bansos'
+                        : 'Contoh: Titipan donasi khusus program Dansos'
                   }
                   value={bansosFormKet}
                   onChange={(e) => setBansosFormKet(e.target.value)}
@@ -8595,7 +8595,7 @@ export default function AdminPage() {
                 >
                   {isSubmittingBansos && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>
-                    {isSubmittingBansos ? 'Menyimpan...' : 'Simpan Transaksi Bansos'}
+                    {isSubmittingBansos ? 'Menyimpan...' : 'Simpan Transaksi Dansos'}
                   </span>
                 </button>
               </div>
@@ -8604,7 +8604,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL BUKTI STRUK BANSOS */}
+      {/* MODAL BUKTI STRUK DANSOS */}
       {selectedBansosReceipt && (() => {
         const receiptSrc = selectedBansosReceipt.driveUrl || selectedBansosReceipt.buktiUrl || '';
         return (
@@ -8612,7 +8612,7 @@ export default function AdminPage() {
             <div className="bg-white rounded-2xl max-w-xl w-full p-4 shadow-2xl relative space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm">Bukti Transaksi Kas Bansos</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">Bukti Transaksi Kas Dansos</h4>
                   <p className="text-[11px] text-slate-500">
                     {selectedBansosReceipt.pihakTerkait} • {selectedBansosReceipt.tanggal} •{' '}
                     <strong className="text-slate-800">{formatRupiah(selectedBansosReceipt.nominal)}</strong>
@@ -8631,7 +8631,7 @@ export default function AdminPage() {
                 /\.(png|jpe?g|webp|gif)(\?|$)/i.test(receiptSrc) ? (
                   <img
                     src={receiptSrc}
-                    alt="Bukti Transaksi Bansos"
+                    alt="Bukti Transaksi Dansos"
                     className="max-w-full max-h-[65vh] rounded-lg object-contain"
                   />
                 ) : receiptSrc ? (

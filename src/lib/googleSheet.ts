@@ -1946,7 +1946,8 @@ export async function reconcileVerifiedProofsToIncomes(
     if (!proof || proof.status !== 'Terverifikasi') continue;
     if (
       isBansosProofCategory(proof.kategori) ||
-      (proof.transactionId || '').trim().startsWith('BANSOS-')
+      (proof.transactionId || '').trim().startsWith('BANSOS-') ||
+      (proof.transactionId || '').trim().startsWith('DANSOS-')
     ) {
       continue;
     }
@@ -2091,7 +2092,7 @@ export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
   };
 }
 
-// 10.10 KasBansos (Sheet Terpisah Khusus Pos Kas Kecil Dana Bansos)
+// 10.10 KasDansos (Sheet Terpisah Khusus Pos Kas Kecil Dana Dansos)
 export async function appendBansosToSheet(
   entry: BansosEntry,
   saldoAfter: number,
@@ -2101,8 +2102,8 @@ export async function appendBansosToSheet(
     entry.jenis === 'pemindahan'
       ? 'Pemindahan dari Kas Utama'
       : entry.jenis === 'penyaluran'
-        ? 'Penyaluran Dana Bansos'
-        : 'Dana Masuk Bansos';
+        ? 'Penyaluran Dana Dansos'
+        : 'Dana Masuk Dansos';
   const danaMasuk = entry.jenis === 'penyaluran' ? 0 : Number(entry.nominal) || 0;
   const danaKeluar = entry.jenis === 'penyaluran' ? Number(entry.nominal) || 0 : 0;
 
@@ -2120,11 +2121,11 @@ export async function appendBansosToSheet(
     escapeGsheetCell(referensiId || entry.sourceExpenseId || entry.id),
   ].join(',');
 
-  return appendRowsToSheet('KasBansos', [row]);
+  return appendRowsToSheet('KasDansos', [row]);
 }
 
 export async function deleteBansosFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
-  return deleteRowFromSheet('KasBansos', 1, entryId, SHEET_GIDS.kasbansos);
+  return deleteRowFromSheet('KasDansos', 1, entryId, SHEET_GIDS.kasbansos);
 }
 
 export async function fetchBansosFromSheets(
@@ -2154,7 +2155,7 @@ export async function fetchBansosFromSheets(
     const entries: BansosEntry[] = [];
     const seenIds = new Set<string>();
 
-    // 1. Sumber Utama: Sheet khusus "KasBansos" (sinkronisasi 2-arah langsung dengan Google Sheet KasBansos)
+    // 1. Sumber Utama: Sheet khusus "KasDansos" (sinkronisasi 2-arah langsung dengan Google Sheet KasDansos)
     if (kasBansosCsvText) {
       const kbLines = kasBansosCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
       for (let i = 1; i < kbLines.length; i++) {
@@ -2163,8 +2164,8 @@ export async function fetchBansosFromSheets(
         const rowId = (cols[0] || '').trim();
         const tglRaw = (cols[1] || '').trim();
         const jenisRaw = (cols[2] || '').trim();
-        const pihakTerkait = (cols[3] || '').trim() || 'Pos Kas Bansos RT 011';
-        const keterangan = (cols[4] || '').trim() || jenisRaw || 'Transaksi Kas Bansos';
+        const pihakTerkait = (cols[3] || '').trim() || 'Pos Kas Dansos RT 011';
+        const keterangan = (cols[4] || '').trim() || jenisRaw || 'Transaksi Kas Dansos';
         const masukRaw = (cols[5] || '').replace(/[^0-9]/g, '');
         const keluarRaw = (cols[6] || '').replace(/[^0-9]/g, '');
         const statusCol = (cols[8] || 'Sah').trim();
@@ -2179,7 +2180,12 @@ export async function fetchBansosFromSheets(
         let jenis: BansosEntry['jenis'] = 'masuk_langsung';
         if (/pemindahan/i.test(jenisRaw) || rowId.startsWith('EXP-')) {
           jenis = 'pemindahan';
-        } else if (/penyaluran|keluar/i.test(jenisRaw) || keluar > 0 || rowId.startsWith('BANSOS-OUT-')) {
+        } else if (
+          /penyaluran|keluar/i.test(jenisRaw) ||
+          keluar > 0 ||
+          rowId.startsWith('BANSOS-OUT-') ||
+          rowId.startsWith('DANSOS-OUT-')
+        ) {
           jenis = 'penyaluran';
         }
 
@@ -2204,7 +2210,7 @@ export async function fetchBansosFromSheets(
       }
     }
 
-    // 2. Fallback / Sinkronisasi Silang: Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Bansos')
+    // 2. Fallback / Sinkronisasi Silang: Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Dansos/Bansos')
     for (const exp of expRes.expenses || []) {
       if (!exp || exp.status !== 'Sah' || !isPemindahanBansosCategory(exp.kategori)) continue;
       if (seenIds.has(exp.id)) continue;
@@ -2214,7 +2220,7 @@ export async function fetchBansosFromSheets(
         tanggal: exp.tanggal,
         jenis: 'pemindahan',
         nominal: Number(exp.nominal) || 0,
-        pihakTerkait: exp.penerima || 'Pos Dana Bansos RT',
+        pihakTerkait: exp.penerima || 'Pos Dana Dansos RT',
         keterangan: exp.keterangan || 'Pemindahan Dana dari Kas Utama',
         status: 'Sah',
         buktiUrl: exp.buktiUrl,
@@ -2224,7 +2230,7 @@ export async function fetchBansosFromSheets(
       });
     }
 
-    // 3. Fallback Historis: Mutasi khusus Dana Bansos di RiwayatPelunasan
+    // 3. Fallback Historis: Mutasi khusus Dana Dansos/Bansos di RiwayatPelunasan
     if (pelCsvText) {
       const lines = pelCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
       for (let i = 1; i < lines.length; i++) {
@@ -2237,8 +2243,14 @@ export async function fetchBansosFromSheets(
         const nomRaw = (cols[5] || '').replace(/[^0-9]/g, '');
         const txId = (cols[7] || pelId).trim();
 
-        const isOut = pelId.startsWith('BANSOS-OUT-') || /penyaluran.*bansos/i.test(jenisRaw);
-        const isIn = pelId.startsWith('BANSOS-IN-') || /dana masuk bansos/i.test(jenisRaw);
+        const isOut =
+          pelId.startsWith('BANSOS-OUT-') ||
+          pelId.startsWith('DANSOS-OUT-') ||
+          /penyaluran.*(bansos|dansos)/i.test(jenisRaw);
+        const isIn =
+          pelId.startsWith('BANSOS-IN-') ||
+          pelId.startsWith('DANSOS-IN-') ||
+          /dana masuk (bansos|dansos)/i.test(jenisRaw);
         if (!isOut && !isIn) continue;
         if (seenIds.has(pelId)) continue;
 
@@ -2247,8 +2259,8 @@ export async function fetchBansosFromSheets(
         seenIds.add(pelId);
 
         const parts = namaCol.split('|').map((s) => s.trim());
-        const pihakTerkait = parts[0] || 'Penerima Bantuan Sosial';
-        const keterangan = parts.slice(1).join(' | ') || jenisRaw || 'Transaksi Dana Bansos';
+        const pihakTerkait = parts[0] || 'Penerima Dana Sosial';
+        const keterangan = parts.slice(1).join(' | ') || jenisRaw || 'Transaksi Dana Dansos';
         const rawUrl = strukUrlByTxId.get(pelId) || strukUrlByTxId.get(txId);
 
         entries.push({

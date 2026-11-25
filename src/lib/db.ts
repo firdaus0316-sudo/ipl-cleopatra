@@ -159,7 +159,8 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
   for (const proof of db.proofs) {
     if (
       isBansosProofCategory(proof.kategori) ||
-      (proof.transactionId || '').trim().startsWith('BANSOS-')
+      (proof.transactionId || '').trim().startsWith('BANSOS-') ||
+      (proof.transactionId || '').trim().startsWith('DANSOS-')
     ) {
       continue;
     }
