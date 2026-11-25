@@ -109,33 +109,51 @@ export function parseDateFlexible(str?: string): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function fetchCsvByGid(gid: string): Promise<string> {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_t=${Date.now()}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 9500);
+export async function fetchCsvByGid(gid: string, maxRetries = 1): Promise<string> {
+  let lastError: any = null;
 
-  try {
-    const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
-    clearTimeout(timeoutId);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_t=${Date.now()}_${attempt}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9500);
 
-    if (res.status === 401 || res.status === 403) {
-      throw new Error('Spreadsheet masih dikunci (Private). Ubah akses di Google Sheets menjadi "Siapa saja yang memiliki link" -> "Pelihat (Viewer)".');
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error('Spreadsheet masih dikunci (Private). Ubah akses di Google Sheets menjadi "Siapa saja yang memiliki link" -> "Pelihat (Viewer)".');
+      }
+
+      if (!res.ok) {
+        const err = new Error(`Gagal membaca Google Sheets GID ${gid}: status ${res.status} ${res.statusText}`);
+        if ((res.status >= 500 || res.status === 429) && attempt < maxRetries) {
+          lastError = err;
+          await new Promise((r) => setTimeout(r, 350));
+          continue;
+        }
+        throw err;
+      }
+
+      const text = await res.text();
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        throw new Error(`Google Sheets mengembalikan halaman HTML alih-alih data CSV untuk GID ${gid}.`);
+      }
+
+      return text;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      const isAuthLock = String(err?.message || '').includes('dikunci (Private)');
+      if (!isAuthLock && attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 350));
+        continue;
+      }
+      throw err;
     }
-
-    if (!res.ok) {
-      throw new Error(`Gagal membaca Google Sheets GID ${gid}: status ${res.status} ${res.statusText}`);
-    }
-
-    const text = await res.text();
-    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-      throw new Error(`Google Sheets mengembalikan halaman HTML alih-alih data CSV untuk GID ${gid}.`);
-    }
-
-    return text;
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    throw err;
   }
+
+  throw lastError || new Error(`Gagal membaca Google Sheets GID ${gid}.`);
 }
 
 /**

@@ -20,6 +20,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 30;
 
 function getPeriodLabel(code: string): string {
   if (code === 'ALL') return 'Semua Periode (Akumulasi)';

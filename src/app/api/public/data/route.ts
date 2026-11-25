@@ -12,6 +12,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 30;
 
 export async function GET() {
   try {
@@ -63,7 +64,7 @@ export async function GET() {
       console.warn('Public data live sync error:', e);
     }
 
-    const { adminPin, ...safeSettings } = db.settings;
+    const { adminPin, googleDriveWebhookUrl, ...safeSettings } = db.settings;
 
     const totalPemasukan = (db.incomes || [])
       .filter((i) => i && i.status === 'Sah')

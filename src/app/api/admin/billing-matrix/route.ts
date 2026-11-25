@@ -20,6 +20,7 @@ const MONTH_NAMES = [
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 30;
 
 function matchesMonth(targetYear: number, monthIndex: number, bStr?: string | null): boolean {
   if (!bStr) return false;

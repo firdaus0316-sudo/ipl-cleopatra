@@ -11,6 +11,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,10 +51,10 @@ export async function GET(req: NextRequest) {
     if (q) {
       proofs = proofs.filter(
         (p) =>
-          p.id.toLowerCase().includes(q) ||
-          p.residentName.toLowerCase().includes(q) ||
-          p.blok.toLowerCase().includes(q) ||
-          p.hp.includes(q)
+          (p.id || '').toLowerCase().includes(q) ||
+          (p.residentName || '').toLowerCase().includes(q) ||
+          (p.blok || '').toLowerCase().includes(q) ||
+          (p.hp || '').includes(q)
       );
     }
 
