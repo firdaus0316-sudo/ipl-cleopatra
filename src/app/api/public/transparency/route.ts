@@ -13,6 +13,8 @@ import {
   fetchResidentsFromSheet,
   fetchProofsFromSheet,
   reconcileVerifiedProofsToIncomes,
+  fetchBansosFromSheets,
+  computeBansosSummary,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
@@ -300,6 +302,17 @@ export async function GET() {
         nominal: i.nominal,
       }));
 
+    let bansosList = db.bansos || [];
+    let bansosSummary = computeBansosSummary(bansosList);
+    try {
+      const bansosRes = await fetchBansosFromSheets(db.expenses);
+      if (bansosRes.success) {
+        const deletedBansosSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        bansosList = bansosRes.entries.filter((b) => !deletedBansosSet.has(b.id));
+        bansosSummary = computeBansosSummary(bansosList);
+      }
+    } catch {}
+
     return NextResponse.json({
       success: true,
       summary: {
@@ -307,6 +320,18 @@ export async function GET() {
         totalPemasukan: totalIncomes,
         totalPengeluaran: totalExpenses,
         saldoAkhir,
+      },
+      bansos: {
+        ...bansosSummary,
+        list: bansosList.map((b) => ({
+          id: b.id,
+          tanggal: b.tanggal,
+          jenis: b.jenis,
+          nominal: b.nominal,
+          pihakTerkait: b.pihakTerkait,
+          keterangan: b.keterangan,
+          buktiUrl: b.buktiUrl || null,
+        })),
       },
       expenseByCategory,
       incomeByCategory,

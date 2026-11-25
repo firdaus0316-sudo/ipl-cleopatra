@@ -47,6 +47,8 @@ import {
   Filter,
   Lock,
   Menu,
+  HeartHandshake,
+  ArrowRightLeft,
 } from 'lucide-react';
 import {
   formatRupiah,
@@ -67,6 +69,9 @@ import {
   SaldoAwalEntry,
   TunggakanLamaEntry,
   KasbonEntry,
+  BansosEntry,
+  BansosSummary,
+  BansosTransactionType,
 } from '@/types';
 import * as XLSX from 'xlsx';
 
@@ -156,7 +161,7 @@ export default function AdminPage() {
 
   // Active Menu Tab
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'verifikasi' | 'pengeluaran' | 'pemasukan' | 'matriks' | 'warga' | 'tunggakan' | 'kasbon' | 'laporan' | 'pengaturan'
+    'dashboard' | 'verifikasi' | 'pengeluaran' | 'pemasukan' | 'matriks' | 'warga' | 'tunggakan' | 'kasbon' | 'bansos' | 'laporan' | 'pengaturan'
   >('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
@@ -170,6 +175,30 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [tunggakanLama, setTunggakanLama] = useState<TunggakanLamaEntry[]>([]);
   const [kasbon, setKasbon] = useState<KasbonEntry[]>([]);
+  const [bansosList, setBansosList] = useState<BansosEntry[]>([]);
+  const [bansosSummary, setBansosSummary] = useState<BansosSummary>({
+    saldoBansos: 0,
+    totalPemindahan: 0,
+    countPemindahan: 0,
+    totalMasukKhusus: 0,
+    countMasukKhusus: 0,
+    totalDanaTerkumpul: 0,
+    totalPenyaluran: 0,
+    countPenyaluran: 0,
+  });
+  const [bansosSearch, setBansosSearch] = useState('');
+  const [bansosTypeFilter, setBansosTypeFilter] = useState<'all' | BansosTransactionType>('all');
+  const [showBansosModal, setShowBansosModal] = useState(false);
+  const [bansosFormJenis, setBansosFormJenis] = useState<BansosTransactionType>('pemindahan');
+  const [bansosFormTanggal, setBansosFormTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [bansosFormNominal, setBansosFormNominal] = useState('');
+  const [bansosFormPihak, setBansosFormPihak] = useState('');
+  const [bansosFormKet, setBansosFormKet] = useState('');
+  const [bansosFormBukti, setBansosFormBukti] = useState('');
+  const [bansosFormBuktiName, setBansosFormBuktiName] = useState('');
+  const [isSubmittingBansos, setIsSubmittingBansos] = useState(false);
+  const [selectedBansosReceipt, setSelectedBansosReceipt] = useState<BansosEntry | null>(null);
+  const bansosFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [saldoAwalHistory, setSaldoAwalHistory] = useState<SaldoAwalEntry[]>([]);
 
   // Pindah Bulan / Rollover Modal States
@@ -434,7 +463,7 @@ export default function AdminPage() {
       const periodParam = overridePeriod || selectedTargetPeriod || '2026-11';
       const opts = { cache: 'no-store' as RequestCache };
 
-      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes, kasbonRes, tunggakanRes] = await Promise.all([
+      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes, kasbonRes, tunggakanRes, bansosRes] = await Promise.all([
         fetch(`/api/admin/dashboard?targetPeriod=${periodParam}&year=${matrixYear}&_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/proofs?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/expenses?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
@@ -444,6 +473,7 @@ export default function AdminPage() {
         fetch(`/api/admin/settings?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/kasbon?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/tunggakan?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
+        fetch(`/api/admin/bansos?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
       ]);
 
       if (dashRes?.requireAuth || proofsRes?.requireAuth || settRes?.requireAuth) {
@@ -457,6 +487,13 @@ export default function AdminPage() {
       if (dashRes?.success) {
         setDashboardData(dashRes);
         if (dashRes.saldoAwalHistory) setSaldoAwalHistory(dashRes.saldoAwalHistory);
+      }
+      if (bansosRes?.success && Array.isArray(bansosRes.data)) {
+        setBansosList(bansosRes.data);
+        if (bansosRes.summary) setBansosSummary(bansosRes.summary);
+      } else if (dashRes?.bansosList) {
+        setBansosList(dashRes.bansosList);
+        if (dashRes.bansosSummary) setBansosSummary(dashRes.bansosSummary);
       }
       if (kasbonRes?.success && Array.isArray(kasbonRes.data)) {
         setKasbon(kasbonRes.data);
@@ -519,7 +556,7 @@ export default function AdminPage() {
 
   // Targeted lightweight refresh: hanya memperbarui tab/data terkait tanpa memblokir transisi UI
   const refreshSlices = async (
-    targets: Array<'dashboard' | 'proofs' | 'incomes' | 'expenses' | 'residents' | 'matrix' | 'kasbon' | 'tunggakan'>
+    targets: Array<'dashboard' | 'proofs' | 'incomes' | 'expenses' | 'residents' | 'matrix' | 'kasbon' | 'tunggakan' | 'bansos'>
   ) => {
     if (!isAuthenticated) return;
     try {
@@ -594,6 +631,19 @@ export default function AdminPage() {
           fetch(`/api/admin/tunggakan?_t=${ts}`, opts)
             .then((r) => r.json())
             .then((res) => { if (res?.success && Array.isArray(res.data)) setTunggakanLama(res.data); })
+            .catch(() => {})
+        );
+      }
+      if (targets.includes('bansos')) {
+        tasks.push(
+          fetch(`/api/admin/bansos?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => {
+              if (res?.success && Array.isArray(res.data)) {
+                setBansosList(res.data);
+                if (res.summary) setBansosSummary(res.summary);
+              }
+            })
             .catch(() => {})
         );
       }
@@ -1692,6 +1742,119 @@ export default function AdminPage() {
     }
   };
 
+  // === HANDLERS KAS BANSOS (POS TERPISAH DARI KAS UTAMA) ===
+  const handleOpenBansosModal = (jenis: BansosTransactionType = 'pemindahan') => {
+    setBansosFormJenis(jenis);
+    setBansosFormTanggal(new Date().toISOString().split('T')[0]);
+    setBansosFormNominal('');
+    setBansosFormPihak(
+      jenis === 'pemindahan'
+        ? 'Bendahara / Pos Kas Bansos RT 011'
+        : ''
+    );
+    setBansosFormKet('');
+    setBansosFormBukti('');
+    setBansosFormBuktiName('');
+    setShowBansosModal(true);
+  };
+
+  const handleBansosFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Ukuran file maksimal 4MB.');
+      return;
+    }
+    setBansosFormBuktiName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBansosFormBukti(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBansos = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const nominalVal = Number(bansosFormNominal);
+    if (!nominalVal || nominalVal <= 0) {
+      alert('Nominal transaksi Kas Bansos harus lebih dari Rp 0.');
+      return;
+    }
+    if (!bansosFormPihak.trim() || !bansosFormKet.trim()) {
+      alert('Pihak terkait / penerima dan keterangan wajib diisi.');
+      return;
+    }
+    if (bansosFormJenis === 'penyaluran' && nominalVal > bansosSummary.saldoBansos) {
+      alert(
+        `Saldo Kas Bansos tersedia (${formatRupiah(bansosSummary.saldoBansos)}) tidak mencukupi untuk penyaluran ${formatRupiah(nominalVal)}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`
+      );
+      return;
+    }
+
+    setIsSubmittingBansos(true);
+    try {
+      const res = await fetch('/api/admin/bansos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tanggal: bansosFormTanggal,
+          jenis: bansosFormJenis,
+          nominal: nominalVal,
+          pihakTerkait: bansosFormPihak.trim(),
+          keterangan: bansosFormKet.trim(),
+          buktiUrl: bansosFormBukti || undefined,
+        }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setShowBansosModal(false);
+        showToast(`✓ ${d.message || 'Transaksi Kas Bansos berhasil dicatat!'}`);
+        await refreshAll();
+      } else {
+        alert(d.error || 'Gagal menyimpan transaksi Kas Bansos.');
+      }
+    } catch {
+      alert('Gagal menghubungi server saat mencatat Kas Bansos.');
+    } finally {
+      setIsSubmittingBansos(false);
+    }
+  };
+
+  const handleDeleteBansos = async (item: BansosEntry) => {
+    const labelJenis =
+      item.jenis === 'pemindahan'
+        ? 'Pemindahan dari Kas Utama'
+        : item.jenis === 'penyaluran'
+          ? 'Penyaluran Bansos'
+          : 'Dana Masuk Khusus Bansos';
+    if (
+      !confirm(
+        `Hapus catatan ${labelJenis} (${item.pihakTerkait} - ${formatRupiah(item.nominal)})?${
+          item.jenis === 'pemindahan'
+            ? '\nCatatan: Menghapus pemindahan dana juga akan menghapus catatan pengeluarannya di Kas Utama.'
+            : ''
+        }`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/admin/bansos?id=${encodeURIComponent(item.id)}&jenis=${encodeURIComponent(item.jenis)}`,
+        { method: 'DELETE' }
+      );
+      const d = await res.json();
+      if (d.success) {
+        showToast(`✓ ${d.message || 'Catatan Kas Bansos dihapus.'}`);
+        await refreshAll();
+      } else {
+        alert(d.error || 'Gagal menghapus catatan Kas Bansos.');
+      }
+    } catch (err: any) {
+      alert('Terjadi kesalahan: ' + (err?.message || 'Unknown error'));
+    }
+  };
+
   // Helper normalisasi format periode (contoh: "2026-11", "November 2026", "2026-11-05")
   const normalizePeriodCodeHelper = (input: string): string => {
     if (!input) return '';
@@ -2188,6 +2351,25 @@ export default function AdminPage() {
             {kasbon.filter((k) => k.status === 'Belum Lunas').length > 0 && (
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 {kasbon.filter((k) => k.status === 'Belum Lunas').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('bansos'); setIsMobileNavOpen(false); }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+              activeTab === 'bansos'
+                ? 'bg-white/10 text-white shadow-inner font-bold'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <HeartHandshake className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Kas Dana Bansos</span>
+            </div>
+            {bansosSummary.saldoBansos > 0 && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Aktif
               </span>
             )}
           </button>
@@ -2690,6 +2872,102 @@ export default function AdminPage() {
                     <span>Kelola & Catat Pengembalian Kasbon (Cicil / Cash)</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* POS DANA KHUSUS: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-rose-200/80 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                    <HeartHandshake className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-extrabold text-slate-900 text-base">
+                        Pos Dana Khusus: Kas Kecil Bansos
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                        Terpisah dari Saldo Kas Utama
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Pemindahan dana mengurangi saldo Kas Utama dan otomatis masuk ke Saldo Kas Bansos. Penyaluran bansos selanjutnya hanya memotong Saldo Kas Bansos.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBansosModal('pemindahan')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>+ Pemindahan ke Kas Bansos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBansosModal('penyaluran')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Penyaluran Bansos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('bansos')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold transition cursor-pointer"
+                  >
+                    <span>Kelola Kas Bansos</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="rounded-2xl p-4 bg-gradient-to-br from-rose-50 via-white to-rose-50/40 border border-rose-200">
+                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Bansos Tersedia</div>
+                  <div className="text-2xl font-black text-rose-900 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.saldoBansos ?? bansosSummary.saldoBansos)}
+                  </div>
+                  <div className="text-[11px] text-rose-600 font-medium mt-1">
+                    Saldo siap disalurkan (kas kecil terpisah)
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Pemindahan dari Kas Utama</span>
+                  </div>
+                  <div className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalPemindahanBansos ?? bansosSummary.totalPemindahan)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {dashboardData.stats.countPemindahanBansos ?? bansosSummary.countPemindahan}x mutasi keluar Kas Utama
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Bansos</div>
+                  <div className="text-xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalMasukKhususBansos ?? bansosSummary.totalMasukKhusus)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Setoran / donasi langsung luar Kas Utama
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Sudah Disalurkan</div>
+                  <div className="text-xl font-black text-amber-700 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalPenyaluranBansos ?? bansosSummary.totalPenyaluran)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {dashboardData.stats.countPenyaluranBansos ?? bansosSummary.countPenyaluran}x penyaluran bantuan sosial
+                  </div>
                 </div>
               </div>
             </div>
@@ -5522,6 +5800,253 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* TAB 10: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+        {activeTab === 'bansos' && (() => {
+          const q = bansosSearch.trim().toLowerCase();
+          const filteredBansos = bansosList.filter((item) => {
+            if (bansosTypeFilter !== 'all' && item.jenis !== bansosTypeFilter) return false;
+            if (!q) return true;
+            return (
+              (item.pihakTerkait || '').toLowerCase().includes(q) ||
+              (item.keterangan || '').toLowerCase().includes(q) ||
+              (item.tanggal || '').toLowerCase().includes(q) ||
+              (item.id || '').toLowerCase().includes(q)
+            );
+          });
+
+          return (
+            <div className="space-y-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2.5 flex-wrap">
+                    <HeartHandshake className="w-6 h-6 text-rose-600" />
+                    <span>Kas Kecil Dana Bansos (Bantuan Sosial)</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                      Saldo & Buku Terpisah dari Kas Utama
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Pemindahan dana mengurangi Kas Utama ke Pos Bansos. Penyaluran bantuan & donasi khusus Bansos dicatat terpisah tanpa memengaruhi Kas Utama.
+                  </p>
+                </div>
+
+                {/* Tombol Transaksi Khusus Kas Bansos */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBansosModal('pemindahan')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    <span>Pemindahan dari Kas Utama</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBansosModal('masuk_langsung')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Dana Masuk Khusus</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBansosModal('penyaluran')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Catat Penyaluran Bansos</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 KPI Cards Kas Bansos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-rose-50 via-white to-rose-50/40 rounded-2xl p-5 border border-rose-200 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-rose-700">Saldo Kas Bansos</span>
+                    <HeartHandshake className="w-4 h-4 text-rose-600" />
+                  </div>
+                  <div className="text-2xl font-black text-rose-900 mt-1.5 tracking-tight">
+                    {formatRupiah(bansosSummary.saldoBansos)}
+                  </div>
+                  <div className="text-[11px] text-rose-700/80 mt-1">
+                    Total Terkumpul {formatRupiah(bansosSummary.totalDanaTerkumpul)}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-600">Pemindahan Kas Utama</span>
+                    <ArrowRightLeft className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="text-2xl font-black text-indigo-700 mt-1.5 tracking-tight">
+                    {formatRupiah(bansosSummary.totalPemindahan)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {bansosSummary.countPemindahan}x transfer (otomatis potong Kas Utama)
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-600">Dana Masuk Khusus</span>
+                    <Wallet className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="text-2xl font-black text-emerald-700 mt-1.5 tracking-tight">
+                    {formatRupiah(bansosSummary.totalMasukKhusus)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {bansosSummary.countMasukKhusus}x donasi/setoran langsung Bansos
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-600">Penyaluran Bantuan</span>
+                    <ArrowRight className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="text-2xl font-black text-amber-700 mt-1.5 tracking-tight">
+                    {formatRupiah(bansosSummary.totalPenyaluran)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {bansosSummary.countPenyaluran}x penyaluran (hanya potong Kas Bansos)
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter & Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { id: 'all', label: `Semua (${bansosList.length})` },
+                      { id: 'pemindahan', label: `Pemindahan Kas Utama (${bansosSummary.countPemindahan})` },
+                      { id: 'penyaluran', label: `Penyaluran (${bansosSummary.countPenyaluran})` },
+                      { id: 'masuk_langsung', label: `Masuk Khusus (${bansosSummary.countMasukKhusus})` },
+                    ].map((pill) => (
+                      <button
+                        key={pill.id}
+                        type="button"
+                        onClick={() => setBansosTypeFilter(pill.id as any)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          bansosTypeFilter === pill.id
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative w-full md:w-72">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={bansosSearch}
+                      onChange={(e) => setBansosSearch(e.target.value)}
+                      placeholder="Cari penerima / keterangan..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                        <th className="py-3 px-4">Tanggal</th>
+                        <th className="py-3 px-4">Jenis Transaksi</th>
+                        <th className="py-3 px-4">Penerima / Sumber</th>
+                        <th className="py-3 px-4">Keterangan</th>
+                        <th className="py-3 px-4 text-right">Nominal</th>
+                        <th className="py-3 px-4 text-center">Bukti</th>
+                        <th className="py-3 px-4 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredBansos.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-slate-400">
+                            Belum ada transaksi Kas Bansos yang sesuai filter. Gunakan tombol di atas untuk memindahkan dana dari Kas Utama atau mencatat penyaluran Bansos.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredBansos.map((item) => {
+                          const isOut = item.jenis === 'penyaluran';
+                          const isTransfer = item.jenis === 'pemindahan';
+                          const receipt = item.driveUrl || item.buktiUrl;
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">
+                                {item.tanggal}
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                    isTransfer
+                                      ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                      : isOut
+                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  }`}
+                                >
+                                  {isTransfer
+                                    ? 'Pemindahan dari Kas Utama'
+                                    : isOut
+                                      ? 'Penyaluran Bansos'
+                                      : 'Dana Masuk Khusus'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-900">
+                                {item.pihakTerkait}
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 max-w-xs">
+                                {item.keterangan}
+                              </td>
+                              <td
+                                className={`py-3 px-4 text-right font-black whitespace-nowrap ${
+                                  isOut ? 'text-amber-700' : 'text-emerald-700'
+                                }`}
+                              >
+                                {isOut ? '-' : '+'}{formatRupiah(item.nominal)}
+                              </td>
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                {receipt ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedBansosReceipt(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 transition cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>Bukti</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBansos(item)}
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                  title="Hapus Transaksi Kas Bansos"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       {/* MODAL VERIFIKASI BUKTI DETAIL */}
@@ -5758,6 +6283,7 @@ export default function AdminPage() {
                     <option value="Fixed">Fixed</option>
                     <option value="Variabel">Variabel</option>
                     <option value="Kasbon">Kasbon</option>
+                    <option value="Pemindahan Dana Bansos">Pemindahan Dana Bansos</option>
                   </select>
                 </div>
               </div>
@@ -7806,6 +8332,263 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL TRANSAKSI KAS KECIL BANSOS */}
+      {showBansosModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowBansosModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <HeartHandshake className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">
+                  Transaksi Kas Kecil Bansos
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Saldo Kas Bansos saat ini: <strong className="text-rose-700">{formatRupiah(bansosSummary.saldoBansos)}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* 3 Jenis Transaksi Toggle */}
+            <div className="grid grid-cols-3 gap-2 my-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setBansosFormJenis('pemindahan');
+                  if (!bansosFormPihak) setBansosFormPihak('Bendahara / Pos Kas Bansos RT 011');
+                }}
+                className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
+                  bansosFormJenis === 'pemindahan'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Pindah Kas Utama
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBansosFormJenis('penyaluran');
+                  if (bansosFormPihak === 'Bendahara / Pos Kas Bansos RT 011') setBansosFormPihak('');
+                }}
+                className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
+                  bansosFormJenis === 'penyaluran'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Penyaluran Bansos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBansosFormJenis('masuk_langsung');
+                  if (bansosFormPihak === 'Bendahara / Pos Kas Bansos RT 011') setBansosFormPihak('');
+                }}
+                className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
+                  bansosFormJenis === 'masuk_langsung'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Masuk Khusus
+              </button>
+            </div>
+
+            <div
+              className={`p-3 rounded-xl text-[11px] mb-4 border ${
+                bansosFormJenis === 'pemindahan'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-900'
+                  : bansosFormJenis === 'penyaluran'
+                    ? 'bg-rose-50 border-rose-200 text-rose-900'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}
+            >
+              {bansosFormJenis === 'pemindahan'
+                ? 'Dana dipindahkan dari Kas Utama RT ke Kas Kecil Bansos: mengurangi saldo Kas Utama dan menambah saldo Kas Bansos.'
+                : bansosFormJenis === 'penyaluran'
+                  ? 'Penyaluran Bantuan Sosial hanya memotong saldo Kas Bansos dan TIDAK mengurangi Kas Utama RT.'
+                  : 'Penerimaan donasi/sumbangan khusus Bansos dari luar Kas Utama: langsung menambah saldo Kas Bansos tanpa memengaruhi Kas Utama.'}
+            </div>
+
+            <form onSubmit={handleSaveBansos} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Tanggal</label>
+                  <input
+                    type="date"
+                    required
+                    value={bansosFormTanggal}
+                    onChange={(e) => setBansosFormTanggal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nominal (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    placeholder="Contoh: 500000"
+                    value={bansosFormNominal}
+                    onChange={(e) => setBansosFormNominal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  {bansosFormJenis === 'pemindahan'
+                    ? 'Penanggung Jawab / Pos Tujuan'
+                    : bansosFormJenis === 'penyaluran'
+                      ? 'Nama Penerima Bantuan'
+                      : 'Nama Donatur / Sumber Dana'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={
+                    bansosFormJenis === 'pemindahan'
+                      ? 'Contoh: Pos Kas Bansos RT 011'
+                      : bansosFormJenis === 'penyaluran'
+                        ? 'Contoh: Bpk. Ahmad / Keluarga Dhuafa Blok C'
+                        : 'Contoh: Hamba Allah / Sumbangan Warga'
+                  }
+                  value={bansosFormPihak}
+                  onChange={(e) => setBansosFormPihak(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Keterangan Transaksi</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder={
+                    bansosFormJenis === 'pemindahan'
+                      ? 'Contoh: Alokasi dana kas kecil Bansos bulan ini'
+                      : bansosFormJenis === 'penyaluran'
+                        ? 'Contoh: Santunan warga sakit / bantuan sembako'
+                        : 'Contoh: Titipan donasi khusus program Bansos'
+                  }
+                  value={bansosFormKet}
+                  onChange={(e) => setBansosFormKet(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Foto Bukti / Struk (Opsional)
+                </label>
+                <input
+                  ref={bansosFileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleBansosFileChange}
+                  className="hidden"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => bansosFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-300 transition cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{bansosFormBuktiName ? 'Ganti File' : 'Unggah Bukti'}</span>
+                  </button>
+                  {bansosFormBuktiName && (
+                    <span className="text-[11px] text-emerald-700 font-semibold truncate">
+                      ✓ {bansosFormBuktiName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBansosModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBansos}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold transition shadow-sm cursor-pointer"
+                >
+                  {isSubmittingBansos && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>
+                    {isSubmittingBansos ? 'Menyimpan...' : 'Simpan Transaksi Bansos'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BUKTI STRUK BANSOS */}
+      {selectedBansosReceipt && (() => {
+        const receiptSrc = selectedBansosReceipt.driveUrl || selectedBansosReceipt.buktiUrl || '';
+        return (
+          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-xl w-full p-4 shadow-2xl relative space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Bukti Transaksi Kas Bansos</h4>
+                  <p className="text-[11px] text-slate-500">
+                    {selectedBansosReceipt.pihakTerkait} • {selectedBansosReceipt.tanggal} •{' '}
+                    <strong className="text-slate-800">{formatRupiah(selectedBansosReceipt.nominal)}</strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedBansosReceipt(null)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="max-h-[70vh] overflow-auto flex items-center justify-center bg-slate-50 rounded-xl p-2">
+                {receiptSrc.startsWith('data:image') ||
+                /\.(png|jpe?g|webp|gif)(\?|$)/i.test(receiptSrc) ? (
+                  <img
+                    src={receiptSrc}
+                    alt="Bukti Transaksi Bansos"
+                    className="max-w-full max-h-[65vh] rounded-lg object-contain"
+                  />
+                ) : receiptSrc ? (
+                  <a
+                    href={receiptSrc}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Buka Bukti di Tab Baru</span>
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400">Tidak ada tautan bukti.</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Floating non-blocking status toast */}
       {refreshToast && (

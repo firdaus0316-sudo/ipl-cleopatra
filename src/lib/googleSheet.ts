@@ -1,5 +1,5 @@
-import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord } from '@/types';
-import { normalizeBlokCode, isIuranBulananCategory } from '@/lib/format';
+import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, BansosEntry, BansosSummary } from '@/types';
+import { normalizeBlokCode, isIuranBulananCategory, isPemindahanBansosCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -2019,4 +2019,154 @@ export async function reconcileVerifiedProofsToIncomes(
   }
 
   return healedCount;
+}
+
+/**
+ * 13. Pos Dana Khusus Bantuan Sosial (Bansos) - Pencatatan Terpisah dari Kas Utama
+ * - Pemindahan dana dari Kas Utama terbaca dari DataPengeluaran kategori 'Pemindahan Dana Bansos'.
+ * - Penyaluran & pemasukan langsung khusus Bansos tersimpan terpisah di RiwayatPelunasan
+ *   (BANSOS-OUT-... & BANSOS-IN-...) dan BuktiStruk agar tidak memengaruhi Saldo Kas Utama.
+ */
+export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
+  const valid = (entries || []).filter((e) => e && e.status === 'Sah');
+  let totalPemindahan = 0;
+  let countPemindahan = 0;
+  let totalMasukKhusus = 0;
+  let countMasukKhusus = 0;
+  let totalPenyaluran = 0;
+  let countPenyaluran = 0;
+
+  for (const e of valid) {
+    const nom = Number(e.nominal) || 0;
+    if (nom <= 0) continue;
+    if (e.jenis === 'pemindahan') {
+      totalPemindahan += nom;
+      countPemindahan += 1;
+    } else if (e.jenis === 'masuk_langsung') {
+      totalMasukKhusus += nom;
+      countMasukKhusus += 1;
+    } else if (e.jenis === 'penyaluran') {
+      totalPenyaluran += nom;
+      countPenyaluran += 1;
+    }
+  }
+
+  const totalDanaTerkumpul = totalPemindahan + totalMasukKhusus;
+  const saldoBansos = totalDanaTerkumpul - totalPenyaluran;
+
+  return {
+    saldoBansos,
+    totalPemindahan,
+    countPemindahan,
+    totalMasukKhusus,
+    countMasukKhusus,
+    totalDanaTerkumpul,
+    totalPenyaluran,
+    countPenyaluran,
+  };
+}
+
+export async function fetchBansosFromSheets(
+  preloadedExpenses?: ExpenseTransaction[]
+): Promise<{ success: boolean; entries: BansosEntry[]; summary: BansosSummary; error?: string }> {
+  try {
+    const [expRes, pelCsvText, strukCsvText] = await Promise.all([
+      preloadedExpenses ? Promise.resolve({ success: true, expenses: preloadedExpenses }) : fetchExpensesFromSheet(),
+      fetchCsvByGid(SHEET_GIDS.riwayatpelunasan).catch(() => ''),
+      fetchCsvByGid(SHEET_GIDS.buktistruk).catch(() => ''),
+    ]);
+
+    const strukUrlByTxId = new Map<string, string>();
+    if (strukCsvText) {
+      const strukLines = strukCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < strukLines.length; i++) {
+        const sCols = parseCsvLine(strukLines[i]);
+        const sTxId = (sCols[6] || '').trim();
+        const sUrl = (sCols[5] || '').trim();
+        if (sTxId && sUrl) {
+          strukUrlByTxId.set(sTxId, sUrl);
+        }
+      }
+    }
+
+    const entries: BansosEntry[] = [];
+    const seenIds = new Set<string>();
+
+    // 1. Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Bansos')
+    for (const exp of expRes.expenses || []) {
+      if (!exp || exp.status !== 'Sah' || !isPemindahanBansosCategory(exp.kategori)) continue;
+      if (seenIds.has(exp.id)) continue;
+      seenIds.add(exp.id);
+      entries.push({
+        id: exp.id,
+        tanggal: exp.tanggal,
+        jenis: 'pemindahan',
+        nominal: Number(exp.nominal) || 0,
+        pihakTerkait: exp.penerima || 'Pos Dana Bansos RT',
+        keterangan: exp.keterangan || 'Pemindahan Dana dari Kas Utama',
+        status: 'Sah',
+        buktiUrl: exp.buktiUrl,
+        driveUrl: exp.driveUrl,
+        sourceExpenseId: exp.id,
+        createdAt: exp.createdAt || exp.tanggal,
+      });
+    }
+
+    // 2. Mutasi khusus Dana Bansos (Penyaluran & Masuk Langsung) di RiwayatPelunasan
+    if (pelCsvText) {
+      const lines = pelCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length < 6) continue;
+        const pelId = (cols[0] || '').trim();
+        const waktu = (cols[1] || '').trim();
+        const jenisRaw = (cols[2] || '').trim();
+        const namaCol = (cols[4] || '').trim();
+        const nomRaw = (cols[5] || '').replace(/[^0-9]/g, '');
+        const txId = (cols[7] || pelId).trim();
+
+        const isOut = pelId.startsWith('BANSOS-OUT-') || /penyaluran.*bansos/i.test(jenisRaw);
+        const isIn = pelId.startsWith('BANSOS-IN-') || /dana masuk bansos/i.test(jenisRaw);
+        if (!isOut && !isIn) continue;
+        if (seenIds.has(pelId)) continue;
+
+        const nominal = nomRaw ? parseInt(nomRaw, 10) : 0;
+        if (nominal <= 0) continue;
+        seenIds.add(pelId);
+
+        const parts = namaCol.split('|').map((s) => s.trim());
+        const pihakTerkait = parts[0] || 'Penerima Bantuan Sosial';
+        const keterangan = parts.slice(1).join(' | ') || jenisRaw || 'Transaksi Dana Bansos';
+        const rawUrl = strukUrlByTxId.get(pelId) || strukUrlByTxId.get(txId);
+
+        entries.push({
+          id: pelId,
+          tanggal: parseDateFlexible(waktu),
+          jenis: isOut ? 'penyaluran' : 'masuk_langsung',
+          nominal,
+          pihakTerkait,
+          keterangan,
+          status: 'Sah',
+          buktiUrl: rawUrl ? getDirectGoogleDriveImageUrl(rawUrl) : undefined,
+          driveUrl: rawUrl || undefined,
+          createdAt: parseDateFlexible(waktu),
+        });
+      }
+    }
+
+    entries.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+
+    return {
+      success: true,
+      entries,
+      summary: computeBansosSummary(entries),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      entries: [],
+      summary: computeBansosSummary([]),
+      error: err.message,
+    };
+  }
 }

@@ -14,6 +14,8 @@ import {
   fetchResidentsFromSheet, fetchSaldoAwalFromSheet,
   syncAllDbNamesWithMaster,
   reconcileVerifiedProofsToIncomes,
+  fetchBansosFromSheets,
+  computeBansosSummary,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -181,6 +183,19 @@ export async function GET(req: NextRequest) {
         await reconcileVerifiedProofsToIncomes(db, sheetVoidedIds);
       } catch {}
     }
+
+    // Sinkronkan buku khusus Kas Kecil Dana Bansos (terpisah dari Kas Utama)
+    let bansosList = db.bansos || [];
+    let bansosSummary = computeBansosSummary(bansosList);
+    try {
+      const bansosRes = await fetchBansosFromSheets(db.expenses);
+      if (bansosRes.success) {
+        const deletedBansosSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        bansosList = bansosRes.entries.filter((b) => !deletedBansosSet.has(b.id));
+        db.bansos = bansosList;
+        bansosSummary = computeBansosSummary(bansosList);
+      }
+    } catch {}
 
     // Pastikan seluruh data transaksi, bukti, tunggakan, dan kasbon selalu tersinkronisasi dengan nama resmi Master Warga
     syncAllDbNamesWithMaster(db);
@@ -561,12 +576,22 @@ export async function GET(req: NextRequest) {
         totalKasbonAwal,
         totalKasbonTerbayar,
         totalKasbonAktif: sisaKasbonBelumKembali,
+
+        // KAS KECIL DANA BANSOS (TERPISAH DARI KAS UTAMA)
+        saldoBansos: bansosSummary.saldoBansos,
+        totalPemindahanBansos: bansosSummary.totalPemindahan,
+        countPemindahanBansos: bansosSummary.countPemindahan,
+        totalMasukKhususBansos: bansosSummary.totalMasukKhusus,
+        totalPenyaluranBansos: bansosSummary.totalPenyaluran,
+        countPenyaluranBansos: bansosSummary.countPenyaluran,
       },
       pendingProofs,
       recentTransactions: combinedTransactions,
       recentLogs: db.logs.slice(0, 6),
       tunggakanLama: tunggakanLamaList,
       kasbon: kasbonList,
+      bansosSummary,
+      bansosList,
       saldoAwalHistory,
       targetRealisasiIuran,
       cashFlowChart,

@@ -1,0 +1,352 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb, saveDb, addLog } from '@/lib/db';
+import { BansosEntry, BansosTransactionType, ExpenseTransaction } from '@/types';
+import { uploadToGoogleDrive } from '@/lib/driveUpload';
+import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
+import {
+  fetchBansosFromSheets,
+  computeBansosSummary,
+  appendExpenseToSheet,
+  appendBuktiStrukToSheet,
+  appendPelunasanToSheet,
+  deleteExpenseFromSheet,
+  deletePelunasanFromSheet,
+  deleteRowFromSheet,
+  executeSheetWritesWithRetry,
+  SHEET_GIDS,
+} from '@/lib/googleSheet';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function GET(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
+  try {
+    const db = getDb();
+    let entries: BansosEntry[] = db.bansos || [];
+    let summary = computeBansosSummary(entries);
+
+    try {
+      const sheetRes = await fetchBansosFromSheets();
+      if (sheetRes.success) {
+        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        const filtered = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
+        db.bansos = filtered;
+        entries = filtered;
+        summary = computeBansosSummary(filtered);
+        saveDb(db);
+      }
+    } catch (e) {
+      console.warn('Fetch live bansos from sheets error:', e);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: entries,
+      summary,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
+  try {
+    const body = await req.json();
+    const { tanggal, jenis, nominal, pihakTerkait, keterangan, buktiUrl } = body as {
+      tanggal?: string;
+      jenis?: BansosTransactionType;
+      nominal?: number | string;
+      pihakTerkait?: string;
+      keterangan?: string;
+      buktiUrl?: string;
+    };
+
+    const parsedNominal = Number(nominal);
+    if (!tanggal || !jenis || !['pemindahan', 'penyaluran', 'masuk_langsung'].includes(jenis)) {
+      return NextResponse.json({ success: false, error: 'Jenis transaksi dan tanggal wajib diisi.' }, { status: 400 });
+    }
+    if (isNaN(parsedNominal) || parsedNominal <= 0) {
+      return NextResponse.json({ success: false, error: 'Nominal harus lebih dari Rp 0.' }, { status: 400 });
+    }
+    if (!pihakTerkait?.trim() || !keterangan?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Nama pihak terkait / penerima dan keterangan wajib diisi.' },
+        { status: 400 }
+      );
+    }
+
+    const db = getDb();
+    const tgl = tanggal.slice(0, 10);
+    const ts = Date.now();
+    const cleanPihak = pihakTerkait.trim().replace(/[|,]/g, ' ');
+    const cleanKet = keterangan.trim().replace(/[|,]/g, ' ');
+
+    // Cek saldo terkini dari Sheet (Kas Utama & Kas Bansos) sebelum memindahkan atau menyalurkan dana
+    try {
+      const sheetRes = await fetchBansosFromSheets();
+      if (sheetRes.success) {
+        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        db.bansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
+      }
+    } catch {}
+
+    const currentBansosSummary = computeBansosSummary(db.bansos || []);
+    if (jenis === 'penyaluran' && parsedNominal > currentBansosSummary.saldoBansos) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Saldo Kas Bansos (Rp ${currentBansosSummary.saldoBansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const prefix =
+      jenis === 'pemindahan' ? 'EXP-BANSOS' : jenis === 'penyaluran' ? 'BANSOS-OUT' : 'BANSOS-IN';
+    const entryId = `${prefix}-${ts}`;
+
+    let finalBuktiUrl = buktiUrl || '';
+    let driveUrl = '';
+    if (buktiUrl && (buktiUrl.startsWith('data:image') || buktiUrl.startsWith('data:application/pdf'))) {
+      const cleanName = cleanPihak.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Bansos_${entryId}_${cleanName}.jpg`;
+      const webhookUrl = db.settings.googleDriveWebhookUrl || db.settings.linkPenyimpananBuktiDrive;
+      const driveRes = await uploadToGoogleDrive(buktiUrl, filename, webhookUrl);
+      if (driveRes.success && driveRes.fileUrl) {
+        driveUrl = driveRes.fileUrl;
+        finalBuktiUrl = driveRes.fileUrl;
+      }
+    }
+
+    const newEntry: BansosEntry = {
+      id: entryId,
+      tanggal: tgl,
+      jenis,
+      nominal: parsedNominal,
+      pihakTerkait: cleanPihak,
+      keterangan: cleanKet,
+      status: 'Sah',
+      buktiUrl: finalBuktiUrl || undefined,
+      driveUrl: driveUrl || undefined,
+      sourceExpenseId: jenis === 'pemindahan' ? entryId : undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!db.bansos) db.bansos = [];
+    db.bansos.unshift(newEntry);
+
+    // 1. Jika Pemindahan Dana dari Kas Utama -> Kurangi Kas Utama via DataPengeluaran
+    let createdExpense: ExpenseTransaction | null = null;
+    if (jenis === 'pemindahan') {
+      createdExpense = {
+        id: entryId,
+        tanggal: tgl,
+        kategori: 'Pemindahan Dana Bansos',
+        nominal: parsedNominal,
+        penerima: cleanPihak,
+        keterangan: `Pemindahan Dana ke Kas Bansos: ${cleanKet}`,
+        buktiUrl: finalBuktiUrl || undefined,
+        driveUrl: driveUrl || undefined,
+        status: 'Sah',
+        createdAt: new Date().toISOString(),
+      };
+      db.expenses.unshift(createdExpense);
+      saveDb(db);
+
+      const sheetTasks = [
+        { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(createdExpense!) },
+        ...(createdExpense.buktiUrl || createdExpense.driveUrl
+          ? [{ label: 'BuktiStruk', critical: false, run: () => appendBuktiStrukToSheet(createdExpense!) }]
+          : []),
+      ];
+      const writeRes = await executeSheetWritesWithRetry(sheetTasks);
+      if (!writeRes.success) {
+        db.bansos = (db.bansos || []).filter((b) => b.id !== entryId);
+        db.expenses = (db.expenses || []).filter((e) => e.id !== entryId);
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal mencatat pemindahan dana Bansos ke Google Sheet DataPengeluaran.',
+          },
+          { status: 502 }
+        );
+      }
+
+      addLog(
+        'Pemindahan Dana ke Kas Bansos',
+        `Memindahkan dana Rp ${parsedNominal.toLocaleString('id-ID')} dari Kas Utama ke Pos Kas Bansos (${cleanPihak}: ${cleanKet}). Saldo Kas Utama berkurang otomatis.`,
+        'Admin'
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Bansos berhasil dicatat (Kas Utama berkurang otomatis)!`,
+        data: newEntry,
+        expense: createdExpense,
+        summary: computeBansosSummary(db.bansos),
+      });
+    }
+
+    // 2. Penyaluran / Dana Masuk Khusus Bansos -> Dicatat TERPISAH di RiwayatPelunasan (tidak memengaruhi Kas Utama)
+    saveDb(db);
+    const nextBalance =
+      jenis === 'penyaluran'
+        ? Math.max(0, currentBansosSummary.saldoBansos - parsedNominal)
+        : currentBansosSummary.saldoBansos + parsedNominal;
+
+    const pelunasanLabel = jenis === 'penyaluran' ? 'Penyaluran Dana Bansos' : 'Dana Masuk Bansos';
+    const writeTasks = [
+      {
+        label: 'RiwayatPelunasan (Kas Bansos)',
+        critical: true,
+        run: () =>
+          appendPelunasanToSheet({
+            id: entryId,
+            waktu: tgl,
+            jenis: pelunasanLabel,
+            referensiId: 'BANSOS',
+            nama: `${cleanPihak} | ${cleanKet}`,
+            nominal: parsedNominal,
+            sisa: nextBalance,
+            transaksiId: entryId,
+            admin: 'Admin RT',
+          }),
+      },
+      ...(finalBuktiUrl || driveUrl
+        ? [
+            {
+              label: 'BuktiStruk (Bansos)',
+              critical: false,
+              run: () =>
+                appendBuktiStrukToSheet({
+                  id: entryId,
+                  tanggal: tgl,
+                  kategori: pelunasanLabel,
+                  nominal: parsedNominal,
+                  penerima: cleanPihak,
+                  keterangan: cleanKet,
+                  buktiUrl: finalBuktiUrl,
+                  driveUrl,
+                  status: 'Sah',
+                  createdAt: new Date().toISOString(),
+                }),
+            },
+          ]
+        : []),
+    ];
+
+    const writeRes = await executeSheetWritesWithRetry(writeTasks);
+    if (!writeRes.success) {
+      db.bansos = (db.bansos || []).filter((b) => b.id !== entryId);
+      saveDb(db);
+      return NextResponse.json(
+        {
+          success: false,
+          error: writeRes.error || 'Gagal menyimpan transaksi Kas Bansos ke Google Sheet.',
+        },
+        { status: 502 }
+      );
+    }
+
+    addLog(
+      jenis === 'penyaluran' ? 'Penyaluran Dana Bansos' : 'Dana Masuk Khusus Bansos',
+      `${pelunasanLabel} Rp ${parsedNominal.toLocaleString('id-ID')} (${cleanPihak}: ${cleanKet}) dicatat pada Kas Kecil Bansos (terpisah dari Kas Utama).`,
+      'Admin'
+    );
+
+    return NextResponse.json({
+      success: true,
+      message:
+        jenis === 'penyaluran'
+          ? `Penyaluran Bansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat dari Saldo Kas Bansos (terpisah dari Kas Utama)!`
+          : `Dana masuk khusus Bansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat ke Kas Bansos!`,
+      data: newEntry,
+      summary: computeBansosSummary(db.bansos),
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID transaksi Bansos wajib diisi.' }, { status: 400 });
+    }
+
+    const db = getDb();
+    try {
+      const sheetRes = await fetchBansosFromSheets();
+      if (sheetRes.success) {
+        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        db.bansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
+      }
+    } catch {}
+
+    const prevBansos = [...(db.bansos || [])];
+    const prevExpenses = [...(db.expenses || [])];
+    const target = prevBansos.find((b) => b.id === id);
+
+    if (!target) {
+      return NextResponse.json({ success: false, error: 'Transaksi Kas Bansos tidak ditemukan.' }, { status: 404 });
+    }
+
+    if (!db.deletedBansosIds) db.deletedBansosIds = [];
+    if (!db.deletedBansosIds.includes(id)) db.deletedBansosIds.push(id);
+
+    const isPemindahan = target.jenis === 'pemindahan' || id.startsWith('EXP-');
+    if (isPemindahan) {
+      if (!db.deletedExpenseIds) db.deletedExpenseIds = [];
+      if (!db.deletedExpenseIds.includes(id)) db.deletedExpenseIds.push(id);
+      db.expenses = (db.expenses || []).filter((e) => e.id !== id);
+    }
+    db.bansos = prevBansos.filter((b) => b.id !== id);
+    saveDb(db);
+
+    const deleteTasks = isPemindahan
+      ? [{ label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) }]
+      : [
+          { label: 'RiwayatPelunasan', critical: true, run: () => deletePelunasanFromSheet(id) },
+          {
+            label: 'BuktiStruk',
+            critical: false,
+            run: () => deleteRowFromSheet('BuktiStruk', 7, id, SHEET_GIDS.buktistruk),
+          },
+        ];
+
+    const writeRes = await executeSheetWritesWithRetry(deleteTasks);
+    if (!writeRes.success) {
+      db.bansos = prevBansos;
+      db.expenses = prevExpenses;
+      db.deletedBansosIds = (db.deletedBansosIds || []).filter((bid) => bid !== id);
+      if (isPemindahan) {
+        db.deletedExpenseIds = (db.deletedExpenseIds || []).filter((eid) => eid !== id);
+      }
+      saveDb(db);
+      return NextResponse.json(
+        { success: false, error: writeRes.error || 'Gagal menghapus transaksi Bansos dari Google Sheet.' },
+        { status: 502 }
+      );
+    }
+
+    addLog(
+      'Hapus Transaksi Kas Bansos',
+      `Menghapus transaksi Bansos ${id} (${target.pihakTerkait} - Rp ${target.nominal.toLocaleString('id-ID')})`,
+      'Admin'
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: 'Transaksi Kas Bansos berhasil dihapus.',
+      summary: computeBansosSummary(db.bansos),
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

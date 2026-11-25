@@ -127,6 +127,33 @@ export interface KasbonEntry {
   riwayatPembayaran?: PembayaranRecord[];
 }
 
+export type BansosTransactionType = 'pemindahan' | 'penyaluran' | 'masuk_langsung';
+
+export interface BansosEntry {
+  id: string;
+  tanggal: string; // YYYY-MM-DD
+  jenis: BansosTransactionType;
+  nominal: number;
+  pihakTerkait: string; // Penerima bantuan / Pos tujuan / Sumber dana khusus
+  keterangan: string;
+  status: 'Sah' | 'Dibatalkan';
+  buktiUrl?: string;
+  driveUrl?: string;
+  sourceExpenseId?: string; // Terisi jika berasal dari pemindahan dana Kas Utama (DataPengeluaran)
+  createdAt: string;
+}
+
+export interface BansosSummary {
+  saldoBansos: number;
+  totalPemindahan: number;
+  countPemindahan: number;
+  totalMasukKhusus: number;
+  countMasukKhusus: number;
+  totalDanaTerkumpul: number;
+  totalPenyaluran: number;
+  countPenyaluran: number;
+}
+
 export interface ActivityLog {
   id: string;
   timestamp: string;
@@ -148,6 +175,8 @@ export interface DatabaseSchema {
   deletedIncomeIds?: string[];
   deletedExpenseIds?: string[];
   deletedProofIds?: string[];
+  bansos?: BansosEntry[];
+  deletedBansosIds?: string[];
   pelunasanHistory?: Array<{
     id: string;
     wargaId?: string;

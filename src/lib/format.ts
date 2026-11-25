@@ -262,6 +262,11 @@ export function classifyIncomeBucket(kategori?: string | null): 'iuran' | 'tungg
   return 'lainnya';
 }
 
+export function isPemindahanBansosCategory(kategori?: string | null): boolean {
+  const lower = (kategori || '').trim().toLowerCase();
+  return lower.includes('pemindahan dana bansos') || lower.includes('pemindahan bansos') || lower === 'transfer dana bansos';
+}
+
 export interface ProofPeriodSlice<T = any> {
   proof: T;
   periodCode: string;
