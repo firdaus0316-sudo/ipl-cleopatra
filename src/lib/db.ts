@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { DatabaseSchema, Resident, ProofSubmission, IncomeTransaction, ExpenseTransaction, ActivityLog, AppSettings } from '@/types';
-import { isIuranBulananCategory } from '@/lib/format';
+import { isIuranBulananCategory, isBansosProofCategory } from '@/lib/format';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -157,6 +157,12 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
   let modified = false;
 
   for (const proof of db.proofs) {
+    if (
+      isBansosProofCategory(proof.kategori) ||
+      (proof.transactionId || '').trim().startsWith('BANSOS-')
+    ) {
+      continue;
+    }
     if (proof.status === 'Terverifikasi' && !existingBuktiIds.has(proof.id) && !deletedSet.has(proof.id)) {
       const rawMonths = Array.isArray(proof.bulan) && proof.bulan.length > 0 ? proof.bulan : ['2026-11'];
       const monthsList: string[] = [];

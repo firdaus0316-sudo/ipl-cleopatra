@@ -1,5 +1,5 @@
 import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, BansosEntry, BansosSummary } from '@/types';
-import { normalizeBlokCode, isIuranBulananCategory, isPemindahanBansosCategory } from '@/lib/format';
+import { normalizeBlokCode, isIuranBulananCategory, isPemindahanBansosCategory, isBansosProofCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -612,10 +612,10 @@ export async function fetchTunggakanNonWargaFromSheet(): Promise<{ success: bool
       const nominalAwal = nominalAwalRaw ? parseInt(nominalAwalRaw, 10) : jumlah;
       const terbayar = Math.max(0, nominalAwal - jumlah);
 
-      if (!namaWarga || jumlah <= 0) continue;
+      if (!namaWarga || (jumlah <= 0 && nominalAwal <= 0)) continue;
 
       const status: 'Belum Lunas' | 'Dicicil' | 'Lunas' =
-        statusRaw.includes('lunas') && !statusRaw.includes('belum')
+        (statusRaw.includes('lunas') && !statusRaw.includes('belum')) || jumlah <= 0
           ? 'Lunas'
           : statusRaw.includes('cicil') || terbayar > 0
             ? 'Dicicil'
@@ -1926,6 +1926,12 @@ export async function reconcileVerifiedProofsToIncomes(
 
   for (const proof of proofs) {
     if (!proof || proof.status !== 'Terverifikasi') continue;
+    if (
+      isBansosProofCategory(proof.kategori) ||
+      (proof.transactionId || '').trim().startsWith('BANSOS-')
+    ) {
+      continue;
+    }
     if (blockedSet.has(proof.id) || existingBuktiIds.has(proof.id)) continue;
 
     const txIds = (proof.transactionId || '')

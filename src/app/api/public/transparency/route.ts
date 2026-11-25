@@ -232,13 +232,13 @@ export async function GET() {
     // Monthly flow breakdown for Bar Chart (Year 2026 / current year):
     // Iuran Bulanan dikelompokkan berdasarkan PERIODE BULAN iuran (mis. Nov vs Des),
     // sedangkan pemasukan non-iuran (Donasi, Tunggakan, dll.) berdasarkan tanggal transaksi.
+    const targetYear = 2026;
     const monthlyMap: Record<number, { masuk: number; keluar: number }> = {};
     for (let m = 0; m < 12; m++) {
       monthlyMap[m] = { masuk: 0, keluar: 0 };
     }
 
     validIncomes.forEach((inc) => {
-      const targetYear = 2026;
       const isRegular = isIuranBulananCategory(inc.kategori);
       const rawPeriod = isRegular && Array.isArray(inc.bulan) && inc.bulan[0] ? normalizePeriodCode(inc.bulan[0]) : '';
       if (isRegular && /^\d{4}-\d{2}$/.test(rawPeriod)) {
@@ -260,8 +260,9 @@ export async function GET() {
 
     validExpenses.forEach((exp) => {
       if (exp.tanggal) {
+        const y = parseInt(exp.tanggal.slice(0, 4), 10);
         const m = parseInt(exp.tanggal.slice(5, 7), 10) - 1;
-        if (!isNaN(m) && m >= 0 && m < 12) {
+        if (y === targetYear && !isNaN(m) && m >= 0 && m < 12) {
           monthlyMap[m].keluar += exp.nominal;
         }
       }
