@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
-import { BansosEntry, BansosTransactionType, ExpenseTransaction } from '@/types';
+import { DansosEntry, DansosTransactionType, ExpenseTransaction } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
 import {
-  fetchBansosFromSheets,
-  computeBansosSummary,
-  appendBansosToSheet,
+  fetchDansosFromSheets,
+  computeDansosSummary,
+  appendDansosToSheet,
   appendExpenseToSheet,
   appendBuktiStrukToSheet,
-  deleteBansosFromSheet,
+  deleteDansosFromSheet,
   deleteExpenseFromSheet,
   deletePelunasanFromSheet,
   deleteRowFromSheet,
@@ -25,21 +25,21 @@ export async function GET(req: NextRequest) {
   if (!isAdminAuthenticated(req)) return unauthorizedAdminResponse();
   try {
     const db = getDb();
-    let entries: BansosEntry[] = db.bansos || [];
-    let summary = computeBansosSummary(entries);
+    let entries: DansosEntry[] = db.dansos || [];
+    let summary = computeDansosSummary(entries);
 
     try {
-      const sheetRes = await fetchBansosFromSheets();
+      const sheetRes = await fetchDansosFromSheets();
       if (sheetRes.success) {
-        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+        const deletedSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
         const filtered = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
-        db.bansos = filtered;
+        db.dansos = filtered;
         entries = filtered;
-        summary = computeBansosSummary(filtered);
+        summary = computeDansosSummary(filtered);
         saveDb(db);
       }
     } catch (e) {
-      console.warn('Fetch live bansos from sheets error:', e);
+      console.warn('Fetch live dansos from sheets error:', e);
     }
 
     return NextResponse.json({
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { tanggal, jenis, nominal, pihakTerkait, keterangan, buktiUrl } = body as {
       tanggal?: string;
-      jenis?: BansosTransactionType;
+      jenis?: DansosTransactionType;
       nominal?: number | string;
       pihakTerkait?: string;
       keterangan?: string;
@@ -85,21 +85,21 @@ export async function POST(req: NextRequest) {
     const cleanPihak = pihakTerkait.trim().replace(/[|,]/g, ' ');
     const cleanKet = keterangan.trim().replace(/[|,]/g, ' ');
 
-    // Cek saldo terkini dari Sheet (Kas Utama & Kas Bansos) sebelum memindahkan atau menyalurkan dana
+    // Cek saldo terkini dari Sheet (Kas Utama & Kas Dansos) sebelum memindahkan atau menyalurkan dana
     try {
-      const sheetRes = await fetchBansosFromSheets();
+      const sheetRes = await fetchDansosFromSheets();
       if (sheetRes.success) {
-        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
-        db.bansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
+        const deletedSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
+        db.dansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
       }
     } catch {}
 
-    const currentBansosSummary = computeBansosSummary(db.bansos || []);
-    if (jenis === 'penyaluran' && parsedNominal > currentBansosSummary.saldoBansos) {
+    const currentDansosSummary = computeDansosSummary(db.dansos || []);
+    if (jenis === 'penyaluran' && parsedNominal > currentDansosSummary.saldoDansos) {
       return NextResponse.json(
         {
           success: false,
-          error: `Saldo Kas Dansos (Rp ${currentBansosSummary.saldoBansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
+          error: `Saldo Kas Dansos (Rp ${currentDansosSummary.saldoDansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
         },
         { status: 400 }
       );
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const newEntry: BansosEntry = {
+    const newEntry: DansosEntry = {
       id: entryId,
       tanggal: tgl,
       jenis,
@@ -136,8 +136,8 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    if (!db.bansos) db.bansos = [];
-    db.bansos.unshift(newEntry);
+    if (!db.dansos) db.dansos = [];
+    db.dansos.unshift(newEntry);
 
     // 1. Jika Pemindahan Dana dari Kas Utama -> Kurangi Kas Utama via DataPengeluaran
     let createdExpense: ExpenseTransaction | null = null;
@@ -157,18 +157,18 @@ export async function POST(req: NextRequest) {
       db.expenses.unshift(createdExpense);
       saveDb(db);
 
-      const nextBalanceAfterTransfer = currentBansosSummary.saldoBansos + parsedNominal;
+      const nextBalanceAfterTransfer = currentDansosSummary.saldoDansos + parsedNominal;
       const sheetTasks = [
         { label: 'DataPengeluaran', critical: true, run: () => appendExpenseToSheet(createdExpense!) },
-        { label: 'KasDansos', critical: true, run: () => appendBansosToSheet(newEntry, nextBalanceAfterTransfer, entryId) },
+        { label: 'KasDansos', critical: true, run: () => appendDansosToSheet(newEntry, nextBalanceAfterTransfer, entryId) },
         ...(createdExpense.buktiUrl || createdExpense.driveUrl
           ? [{ label: 'BuktiStruk', critical: false, run: () => appendBuktiStrukToSheet(createdExpense!) }]
           : []),
       ];
       const writeRes = await executeSheetWritesWithRetry(sheetTasks);
       if (!writeRes.success) {
-        await Promise.allSettled([deleteExpenseFromSheet(entryId), deleteBansosFromSheet(entryId)]);
-        db.bansos = (db.bansos || []).filter((b) => b.id !== entryId);
+        await Promise.allSettled([deleteExpenseFromSheet(entryId), deleteDansosFromSheet(entryId)]);
+        db.dansos = (db.dansos || []).filter((b) => b.id !== entryId);
         db.expenses = (db.expenses || []).filter((e) => e.id !== entryId);
         saveDb(db);
         return NextResponse.json(
@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
         message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Dansos berhasil dicatat ke Google Sheet KasDansos (Kas Utama berkurang otomatis)!`,
         data: newEntry,
         expense: createdExpense,
-        summary: computeBansosSummary(db.bansos),
+        summary: computeDansosSummary(db.dansos),
       });
     }
 
@@ -199,15 +199,15 @@ export async function POST(req: NextRequest) {
     saveDb(db);
     const nextBalance =
       jenis === 'penyaluran'
-        ? Math.max(0, currentBansosSummary.saldoBansos - parsedNominal)
-        : currentBansosSummary.saldoBansos + parsedNominal;
+        ? Math.max(0, currentDansosSummary.saldoDansos - parsedNominal)
+        : currentDansosSummary.saldoDansos + parsedNominal;
 
     const pelunasanLabel = jenis === 'penyaluran' ? 'Penyaluran Dana Dansos' : 'Dana Masuk Dansos';
     const writeTasks = [
       {
         label: 'KasDansos',
         critical: true,
-        run: () => appendBansosToSheet(newEntry, nextBalance, entryId),
+        run: () => appendDansosToSheet(newEntry, nextBalance, entryId),
       },
       ...(finalBuktiUrl || driveUrl
         ? [
@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
 
     const writeRes = await executeSheetWritesWithRetry(writeTasks);
     if (!writeRes.success) {
-      db.bansos = (db.bansos || []).filter((b) => b.id !== entryId);
+      db.dansos = (db.dansos || []).filter((b) => b.id !== entryId);
       saveDb(db);
       return NextResponse.json(
         {
@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
           ? `Penyaluran Dansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat dari Saldo Kas Dansos (terpisah dari Kas Utama)!`
           : `Dana masuk khusus Dansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil dicatat ke Kas Dansos!`,
       data: newEntry,
-      summary: computeBansosSummary(db.bansos),
+      summary: computeDansosSummary(db.dansos),
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -276,23 +276,23 @@ export async function DELETE(req: NextRequest) {
 
     const db = getDb();
     try {
-      const sheetRes = await fetchBansosFromSheets();
+      const sheetRes = await fetchDansosFromSheets();
       if (sheetRes.success) {
-        const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
-        db.bansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
+        const deletedSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
+        db.dansos = sheetRes.entries.filter((e) => !deletedSet.has(e.id));
       }
     } catch {}
 
-    const prevBansos = [...(db.bansos || [])];
+    const prevDansos = [...(db.dansos || [])];
     const prevExpenses = [...(db.expenses || [])];
-    const target = prevBansos.find((b) => b.id === id);
+    const target = prevDansos.find((b) => b.id === id);
 
     if (!target) {
       return NextResponse.json({ success: false, error: 'Transaksi Kas Dansos tidak ditemukan.' }, { status: 404 });
     }
 
-    if (!db.deletedBansosIds) db.deletedBansosIds = [];
-    if (!db.deletedBansosIds.includes(id)) db.deletedBansosIds.push(id);
+    if (!db.deletedDansosIds) db.deletedDansosIds = [];
+    if (!db.deletedDansosIds.includes(id)) db.deletedDansosIds.push(id);
 
     const isPemindahan = target.jenis === 'pemindahan' || id.startsWith('EXP-');
     if (isPemindahan) {
@@ -300,16 +300,16 @@ export async function DELETE(req: NextRequest) {
       if (!db.deletedExpenseIds.includes(id)) db.deletedExpenseIds.push(id);
       db.expenses = (db.expenses || []).filter((e) => e.id !== id);
     }
-    db.bansos = prevBansos.filter((b) => b.id !== id);
+    db.dansos = prevDansos.filter((b) => b.id !== id);
     saveDb(db);
 
     const deleteTasks = isPemindahan
       ? [
           { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) },
-          { label: 'KasDansos', critical: false, run: () => deleteBansosFromSheet(id) },
+          { label: 'KasDansos', critical: false, run: () => deleteDansosFromSheet(id) },
         ]
       : [
-          { label: 'KasDansos', critical: true, run: () => deleteBansosFromSheet(id) },
+          { label: 'KasDansos', critical: true, run: () => deleteDansosFromSheet(id) },
           { label: 'RiwayatPelunasan', critical: false, run: () => deletePelunasanFromSheet(id) },
           {
             label: 'BuktiStruk',
@@ -320,9 +320,9 @@ export async function DELETE(req: NextRequest) {
 
     const writeRes = await executeSheetWritesWithRetry(deleteTasks);
     if (!writeRes.success) {
-      db.bansos = prevBansos;
+      db.dansos = prevDansos;
       db.expenses = prevExpenses;
-      db.deletedBansosIds = (db.deletedBansosIds || []).filter((bid) => bid !== id);
+      db.deletedDansosIds = (db.deletedDansosIds || []).filter((bid) => bid !== id);
       if (isPemindahan) {
         db.deletedExpenseIds = (db.deletedExpenseIds || []).filter((eid) => eid !== id);
       }
@@ -342,7 +342,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Transaksi Kas Dansos berhasil dihapus.',
-      summary: computeBansosSummary(db.bansos),
+      summary: computeDansosSummary(db.dansos),
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

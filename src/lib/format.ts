@@ -262,33 +262,25 @@ export function classifyIncomeBucket(kategori?: string | null): 'iuran' | 'tungg
   return 'lainnya';
 }
 
-export function isPemindahanBansosCategory(kategori?: string | null): boolean {
+export function isPemindahanDansosCategory(kategori?: string | null): boolean {
   const lower = (kategori || '').trim().toLowerCase();
   return (
     lower.includes('pemindahan dana dansos') ||
     lower.includes('pemindahan dansos') ||
-    lower === 'transfer dana dansos' ||
-    lower.includes('pemindahan dana bansos') ||
-    lower.includes('pemindahan bansos') ||
-    lower === 'transfer dana bansos'
+    lower === 'transfer dana dansos'
   );
 }
 
-export const BANSOS_PROOF_CATEGORY = 'Sumbangan Dana Dansos';
+export const DANSOS_PROOF_CATEGORY = 'Sumbangan Dana Dansos';
 
-export function isBansosProofCategory(kategori?: string | null): boolean {
+export function isDansosProofCategory(kategori?: string | null): boolean {
   const lower = (kategori || '').trim().toLowerCase();
   return (
     lower.includes('sumbangan dana dansos') ||
     lower.includes('donasi dansos') ||
     lower.includes('kas kecil dansos') ||
     lower === 'dana dansos' ||
-    lower === 'dansos' ||
-    lower.includes('sumbangan dana bansos') ||
-    lower.includes('donasi bansos') ||
-    lower.includes('kas kecil bansos') ||
-    lower === 'dana bansos' ||
-    lower === 'bansos'
+    lower === 'dansos'
   );
 }
 

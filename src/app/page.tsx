@@ -50,8 +50,8 @@ import {
   formatDateIndo,
   createWaLink,
   normalizePeriodCode,
-  BANSOS_PROOF_CATEGORY,
-  isBansosProofCategory,
+  DANSOS_PROOF_CATEGORY,
+  isDansosProofCategory,
 } from '@/lib/format';
 
 interface SafeSettings {
@@ -117,7 +117,7 @@ const EXPENSE_COLORS: Record<string, string> = {
 
 const KATEGORI_INCOME_OPTIONS = [
   'Iuran Bulanan',
-  BANSOS_PROOF_CATEGORY,
+  DANSOS_PROOF_CATEGORY,
   'THR (Tunjangan Hari Raya)',
   'Donasi / Dana Hibah',
   'Ramadhan',
@@ -129,7 +129,7 @@ const KATEGORI_INCOME_OPTIONS = [
 const INCOME_COLORS: Record<string, string> = {
   'Iuran Bulanan': '#10b981',
   'Iuran Bulanan (Reguler)': '#10b981',
-  [BANSOS_PROOF_CATEGORY]: '#e11d48',
+  [DANSOS_PROOF_CATEGORY]: '#e11d48',
   'THR (Tunjangan Hari Raya)': '#ec4899',
   'Iuran THR': '#ec4899',
   'Donasi / Dana Hibah': '#8b5cf6',
@@ -224,7 +224,7 @@ export default function PublicPage() {
   // Modals for Pos Piutang, Kasbon & Kas Kecil Dansos
   const [showTunggakanDetailModal, setShowTunggakanDetailModal] = useState(false);
   const [showKasbonDetailModal, setShowKasbonDetailModal] = useState(false);
-  const [showBansosDetailModal, setShowBansosDetailModal] = useState(false);
+  const [showDansosDetailModal, setShowDansosDetailModal] = useState(false);
 
   // Interactive Chart Slices hover
   const [hoveredExpenseCat, setHoveredExpenseCat] = useState<string | null>(null);
@@ -423,7 +423,7 @@ export default function PublicPage() {
   }, [blok, kategori, selectedMonths, currentResidentPaidSet, currentResidentPendingSet]);
 
   const isUntargetedKategori = (kat: string) =>
-    isBansosProofCategory(kat) ||
+    isDansosProofCategory(kat) ||
     kat === 'Donasi / Dana Hibah' ||
     kat === 'Lainnya' ||
     kat === 'Dana Hibah / Donasi' ||
@@ -445,8 +445,8 @@ export default function PublicPage() {
     }
   };
 
-  const openBansosDonationForm = () => {
-    handleKategoriChange(BANSOS_PROOF_CATEGORY);
+  const openDansosDonationForm = () => {
+    handleKategoriChange(DANSOS_PROOF_CATEGORY);
     setSubmitSuccess(null);
     setFormError('');
     setTab('upload');
@@ -917,19 +917,19 @@ export default function PublicPage() {
             {/* 2. Form Setor Iuran */}
             <button
               onClick={() => {
-                if (isBansosProofCategory(kategori)) {
+                if (isDansosProofCategory(kategori)) {
                   handleKategoriChange('Iuran Bulanan');
                 }
                 setTab('upload');
                 setIsMobileMenuOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition text-left ${
-                tab === 'upload' && !isBansosProofCategory(kategori)
+                tab === 'upload' && !isDansosProofCategory(kategori)
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
               }`}
             >
-              <Upload className={`w-4 h-4 shrink-0 ${tab === 'upload' && !isBansosProofCategory(kategori) ? 'text-white' : 'text-emerald-400'}`} />
+              <Upload className={`w-4 h-4 shrink-0 ${tab === 'upload' && !isDansosProofCategory(kategori) ? 'text-white' : 'text-emerald-400'}`} />
               <div className="flex-1">
                 <div>Form Setor Iuran</div>
                 <div className="text-[10px] font-normal opacity-80">Kirim bukti transfer & rekening</div>
@@ -938,14 +938,14 @@ export default function PublicPage() {
 
             {/* 2b. Sumbang Dana Dansos (Kas Kecil Dansos) */}
             <button
-              onClick={openBansosDonationForm}
+              onClick={openDansosDonationForm}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition text-left ${
-                tab === 'upload' && isBansosProofCategory(kategori)
+                tab === 'upload' && isDansosProofCategory(kategori)
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40 ring-1 ring-rose-400/30'
                   : 'text-slate-300 hover:text-white hover:bg-rose-950/50 border border-rose-500/20'
               }`}
             >
-              <HeartHandshake className={`w-4 h-4 shrink-0 ${tab === 'upload' && isBansosProofCategory(kategori) ? 'text-white' : 'text-rose-400'}`} />
+              <HeartHandshake className={`w-4 h-4 shrink-0 ${tab === 'upload' && isDansosProofCategory(kategori) ? 'text-white' : 'text-rose-400'}`} />
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-1">
                   <span>Sumbang Dana Dansos</span>
@@ -1272,7 +1272,7 @@ export default function PublicPage() {
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={openBansosDonationForm}
+                    onClick={openDansosDonationForm}
                     className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition shadow-sm cursor-pointer active:scale-95"
                   >
                     <HeartHandshake className="w-3.5 h-3.5" />
@@ -1280,7 +1280,7 @@ export default function PublicPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowBansosDetailModal(true)}
+                    onClick={() => setShowDansosDetailModal(true)}
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
                   >
                     <span>Lihat Mutasi</span>
@@ -1293,7 +1293,7 @@ export default function PublicPage() {
                 <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-3.5 border border-rose-200/80">
                   <div className="text-[11px] font-bold text-rose-700">Saldo Kas Dansos Tersedia</div>
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
                   </div>
                   <div className="text-[10px] text-rose-600/90 mt-1">
                     Dana khusus Bantuan Sosial
@@ -1306,30 +1306,30 @@ export default function PublicPage() {
                     <span>Pemindahan Kas Utama</span>
                   </div>
                   <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalPemindahan ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalPemindahan ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {transparencyData?.bansos?.countPemindahan ?? 0}x alokasi dari Kas Utama
+                    {transparencyData?.dansos?.countPemindahan ?? 0}x alokasi dari Kas Utama
                   </div>
                 </div>
 
                 <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
                   <div className="text-[11px] font-bold text-slate-600">Sumbangan & Masuk Khusus</div>
                   <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalMasukKhusus ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalMasukKhusus ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {transparencyData?.bansos?.countMasukKhusus ?? 0}x sumbangan warga / luar kas
+                    {transparencyData?.dansos?.countMasukKhusus ?? 0}x sumbangan warga / luar kas
                   </div>
                 </div>
 
                 <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
                   <div className="text-[11px] font-bold text-slate-600">Sudah Disalurkan</div>
                   <div className="text-lg sm:text-xl font-black text-amber-700 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalPenyaluran ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalPenyaluran ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {transparencyData?.bansos?.countPenyaluran ?? 0}x penyaluran bantuan sosial
+                    {transparencyData?.dansos?.countPenyaluran ?? 0}x penyaluran bantuan sosial
                   </div>
                 </div>
               </div>
@@ -1514,7 +1514,7 @@ export default function PublicPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (isBansosProofCategory(kategori)) handleKategoriChange('Iuran Bulanan');
+                    if (isDansosProofCategory(kategori)) handleKategoriChange('Iuran Bulanan');
                     setTab('upload');
                   }}
                   className="px-4 py-2.5 rounded-xl bg-white text-emerald-900 font-extrabold text-xs hover:bg-emerald-50 transition shadow-sm cursor-pointer"
@@ -1523,7 +1523,7 @@ export default function PublicPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={openBansosDonationForm}
+                  onClick={openDansosDonationForm}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition shadow-sm border border-rose-400/40 cursor-pointer"
                 >
                   <HeartHandshake className="w-3.5 h-3.5" />
@@ -1594,7 +1594,7 @@ export default function PublicPage() {
                     Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
                   </div>
                   <div>
-                    Saldo Kas Kecil Dansos: <strong className="text-rose-600">{formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}</strong>
+                    Saldo Kas Kecil Dansos: <strong className="text-rose-600">{formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}</strong>
                   </div>
                 </div>
               </div>
@@ -1621,12 +1621,12 @@ export default function PublicPage() {
               <div className="border-b border-slate-100 pb-4 mb-5 space-y-3">
                 <div>
                   <h2 className="text-base font-black text-slate-900">
-                    {isBansosProofCategory(kategori)
+                    {isDansosProofCategory(kategori)
                       ? 'Formulir Konfirmasi Sumbangan Dana Dansos'
                       : 'Formulir Konfirmasi Pembayaran'}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isBansosProofCategory(kategori)
+                    {isDansosProofCategory(kategori)
                       ? 'Dana sumbangan Anda akan diverifikasi Bendahara RT dan langsung masuk ke Pos Kas Kecil Dansos (bukan Kas Utama).'
                       : 'Isi data nama warga dan lampirkan foto bukti transfer untuk diverifikasi oleh bendahara RT.'}
                   </p>
@@ -1637,12 +1637,12 @@ export default function PublicPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (isBansosProofCategory(kategori)) {
+                      if (isDansosProofCategory(kategori)) {
                         handleKategoriChange('Iuran Bulanan');
                       }
                     }}
                     className={`flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
-                      !isBansosProofCategory(kategori)
+                      !isDansosProofCategory(kategori)
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
@@ -1652,9 +1652,9 @@ export default function PublicPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleKategoriChange(BANSOS_PROOF_CATEGORY)}
+                    onClick={() => handleKategoriChange(DANSOS_PROOF_CATEGORY)}
                     className={`flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
-                      isBansosProofCategory(kategori)
+                      isDansosProofCategory(kategori)
                         ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                         : 'bg-rose-50/70 text-rose-800 border-rose-200 hover:bg-rose-100'
                     }`}
@@ -1684,9 +1684,9 @@ export default function PublicPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Kategori / Tujuan:</span>
-                      <strong className={isBansosProofCategory(submitSuccess.kategori) ? 'text-rose-700' : 'text-slate-900'}>
+                      <strong className={isDansosProofCategory(submitSuccess.kategori) ? 'text-rose-700' : 'text-slate-900'}>
                         {submitSuccess.kategori || 'Iuran Bulanan'}
-                        {isBansosProofCategory(submitSuccess.kategori) ? ' → Pos Kas Kecil Dansos' : ''}
+                        {isDansosProofCategory(submitSuccess.kategori) ? ' → Pos Kas Kecil Dansos' : ''}
                       </strong>
                     </div>
                     <div className="flex justify-between">
@@ -1717,7 +1717,7 @@ export default function PublicPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                  {isBansosProofCategory(kategori) && (
+                  {isDansosProofCategory(kategori) && (
                     <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-2.5">
                       <HeartHandshake className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                       <div className="text-[11px] leading-relaxed">
@@ -1856,7 +1856,7 @@ export default function PublicPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="block font-bold text-slate-800 mb-1">
-                        {isBansosProofCategory(kategori)
+                        {isDansosProofCategory(kategori)
                           ? 'Nominal Sumbangan Dana Dansos (Rp)'
                           : 'Total Nominal Kas Masuk (Rp)'}{' '}
                         <span className="text-rose-500">*</span>
@@ -1869,13 +1869,13 @@ export default function PublicPage() {
                         value={customNominal}
                         onChange={(e) => setCustomNominal(e.target.value)}
                         className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black text-sm focus:outline-none bg-white ${
-                          isBansosProofCategory(kategori)
+                          isDansosProofCategory(kategori)
                             ? 'text-rose-700 focus:ring-2 focus:ring-rose-500'
                             : 'text-emerald-700 focus:ring-2 focus:ring-emerald-500'
                         }`}
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block font-medium">
-                        {isBansosProofCategory(kategori)
+                        {isDansosProofCategory(kategori)
                           ? 'Masuk penuh ke Pos Kas Kecil Dansos setelah diverifikasi Bendahara RT (terpisah dari Kas Utama)'
                           : kategori === 'Iuran Bulanan'
                           ? `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`
@@ -1982,7 +1982,7 @@ export default function PublicPage() {
                     type="submit"
                     disabled={isSubmitting || isCompressingImage}
                     className={`w-full py-3.5 px-4 rounded-xl disabled:bg-slate-400 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                      isBansosProofCategory(kategori)
+                      isDansosProofCategory(kategori)
                         ? 'bg-rose-600 hover:bg-rose-700'
                         : 'bg-emerald-600 hover:bg-emerald-700'
                     }`}
@@ -1995,7 +1995,7 @@ export default function PublicPage() {
                     ) : (
                       <>
                         <span>
-                          {isBansosProofCategory(kategori)
+                          {isDansosProofCategory(kategori)
                             ? 'Kirim Bukti Sumbangan Dana Dansos'
                             : 'Kirim Bukti Pembayaran'}
                         </span>
@@ -2307,7 +2307,7 @@ export default function PublicPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowBansosDetailModal(true)}
+                  onClick={() => setShowDansosDetailModal(true)}
                   className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
                 >
                   <span>Lihat Rincian Mutasi Kas Dansos</span>
@@ -2319,7 +2319,7 @@ export default function PublicPage() {
                 <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-3.5 border border-rose-200/80">
                   <div className="text-[11px] font-bold text-rose-700">Saldo Kas Dansos Tersedia</div>
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
                   </div>
                   <div className="text-[10px] text-rose-600/90 mt-1">
                     Siap disalurkan untuk warga / sosial
@@ -2332,17 +2332,17 @@ export default function PublicPage() {
                     <span>Pemindahan Kas Utama</span>
                   </div>
                   <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalPemindahan ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalPemindahan ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {transparencyData?.bansos?.countPemindahan ?? 0}x transfer dari Kas Utama
+                    {transparencyData?.dansos?.countPemindahan ?? 0}x transfer dari Kas Utama
                   </div>
                 </div>
 
                 <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
                   <div className="text-[11px] font-bold text-slate-600">Dana Masuk Khusus Dansos</div>
                   <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalMasukKhusus ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalMasukKhusus ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
                     Donasi / setoran langsung luar Kas Utama
@@ -2352,10 +2352,10 @@ export default function PublicPage() {
                 <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
                   <div className="text-[11px] font-bold text-slate-600">Total Sudah Disalurkan</div>
                   <div className="text-lg sm:text-xl font-black text-amber-700 tracking-tight mt-1">
-                    {formatRupiah(transparencyData?.bansos?.totalPenyaluran ?? 0)}
+                    {formatRupiah(transparencyData?.dansos?.totalPenyaluran ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    {transparencyData?.bansos?.countPenyaluran ?? 0}x penyaluran bantuan sosial
+                    {transparencyData?.dansos?.countPenyaluran ?? 0}x penyaluran bantuan sosial
                   </div>
                 </div>
               </div>
@@ -2962,11 +2962,11 @@ export default function PublicPage() {
       )}
 
       {/* MODAL RINCIAN KAS KECIL DANSOS */}
-      {showBansosDetailModal && (
+      {showDansosDetailModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
             <button
-              onClick={() => setShowBansosDetailModal(false)}
+              onClick={() => setShowDansosDetailModal(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
             >
               ✕
@@ -2990,36 +2990,36 @@ export default function PublicPage() {
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
                 <div className="text-[10px] font-bold text-rose-700">Saldo Kas Dansos</div>
                 <div className="text-sm font-black text-rose-900 mt-0.5">
-                  {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
+                  {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
                 <div className="text-[10px] font-bold text-indigo-700">Pindah Kas Utama</div>
                 <div className="text-sm font-black text-indigo-900 mt-0.5">
-                  {formatRupiah(transparencyData?.bansos?.totalPemindahan ?? 0)}
+                  {formatRupiah(transparencyData?.dansos?.totalPemindahan ?? 0)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                 <div className="text-[10px] font-bold text-emerald-700">Masuk Khusus</div>
                 <div className="text-sm font-black text-emerald-900 mt-0.5">
-                  {formatRupiah(transparencyData?.bansos?.totalMasukKhusus ?? 0)}
+                  {formatRupiah(transparencyData?.dansos?.totalMasukKhusus ?? 0)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
                 <div className="text-[10px] font-bold text-amber-700">Disalurkan</div>
                 <div className="text-sm font-black text-amber-900 mt-0.5">
-                  {formatRupiah(transparencyData?.bansos?.totalPenyaluran ?? 0)}
+                  {formatRupiah(transparencyData?.dansos?.totalPenyaluran ?? 0)}
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-              {(transparencyData?.bansos?.list || []).length === 0 ? (
+              {(transparencyData?.dansos?.list || []).length === 0 ? (
                 <div className="text-center py-10 text-xs text-slate-400">
                   Belum ada mutasi transaksi di Pos Kas Kecil Dansos.
                 </div>
               ) : (
-                (transparencyData?.bansos?.list || []).map((item: any) => {
+                (transparencyData?.dansos?.list || []).map((item: any) => {
                   const isOut = item.jenis === 'penyaluran';
                   const isTransfer = item.jenis === 'pemindahan';
                   const proofHref = item.driveUrl || item.buktiUrl;
@@ -3080,7 +3080,7 @@ export default function PublicPage() {
             <div className="pt-3 mt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setShowBansosDetailModal(false)}
+                onClick={() => setShowDansosDetailModal(false)}
                 className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
               >
                 Tutup

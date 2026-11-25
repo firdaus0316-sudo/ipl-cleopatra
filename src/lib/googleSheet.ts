@@ -1,5 +1,5 @@
-import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, BansosEntry, BansosSummary } from '@/types';
-import { normalizeBlokCode, isIuranBulananCategory, isPemindahanBansosCategory, isBansosProofCategory } from '@/lib/format';
+import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, DansosEntry, DansosSummary } from '@/types';
+import { normalizeBlokCode, isIuranBulananCategory, isPemindahanDansosCategory, isDansosProofCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -16,7 +16,7 @@ export const SHEET_GIDS = {
   kasbon: '1031321249',
   buktistruk: '762023314',
   buktitransfer: '4652474',
-  kasbansos: '13680223',
+  kasdansos: '13680223',
 };
 
 export const SHEET_GID = SHEET_GIDS.masterwarga;
@@ -1945,8 +1945,7 @@ export async function reconcileVerifiedProofsToIncomes(
   for (const proof of proofs) {
     if (!proof || proof.status !== 'Terverifikasi') continue;
     if (
-      isBansosProofCategory(proof.kategori) ||
-      (proof.transactionId || '').trim().startsWith('BANSOS-') ||
+      isDansosProofCategory(proof.kategori) ||
       (proof.transactionId || '').trim().startsWith('DANSOS-')
     ) {
       continue;
@@ -2048,12 +2047,12 @@ export async function reconcileVerifiedProofsToIncomes(
 }
 
 /**
- * 13. Pos Dana Khusus Bantuan Sosial (Bansos) - Pencatatan Terpisah dari Kas Utama
- * - Pemindahan dana dari Kas Utama terbaca dari DataPengeluaran kategori 'Pemindahan Dana Bansos'.
- * - Penyaluran & pemasukan langsung khusus Bansos tersimpan terpisah di RiwayatPelunasan
- *   (BANSOS-OUT-... & BANSOS-IN-...) dan BuktiStruk agar tidak memengaruhi Saldo Kas Utama.
+ * 13. Pos Dana Khusus Bantuan Sosial (Dansos) - Pencatatan Terpisah dari Kas Utama
+ * - Pemindahan dana dari Kas Utama terbaca dari DataPengeluaran kategori 'Pemindahan Dana Dansos'.
+ * - Penyaluran & pemasukan langsung khusus Dansos tersimpan terpisah di RiwayatPelunasan
+ *   (DANSOS-OUT-... & DANSOS-IN-...) dan BuktiStruk agar tidak memengaruhi Saldo Kas Utama.
  */
-export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
+export function computeDansosSummary(entries: DansosEntry[]): DansosSummary {
   const valid = (entries || []).filter((e) => e && e.status === 'Sah');
   let totalPemindahan = 0;
   let countPemindahan = 0;
@@ -2078,10 +2077,10 @@ export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
   }
 
   const totalDanaTerkumpul = totalPemindahan + totalMasukKhusus;
-  const saldoBansos = totalDanaTerkumpul - totalPenyaluran;
+  const saldoDansos = totalDanaTerkumpul - totalPenyaluran;
 
   return {
-    saldoBansos,
+    saldoDansos,
     totalPemindahan,
     countPemindahan,
     totalMasukKhusus,
@@ -2093,8 +2092,8 @@ export function computeBansosSummary(entries: BansosEntry[]): BansosSummary {
 }
 
 // 10.10 KasDansos (Sheet Terpisah Khusus Pos Kas Kecil Dana Dansos)
-export async function appendBansosToSheet(
-  entry: BansosEntry,
+export async function appendDansosToSheet(
+  entry: DansosEntry,
   saldoAfter: number,
   referensiId?: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -2124,16 +2123,16 @@ export async function appendBansosToSheet(
   return appendRowsToSheet('KasDansos', [row]);
 }
 
-export async function deleteBansosFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
-  return deleteRowFromSheet('KasDansos', 1, entryId, SHEET_GIDS.kasbansos);
+export async function deleteDansosFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('KasDansos', 1, entryId, SHEET_GIDS.kasdansos);
 }
 
-export async function fetchBansosFromSheets(
+export async function fetchDansosFromSheets(
   preloadedExpenses?: ExpenseTransaction[]
-): Promise<{ success: boolean; entries: BansosEntry[]; summary: BansosSummary; error?: string }> {
+): Promise<{ success: boolean; entries: DansosEntry[]; summary: DansosSummary; error?: string }> {
   try {
-    const [kasBansosCsvText, expRes, pelCsvText, strukCsvText] = await Promise.all([
-      fetchCsvByGid(SHEET_GIDS.kasbansos).catch(() => ''),
+    const [kasDansosCsvText, expRes, pelCsvText, strukCsvText] = await Promise.all([
+      fetchCsvByGid(SHEET_GIDS.kasdansos).catch(() => ''),
       preloadedExpenses ? Promise.resolve({ success: true, expenses: preloadedExpenses }) : fetchExpensesFromSheet(),
       fetchCsvByGid(SHEET_GIDS.riwayatpelunasan).catch(() => ''),
       fetchCsvByGid(SHEET_GIDS.buktistruk).catch(() => ''),
@@ -2152,12 +2151,12 @@ export async function fetchBansosFromSheets(
       }
     }
 
-    const entries: BansosEntry[] = [];
+    const entries: DansosEntry[] = [];
     const seenIds = new Set<string>();
 
     // 1. Sumber Utama: Sheet khusus "KasDansos" (sinkronisasi 2-arah langsung dengan Google Sheet KasDansos)
-    if (kasBansosCsvText) {
-      const kbLines = kasBansosCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (kasDansosCsvText) {
+      const kbLines = kasDansosCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
       for (let i = 1; i < kbLines.length; i++) {
         const cols = parseCsvLine(kbLines[i]);
         if (cols.length < 6) continue;
@@ -2177,13 +2176,12 @@ export async function fetchBansosFromSheets(
 
         const masuk = masukRaw ? parseInt(masukRaw, 10) : 0;
         const keluar = keluarRaw ? parseInt(keluarRaw, 10) : 0;
-        let jenis: BansosEntry['jenis'] = 'masuk_langsung';
+        let jenis: DansosEntry['jenis'] = 'masuk_langsung';
         if (/pemindahan/i.test(jenisRaw) || rowId.startsWith('EXP-')) {
           jenis = 'pemindahan';
         } else if (
           /penyaluran|keluar/i.test(jenisRaw) ||
           keluar > 0 ||
-          rowId.startsWith('BANSOS-OUT-') ||
           rowId.startsWith('DANSOS-OUT-')
         ) {
           jenis = 'penyaluran';
@@ -2210,9 +2208,9 @@ export async function fetchBansosFromSheets(
       }
     }
 
-    // 2. Fallback / Sinkronisasi Silang: Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Dansos/Bansos')
+    // 2. Fallback / Sinkronisasi Silang: Pemindahan dana dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Dansos/Dansos')
     for (const exp of expRes.expenses || []) {
-      if (!exp || exp.status !== 'Sah' || !isPemindahanBansosCategory(exp.kategori)) continue;
+      if (!exp || exp.status !== 'Sah' || !isPemindahanDansosCategory(exp.kategori)) continue;
       if (seenIds.has(exp.id)) continue;
       seenIds.add(exp.id);
       entries.push({
@@ -2230,7 +2228,7 @@ export async function fetchBansosFromSheets(
       });
     }
 
-    // 3. Fallback Historis: Mutasi khusus Dana Dansos/Bansos di RiwayatPelunasan
+    // 3. Fallback Historis: Mutasi khusus Dana Dansos/Dansos di RiwayatPelunasan
     if (pelCsvText) {
       const lines = pelCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
       for (let i = 1; i < lines.length; i++) {
@@ -2244,13 +2242,11 @@ export async function fetchBansosFromSheets(
         const txId = (cols[7] || pelId).trim();
 
         const isOut =
-          pelId.startsWith('BANSOS-OUT-') ||
           pelId.startsWith('DANSOS-OUT-') ||
-          /penyaluran.*(bansos|dansos)/i.test(jenisRaw);
+          /penyaluran.*dansos/i.test(jenisRaw);
         const isIn =
-          pelId.startsWith('BANSOS-IN-') ||
           pelId.startsWith('DANSOS-IN-') ||
-          /dana masuk (bansos|dansos)/i.test(jenisRaw);
+          /dana masuk dansos/i.test(jenisRaw);
         if (!isOut && !isIn) continue;
         if (seenIds.has(pelId)) continue;
 
@@ -2283,13 +2279,13 @@ export async function fetchBansosFromSheets(
     return {
       success: true,
       entries,
-      summary: computeBansosSummary(entries),
+      summary: computeDansosSummary(entries),
     };
   } catch (err: any) {
     return {
       success: false,
       entries: [],
-      summary: computeBansosSummary([]),
+      summary: computeDansosSummary([]),
       error: err.message,
     };
   }

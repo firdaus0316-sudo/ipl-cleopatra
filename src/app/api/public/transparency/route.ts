@@ -13,8 +13,8 @@ import {
   fetchResidentsFromSheet,
   fetchProofsFromSheet,
   reconcileVerifiedProofsToIncomes,
-  fetchBansosFromSheets,
-  computeBansosSummary,
+  fetchDansosFromSheets,
+  computeDansosSummary,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
@@ -304,14 +304,14 @@ export async function GET() {
         nominal: i.nominal,
       }));
 
-    let bansosList = db.bansos || [];
-    let bansosSummary = computeBansosSummary(bansosList);
+    let dansosList = db.dansos || [];
+    let dansosSummary = computeDansosSummary(dansosList);
     try {
-      const bansosRes = await fetchBansosFromSheets(db.expenses);
-      if (bansosRes.success) {
-        const deletedBansosSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
-        bansosList = bansosRes.entries.filter((b) => !deletedBansosSet.has(b.id));
-        bansosSummary = computeBansosSummary(bansosList);
+      const dansosRes = await fetchDansosFromSheets(db.expenses);
+      if (dansosRes.success) {
+        const deletedDansosSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
+        dansosList = dansosRes.entries.filter((b) => !deletedDansosSet.has(b.id));
+        dansosSummary = computeDansosSummary(dansosList);
       }
     } catch {}
 
@@ -323,9 +323,9 @@ export async function GET() {
         totalPengeluaran: totalExpenses,
         saldoAkhir,
       },
-      bansos: {
-        ...bansosSummary,
-        list: bansosList.map((b) => ({
+      dansos: {
+        ...dansosSummary,
+        list: dansosList.map((b) => ({
           id: b.id,
           tanggal: b.tanggal,
           jenis: b.jenis,

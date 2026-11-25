@@ -26,11 +26,11 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const [masterWarga, dataIuran, dataPengeluaran, kasBansos] = await Promise.all([
+    const [masterWarga, dataIuran, dataPengeluaran, kasDansos] = await Promise.all([
       checkSheet(SHEET_GIDS.masterwarga),
       checkSheet(SHEET_GIDS.dataiuran),
       checkSheet(SHEET_GIDS.datapengeluaran),
-      checkSheet(SHEET_GIDS.kasbansos),
+      checkSheet(SHEET_GIDS.kasdansos),
     ]);
 
     let webhook: { ok: boolean; status?: number; ms: number; error?: string } | undefined;
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const sheetsOk = masterWarga.ok && dataIuran.ok && dataPengeluaran.ok && kasBansos.ok;
+    const sheetsOk = masterWarga.ok && dataIuran.ok && dataPengeluaran.ok && kasDansos.ok;
     const allOk = sheetsOk && (!deep || Boolean(webhook?.ok));
 
     return NextResponse.json(
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
           masterWarga,
           dataIuran,
           dataPengeluaran,
-          kasBansos,
+          kasDansos,
         },
         ...(webhook ? { webhook } : {}),
       },

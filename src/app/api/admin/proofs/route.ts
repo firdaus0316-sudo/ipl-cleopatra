@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
-import { IncomeTransaction, BansosEntry } from '@/types';
+import { IncomeTransaction, DansosEntry } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
-import { isIuranBulananCategory, isBansosProofCategory, safeNumber, safeTimestamp } from '@/lib/format';
+import { isIuranBulananCategory, isDansosProofCategory, safeNumber, safeTimestamp } from '@/lib/format';
 import {
-  appendBansosToSheet,
+  appendDansosToSheet,
   appendIncomesToSheet,
   appendPelunasanToSheet,
   appendBuktiStrukToSheet,
-  computeBansosSummary,
+  computeDansosSummary,
   extractNameAndBlok,
-  fetchBansosFromSheets,
+  fetchDansosFromSheets,
   fetchIncomesFromSheet,
   fetchProofsFromSheet,
   fetchResidentsFromSheet,
   updateProofInSheet,
-  deleteBansosFromSheet,
+  deleteDansosFromSheet,
   deleteProofFromSheet,
   deleteIncomeFromSheet,
   deletePelunasanFromSheet,
@@ -196,8 +196,8 @@ export async function POST(req: NextRequest) {
 
       const proofKategori = (proof.kategori || 'Iuran Bulanan').trim();
 
-      // === KHUSUS SUMBANGAN DANA BANSOS WARGA -> MASUK KE KAS KECIL BANSOS (TIDAK MASUK KAS UTAMA) ===
-      if (isBansosProofCategory(proofKategori)) {
+      // === KHUSUS SUMBANGAN DANA DANSOS WARGA -> MASUK KE KAS KECIL DANSOS (TIDAK MASUK KAS UTAMA) ===
+      if (isDansosProofCategory(proofKategori)) {
         const nowIso = new Date().toISOString();
         const todayDate = nowIso.slice(0, 10);
         const { nama: rNama, blok: rBlok } = extractNameAndBlok(
@@ -207,24 +207,24 @@ export async function POST(req: NextRequest) {
         );
         const senderLabel = `${rNama || proof.residentName} (${rBlok || proof.blok})`;
 
-        // Idempotency check terhadap RiwayatPelunasan live & db.bansos
-        let liveBansosEntries: BansosEntry[] = db.bansos || [];
+        // Idempotency check terhadap RiwayatPelunasan live & db.dansos
+        let liveDansosEntries: DansosEntry[] = db.dansos || [];
         try {
-          const liveBansosRes = await fetchBansosFromSheets();
-          if (liveBansosRes.success) {
-            const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
-            liveBansosEntries = liveBansosRes.entries.filter((b) => !deletedSet.has(b.id));
+          const liveDansosRes = await fetchDansosFromSheets();
+          if (liveDansosRes.success) {
+            const deletedSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
+            liveDansosEntries = liveDansosRes.entries.filter((b) => !deletedSet.has(b.id));
           }
         } catch {}
 
-        const existingBansos = liveBansosEntries.find(
+        const existingDansos = liveDansosEntries.find(
           (b) =>
             (proof.transactionId && b.id === proof.transactionId) ||
             (b.keterangan || '').includes(proof.id)
         );
-        if (existingBansos) {
+        if (existingDansos) {
           proof.status = 'Terverifikasi';
-          proof.transactionId = existingBansos.id;
+          proof.transactionId = existingDansos.id;
           saveDb(db);
           return NextResponse.json({
             success: true,
@@ -233,16 +233,16 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const bansosId = `DANSOS-IN-${Date.now()}`;
-        const currentSummary = computeBansosSummary(liveBansosEntries);
-        const nextBalance = currentSummary.saldoBansos + proofNominalSafe;
+        const dansosId = `DANSOS-IN-${Date.now()}`;
+        const currentSummary = computeDansosSummary(liveDansosEntries);
+        const nextBalance = currentSummary.saldoDansos + proofNominalSafe;
         const cleanNote = (proof.catatanWarga || '').trim().replace(/[|,]/g, ' ');
         const ketText = cleanNote
           ? `${cleanNote} - Sumbangan Warga Terverifikasi (${proof.id})`
           : `Sumbangan Warga Terverifikasi (${proof.id})`;
 
-        const newBansosEntry: BansosEntry = {
-          id: bansosId,
+        const newDansosEntry: DansosEntry = {
+          id: dansosId,
           tanggal: todayDate,
           jenis: 'masuk_langsung',
           nominal: proofNominalSafe,
@@ -255,27 +255,27 @@ export async function POST(req: NextRequest) {
         };
 
         const prevProofSnapshot = { ...proof };
-        if (!db.bansos) db.bansos = [];
-        db.bansos.unshift(newBansosEntry);
+        if (!db.dansos) db.dansos = [];
+        db.dansos.unshift(newDansosEntry);
         proof.status = 'Terverifikasi';
         proof.adminNote = adminNote || 'Sumbangan Dana Dansos valid — masuk ke Kas Kecil Dansos';
         proof.verifiedAt = nowIso;
         proof.verifiedBy = 'Bendahara RT';
-        proof.transactionId = bansosId;
+        proof.transactionId = dansosId;
         if (!proof.driveUrl) {
           proof.driveUrl = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
         }
         saveDb(db);
 
-        const bansosMonthsStr = Array.isArray(proof.bulan)
+        const dansosMonthsStr = Array.isArray(proof.bulan)
           ? proof.bulan.join(', ')
           : String(proof.bulan || todayDate.slice(0, 7));
 
-        const bansosWriteRes = await executeSheetWritesWithRetry([
+        const dansosWriteRes = await executeSheetWritesWithRetry([
           {
             label: 'KasDansos',
             critical: true,
-            run: () => appendBansosToSheet(newBansosEntry, nextBalance, proof.id),
+            run: () => appendDansosToSheet(newDansosEntry, nextBalance, proof.id),
           },
           {
             label: 'BuktiTransfer',
@@ -290,13 +290,13 @@ export async function POST(req: NextRequest) {
                 keterangan: proof.catatanWarga || '',
                 fileUrl: proof.driveUrl || proof.buktiUrl,
                 kategori: proofKategori,
-                bulan: bansosMonthsStr,
+                bulan: dansosMonthsStr,
                 blok: proof.blok,
                 wargaId: proof.residentId,
                 verifiedAt: nowIso,
                 verifiedBy: 'Bendahara RT',
                 adminNote: proof.adminNote,
-                transactionId: bansosId,
+                transactionId: dansosId,
               }),
           },
           ...(proof.driveUrl || proof.buktiUrl
@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
                   critical: false,
                   run: () =>
                     appendBuktiStrukToSheet({
-                      id: bansosId,
+                      id: dansosId,
                       tanggal: todayDate,
                       kategori: 'Dana Masuk Dansos',
                       nominal: proofNominalSafe,
@@ -322,14 +322,14 @@ export async function POST(req: NextRequest) {
             : []),
         ]);
 
-        if (!bansosWriteRes.success) {
-          db.bansos = (db.bansos || []).filter((b) => b.id !== bansosId);
+        if (!dansosWriteRes.success) {
+          db.dansos = (db.dansos || []).filter((b) => b.id !== dansosId);
           Object.assign(proof, prevProofSnapshot);
           saveDb(db);
           return NextResponse.json(
             {
               success: false,
-              error: bansosWriteRes.error || 'Gagal mencatat sumbangan Dansos ke Google Sheet.',
+              error: dansosWriteRes.error || 'Gagal mencatat sumbangan Dansos ke Google Sheet.',
             },
             { status: 502 }
           );
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
 
         addLog(
           'Verifikasi Sumbangan Dansos',
-          `Bukti ${proof.id} (${proofKategori}) dari ${senderLabel} disetujui Rp ${proofNominalSafe.toLocaleString('id-ID')} → langsung masuk ke Saldo Kas Kecil Dansos (${bansosId}), terpisah dari Kas Utama.`,
+          `Bukti ${proof.id} (${proofKategori}) dari ${senderLabel} disetujui Rp ${proofNominalSafe.toLocaleString('id-ID')} → langsung masuk ke Saldo Kas Kecil Dansos (${dansosId}), terpisah dari Kas Utama.`,
           'Admin'
         );
 
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
           success: true,
           message: `Bukti Sumbangan Dansos ${proof.id} disetujui! Dana Rp ${proofNominalSafe.toLocaleString('id-ID')} masuk ke Saldo Kas Kecil Dansos (bukan Kas Utama).`,
           data: proof,
-          bansosEntry: newBansosEntry,
+          dansosEntry: newDansosEntry,
         });
       }
 
@@ -637,8 +637,8 @@ export async function POST(req: NextRequest) {
     if (action === 'cancel') {
       const prevProof = { ...proof };
       const prevIncStatuses = new Map<string, string>();
-      const prevBansos = [...(db.bansos || [])];
-      // Batalkan transaksi kas masuk atau kas bansos terkait dan kembalikan ke antrean
+      const prevDansos = [...(db.dansos || [])];
+      // Batalkan transaksi kas masuk atau kas dansos terkait dan kembalikan ke antrean
       const txIdsToVoid = new Set<string>();
       if (proof.transactionId) {
         proof.transactionId.split(',').forEach((s: string) => txIdsToVoid.add(s.trim()));
@@ -649,21 +649,21 @@ export async function POST(req: NextRequest) {
         inc.status = 'Dibatalkan';
       });
 
-      const affectedBansosIds = new Set<string>();
-      (db.bansos || []).forEach((b) => {
+      const affectedDansosIds = new Set<string>();
+      (db.dansos || []).forEach((b) => {
         if (txIdsToVoid.has(b.id) || (b.keterangan || '').includes(proof.id)) {
-          affectedBansosIds.add(b.id);
+          affectedDansosIds.add(b.id);
         }
       });
       Array.from(txIdsToVoid).forEach((txId) => {
-        if (txId.startsWith('BANSOS-IN-') || txId.startsWith('DANSOS-IN-')) affectedBansosIds.add(txId);
+        if (txId.startsWith('DANSOS-IN-')) affectedDansosIds.add(txId);
       });
-      if (affectedBansosIds.size > 0) {
-        if (!db.deletedBansosIds) db.deletedBansosIds = [];
-        Array.from(affectedBansosIds).forEach((bId) => {
-          if (!db.deletedBansosIds!.includes(bId)) db.deletedBansosIds!.push(bId);
+      if (affectedDansosIds.size > 0) {
+        if (!db.deletedDansosIds) db.deletedDansosIds = [];
+        Array.from(affectedDansosIds).forEach((bId) => {
+          if (!db.deletedDansosIds!.includes(bId)) db.deletedDansosIds!.push(bId);
         });
-        db.bansos = (db.bansos || []).filter((b) => !affectedBansosIds.has(b.id));
+        db.dansos = (db.dansos || []).filter((b) => !affectedDansosIds.has(b.id));
       }
 
       proof.status = 'Menunggu Verifikasi';
@@ -674,7 +674,7 @@ export async function POST(req: NextRequest) {
 
       // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran / KasDansos / RiwayatPelunasan secara paralel + retry
       const incomeTxIdsToDelete = Array.from(txIdsToVoid).filter(
-        (txId) => Boolean(txId) && !txId.startsWith('BANSOS-') && !txId.startsWith('DANSOS-')
+        (txId) => Boolean(txId) && !txId.startsWith('DANSOS-')
       );
       const cancelTasks = [
         {
@@ -704,11 +704,11 @@ export async function POST(req: NextRequest) {
           critical: false,
           run: () => deleteIncomeFromSheet(txId),
         })),
-        ...Array.from(affectedBansosIds).flatMap((bId) => [
+        ...Array.from(affectedDansosIds).flatMap((bId) => [
           {
             label: `KasDansos (${bId})`,
             critical: false,
-            run: () => deleteBansosFromSheet(bId),
+            run: () => deleteDansosFromSheet(bId),
           },
           {
             label: `RiwayatPelunasan (${bId})`,
@@ -725,7 +725,7 @@ export async function POST(req: NextRequest) {
           const ps = prevIncStatuses.get(inc.id);
           if (ps) inc.status = ps as any;
         });
-        db.bansos = prevBansos;
+        db.dansos = prevDansos;
         saveDb(db);
         return NextResponse.json(
           { success: false, error: writeRes.error || 'Gagal membatalkan status bukti di Google Sheet.' },
@@ -790,12 +790,12 @@ export async function DELETE(req: NextRequest) {
     } catch {}
 
     const txIdsToDelete = new Set<string>();
-    const bansosIdsToDelete = new Set<string>();
+    const dansosIdsToDelete = new Set<string>();
     if (proof.transactionId) {
       proof.transactionId.split(',').forEach((t) => {
         const clean = t.trim();
         if (!clean) return;
-        if (clean.startsWith('BANSOS-') || clean.startsWith('DANSOS-')) bansosIdsToDelete.add(clean);
+        if (clean.startsWith('DANSOS-')) dansosIdsToDelete.add(clean);
         else txIdsToDelete.add(clean);
       });
     }
@@ -804,20 +804,20 @@ export async function DELETE(req: NextRequest) {
         txIdsToDelete.add(inc.id);
       }
     });
-    (db.bansos || []).forEach((b) => {
-      if (bansosIdsToDelete.has(b.id) || (b.keterangan || '').includes(proof.id)) {
-        bansosIdsToDelete.add(b.id);
+    (db.dansos || []).forEach((b) => {
+      if (dansosIdsToDelete.has(b.id) || (b.keterangan || '').includes(proof.id)) {
+        dansosIdsToDelete.add(b.id);
       }
     });
 
     if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
     if (!db.deletedProofIds) db.deletedProofIds = [];
-    if (!db.deletedBansosIds) db.deletedBansosIds = [];
+    if (!db.deletedDansosIds) db.deletedDansosIds = [];
 
     if (!db.deletedIncomeIds.includes(proof.id)) db.deletedIncomeIds.push(proof.id);
     if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
-    for (const bId of Array.from(bansosIdsToDelete)) {
-      if (!db.deletedBansosIds.includes(bId)) db.deletedBansosIds.push(bId);
+    for (const bId of Array.from(dansosIdsToDelete)) {
+      if (!db.deletedDansosIds.includes(bId)) db.deletedDansosIds.push(bId);
     }
 
     // 2. Hapus paralel seluruh transaksi kas masuk / dansos terkait & baris BuktiTransfer + KasDansos + RiwayatPelunasan dengan retry + verifikasi
@@ -833,26 +833,26 @@ export async function DELETE(req: NextRequest) {
         { label: `RiwayatPelunasan (${txId})`, critical: false, run: () => deletePelunasanFromSheet(txId) }
       );
     }
-    for (const bId of Array.from(bansosIdsToDelete)) {
+    for (const bId of Array.from(dansosIdsToDelete)) {
       deleteTasks.push(
-        { label: `KasDansos (${bId})`, critical: false, run: () => deleteBansosFromSheet(bId) },
+        { label: `KasDansos (${bId})`, critical: false, run: () => deleteDansosFromSheet(bId) },
         { label: `RiwayatPelunasan (${bId})`, critical: false, run: () => deletePelunasanFromSheet(bId) }
       );
     }
 
     const prevIncomes = [...(db.incomes || [])];
     const prevProofs = [...(db.proofs || [])];
-    const prevBansos = [...(db.bansos || [])];
+    const prevDansos = [...(db.dansos || [])];
     db.incomes = (db.incomes || []).filter((inc) => inc.buktiId !== proof.id && !txIdsToDelete.has(inc.id));
     db.proofs = (db.proofs || []).filter((p) => p.id !== id);
-    db.bansos = (db.bansos || []).filter((b) => !bansosIdsToDelete.has(b.id) && !(b.keterangan || '').includes(proof.id));
+    db.dansos = (db.dansos || []).filter((b) => !dansosIdsToDelete.has(b.id) && !(b.keterangan || '').includes(proof.id));
     saveDb(db);
 
     const writeRes = await executeSheetWritesWithRetry(deleteTasks);
     if (!writeRes.success) {
       db.incomes = prevIncomes;
       db.proofs = prevProofs;
-      db.bansos = prevBansos;
+      db.dansos = prevDansos;
       saveDb(db);
       return NextResponse.json(
         { success: false, error: writeRes.error || 'Gagal menghapus data dari Google Sheet.' },

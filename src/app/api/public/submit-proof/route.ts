@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ProofSubmission } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
-import { isIuranBulananCategory, isBansosProofCategory } from '@/lib/format';
+import { isIuranBulananCategory, isDansosProofCategory } from '@/lib/format';
 import {
   normalizePeriodCode,
   appendProofToSheet,
@@ -184,10 +184,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isBansosDonation = isBansosProofCategory(newProof.kategori);
+    const isDansosDonation = isDansosProofCategory(newProof.kategori);
     addLog(
-      isBansosDonation ? 'Pengajuan Sumbangan Dana Dansos' : 'Pengajuan Bukti Transfer',
-      isBansosDonation
+      isDansosDonation ? 'Pengajuan Sumbangan Dana Dansos' : 'Pengajuan Bukti Transfer',
+      isDansosDonation
         ? `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti sumbangan Dansos ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')} (tujuan: Kas Kecil Dansos)`
         : `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti transfer ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')}`,
       'Warga'
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
       success: true,
       data: newProof,
       sheetSynced: true,
-      message: isBansosDonation
+      message: isDansosDonation
         ? 'Bukti Sumbangan Dana Dansos berhasil dikirim! Setelah diverifikasi Bendahara RT, dana otomatis masuk ke Pos Kas Kecil Dansos.'
         : 'Bukti pembayaran berhasil dikirim! Menunggu verifikasi dari bendahara/admin.',
     });

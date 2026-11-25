@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { DatabaseSchema, Resident, ProofSubmission, IncomeTransaction, ExpenseTransaction, ActivityLog, AppSettings } from '@/types';
-import { isIuranBulananCategory, isBansosProofCategory } from '@/lib/format';
+import { isIuranBulananCategory, isDansosProofCategory } from '@/lib/format';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -158,8 +158,7 @@ export function ensureVerifiedProofsInIncomes(db: DatabaseSchema): boolean {
 
   for (const proof of db.proofs) {
     if (
-      isBansosProofCategory(proof.kategori) ||
-      (proof.transactionId || '').trim().startsWith('BANSOS-') ||
+      isDansosProofCategory(proof.kategori) ||
       (proof.transactionId || '').trim().startsWith('DANSOS-')
     ) {
       continue;

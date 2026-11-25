@@ -14,8 +14,8 @@ import {
   fetchResidentsFromSheet, fetchSaldoAwalFromSheet,
   syncAllDbNamesWithMaster,
   reconcileVerifiedProofsToIncomes,
-  fetchBansosFromSheets,
-  computeBansosSummary,
+  fetchDansosFromSheets,
+  computeDansosSummary,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -185,16 +185,16 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
 
-    // Sinkronkan buku khusus Kas Kecil Dana Bansos (terpisah dari Kas Utama)
-    let bansosList = db.bansos || [];
-    let bansosSummary = computeBansosSummary(bansosList);
+    // Sinkronkan buku khusus Kas Kecil Dana Dansos (terpisah dari Kas Utama)
+    let dansosList = db.dansos || [];
+    let dansosSummary = computeDansosSummary(dansosList);
     try {
-      const bansosRes = await fetchBansosFromSheets(db.expenses);
-      if (bansosRes.success) {
-        const deletedBansosSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
-        bansosList = bansosRes.entries.filter((b) => !deletedBansosSet.has(b.id));
-        db.bansos = bansosList;
-        bansosSummary = computeBansosSummary(bansosList);
+      const dansosRes = await fetchDansosFromSheets(db.expenses);
+      if (dansosRes.success) {
+        const deletedDansosSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
+        dansosList = dansosRes.entries.filter((b) => !deletedDansosSet.has(b.id));
+        db.dansos = dansosList;
+        dansosSummary = computeDansosSummary(dansosList);
       }
     } catch {}
 
@@ -578,21 +578,21 @@ export async function GET(req: NextRequest) {
         totalKasbonTerbayar,
         totalKasbonAktif: sisaKasbonBelumKembali,
 
-        // KAS KECIL DANA BANSOS (TERPISAH DARI KAS UTAMA)
-        saldoBansos: bansosSummary.saldoBansos,
-        totalPemindahanBansos: bansosSummary.totalPemindahan,
-        countPemindahanBansos: bansosSummary.countPemindahan,
-        totalMasukKhususBansos: bansosSummary.totalMasukKhusus,
-        totalPenyaluranBansos: bansosSummary.totalPenyaluran,
-        countPenyaluranBansos: bansosSummary.countPenyaluran,
+        // KAS KECIL DANA DANSOS (TERPISAH DARI KAS UTAMA)
+        saldoDansos: dansosSummary.saldoDansos,
+        totalPemindahanDansos: dansosSummary.totalPemindahan,
+        countPemindahanDansos: dansosSummary.countPemindahan,
+        totalMasukKhususDansos: dansosSummary.totalMasukKhusus,
+        totalPenyaluranDansos: dansosSummary.totalPenyaluran,
+        countPenyaluranDansos: dansosSummary.countPenyaluran,
       },
       pendingProofs,
       recentTransactions: combinedTransactions,
       recentLogs: db.logs.slice(0, 6),
       tunggakanLama: tunggakanLamaList,
       kasbon: kasbonList,
-      bansosSummary,
-      bansosList,
+      dansosSummary,
+      dansosList,
       saldoAwalHistory,
       targetRealisasiIuran,
       cashFlowChart,
