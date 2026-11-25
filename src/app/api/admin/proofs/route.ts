@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
-import { IncomeTransaction } from '@/types';
+import { IncomeTransaction, BansosEntry } from '@/types';
 import { isAdminAuthenticated, unauthorizedAdminResponse } from '@/lib/adminAuth';
-import { isIuranBulananCategory, safeNumber, safeTimestamp } from '@/lib/format';
+import { isIuranBulananCategory, isBansosProofCategory, safeNumber, safeTimestamp } from '@/lib/format';
 import {
   appendIncomesToSheet,
   appendPelunasanToSheet,
+  appendBuktiStrukToSheet,
+  computeBansosSummary,
   extractNameAndBlok,
+  fetchBansosFromSheets,
   fetchIncomesFromSheet,
   fetchProofsFromSheet,
   fetchResidentsFromSheet,
@@ -188,6 +191,172 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Nominal bukti transfer tidak valid (<= 0).' }, { status: 400 });
       }
 
+      const proofKategori = (proof.kategori || 'Iuran Bulanan').trim();
+
+      // === KHUSUS SUMBANGAN DANA BANSOS WARGA -> MASUK KE KAS KECIL BANSOS (TIDAK MASUK KAS UTAMA) ===
+      if (isBansosProofCategory(proofKategori)) {
+        const nowIso = new Date().toISOString();
+        const todayDate = nowIso.slice(0, 10);
+        const { nama: rNama, blok: rBlok } = extractNameAndBlok(
+          `${proof.residentName} (${proof.blok})`,
+          proof.residentId,
+          db.residents
+        );
+        const senderLabel = `${rNama || proof.residentName} (${rBlok || proof.blok})`;
+
+        // Idempotency check terhadap RiwayatPelunasan live & db.bansos
+        let liveBansosEntries: BansosEntry[] = db.bansos || [];
+        try {
+          const liveBansosRes = await fetchBansosFromSheets();
+          if (liveBansosRes.success) {
+            const deletedSet = new Set([...(db.deletedBansosIds || []), ...(db.deletedExpenseIds || [])]);
+            liveBansosEntries = liveBansosRes.entries.filter((b) => !deletedSet.has(b.id));
+          }
+        } catch {}
+
+        const existingBansos = liveBansosEntries.find(
+          (b) =>
+            (proof.transactionId && b.id === proof.transactionId) ||
+            (b.keterangan || '').includes(proof.id)
+        );
+        if (existingBansos) {
+          proof.status = 'Terverifikasi';
+          proof.transactionId = existingBansos.id;
+          saveDb(db);
+          return NextResponse.json({
+            success: true,
+            message: `Bukti Sumbangan Bansos ${proof.id} sudah tercatat di Pos Kas Kecil Bansos.`,
+            data: proof,
+          });
+        }
+
+        const bansosId = `BANSOS-IN-${Date.now()}`;
+        const currentSummary = computeBansosSummary(liveBansosEntries);
+        const nextBalance = currentSummary.saldoBansos + proofNominalSafe;
+        const cleanNote = (proof.catatanWarga || '').trim().replace(/[|,]/g, ' ');
+        const ketText = cleanNote
+          ? `${cleanNote} - Sumbangan Warga Terverifikasi (${proof.id})`
+          : `Sumbangan Warga Terverifikasi (${proof.id})`;
+
+        const newBansosEntry: BansosEntry = {
+          id: bansosId,
+          tanggal: todayDate,
+          jenis: 'masuk_langsung',
+          nominal: proofNominalSafe,
+          pihakTerkait: senderLabel,
+          keterangan: ketText,
+          status: 'Sah',
+          buktiUrl: proof.buktiUrl,
+          driveUrl: proof.driveUrl || 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB',
+          createdAt: nowIso,
+        };
+
+        const prevProofSnapshot = { ...proof };
+        if (!db.bansos) db.bansos = [];
+        db.bansos.unshift(newBansosEntry);
+        proof.status = 'Terverifikasi';
+        proof.adminNote = adminNote || 'Sumbangan Dana Bansos valid — masuk ke Kas Kecil Bansos';
+        proof.verifiedAt = nowIso;
+        proof.verifiedBy = 'Bendahara RT';
+        proof.transactionId = bansosId;
+        if (!proof.driveUrl) {
+          proof.driveUrl = 'https://drive.google.com/drive/folders/1vtrUVcUZ_gnrF638A9B9DzmiTwPzp8CB';
+        }
+        saveDb(db);
+
+        const bansosMonthsStr = Array.isArray(proof.bulan)
+          ? proof.bulan.join(', ')
+          : String(proof.bulan || todayDate.slice(0, 7));
+
+        const bansosWriteRes = await executeSheetWritesWithRetry([
+          {
+            label: 'RiwayatPelunasan (Kas Kecil Bansos)',
+            critical: true,
+            run: () =>
+              appendPelunasanToSheet({
+                id: bansosId,
+                waktu: nowIso,
+                jenis: 'Dana Masuk Bansos',
+                referensiId: proof.id,
+                nama: `${senderLabel.replace(/[|,]/g, ' ')} | ${ketText}`,
+                nominal: proofNominalSafe,
+                sisa: nextBalance,
+                transaksiId: bansosId,
+                admin: 'Bendahara RT',
+              }),
+          },
+          {
+            label: 'BuktiTransfer',
+            critical: true,
+            run: () =>
+              updateProofInSheet({
+                buktiId: proof.id,
+                status: 'Terverifikasi',
+                waktuUpload: proof.createdAt || nowIso,
+                namaWarga: proof.residentName,
+                nominal: proofNominalSafe,
+                keterangan: proof.catatanWarga || '',
+                fileUrl: proof.driveUrl || proof.buktiUrl,
+                kategori: proofKategori,
+                bulan: bansosMonthsStr,
+                blok: proof.blok,
+                wargaId: proof.residentId,
+                verifiedAt: nowIso,
+                verifiedBy: 'Bendahara RT',
+                adminNote: proof.adminNote,
+                transactionId: bansosId,
+              }),
+          },
+          ...(proof.driveUrl || proof.buktiUrl
+            ? [
+                {
+                  label: 'BuktiStruk (Bansos)',
+                  critical: false,
+                  run: () =>
+                    appendBuktiStrukToSheet({
+                      id: bansosId,
+                      tanggal: todayDate,
+                      kategori: 'Dana Masuk Bansos',
+                      nominal: proofNominalSafe,
+                      penerima: senderLabel,
+                      keterangan: ketText,
+                      buktiUrl: proof.buktiUrl,
+                      driveUrl: proof.driveUrl,
+                      status: 'Sah',
+                      createdAt: nowIso,
+                    }),
+                },
+              ]
+            : []),
+        ]);
+
+        if (!bansosWriteRes.success) {
+          db.bansos = (db.bansos || []).filter((b) => b.id !== bansosId);
+          Object.assign(proof, prevProofSnapshot);
+          saveDb(db);
+          return NextResponse.json(
+            {
+              success: false,
+              error: bansosWriteRes.error || 'Gagal mencatat sumbangan Bansos ke Google Sheet.',
+            },
+            { status: 502 }
+          );
+        }
+
+        addLog(
+          'Verifikasi Sumbangan Bansos',
+          `Bukti ${proof.id} (${proofKategori}) dari ${senderLabel} disetujui Rp ${proofNominalSafe.toLocaleString('id-ID')} → langsung masuk ke Saldo Kas Kecil Bansos (${bansosId}), terpisah dari Kas Utama.`,
+          'Admin'
+        );
+
+        return NextResponse.json({
+          success: true,
+          message: `Bukti Sumbangan Bansos ${proof.id} disetujui! Dana Rp ${proofNominalSafe.toLocaleString('id-ID')} masuk ke Saldo Kas Kecil Bansos (bukan Kas Utama).`,
+          data: proof,
+          bansosEntry: newBansosEntry,
+        });
+      }
+
       // 1. Pecah periode multi-bulan menjadi terpisah per bulan (Format YYYY-MM)
       const rawBulanList = Array.isArray(proof.bulan)
         ? proof.bulan
@@ -213,7 +382,6 @@ export async function POST(req: NextRequest) {
         ];
       }
 
-      const proofKategori = (proof.kategori || 'Iuran Bulanan').trim();
       const isRegularIuran = isIuranBulananCategory(proofKategori);
 
       if (isRegularIuran) {
@@ -477,7 +645,8 @@ export async function POST(req: NextRequest) {
     if (action === 'cancel') {
       const prevProof = { ...proof };
       const prevIncStatuses = new Map<string, string>();
-      // Batalkan transaksi kas masuk dan kembalikan ke antrean
+      const prevBansos = [...(db.bansos || [])];
+      // Batalkan transaksi kas masuk atau kas bansos terkait dan kembalikan ke antrean
       const txIdsToVoid = new Set<string>();
       if (proof.transactionId) {
         proof.transactionId.split(',').forEach((s: string) => txIdsToVoid.add(s.trim()));
@@ -488,13 +657,33 @@ export async function POST(req: NextRequest) {
         inc.status = 'Dibatalkan';
       });
 
+      const affectedBansosIds = new Set<string>();
+      (db.bansos || []).forEach((b) => {
+        if (txIdsToVoid.has(b.id) || (b.keterangan || '').includes(proof.id)) {
+          affectedBansosIds.add(b.id);
+        }
+      });
+      Array.from(txIdsToVoid).forEach((txId) => {
+        if (txId.startsWith('BANSOS-IN-')) affectedBansosIds.add(txId);
+      });
+      if (affectedBansosIds.size > 0) {
+        if (!db.deletedBansosIds) db.deletedBansosIds = [];
+        Array.from(affectedBansosIds).forEach((bId) => {
+          if (!db.deletedBansosIds!.includes(bId)) db.deletedBansosIds!.push(bId);
+        });
+        db.bansos = (db.bansos || []).filter((b) => !affectedBansosIds.has(b.id));
+      }
+
       proof.status = 'Menunggu Verifikasi';
       proof.adminNote = '';
       proof.verifiedAt = undefined;
       proof.verifiedBy = undefined;
       proof.transactionId = undefined;
 
-      // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran secara paralel + retry
+      // Update status ke Google Sheet BuktiTransfer & batalkan baris terkait di DataIuran / RiwayatPelunasan secara paralel + retry
+      const incomeTxIdsToDelete = Array.from(txIdsToVoid).filter(
+        (txId) => Boolean(txId) && !txId.startsWith('BANSOS-')
+      );
       const cancelTasks = [
         {
           label: 'BuktiTransfer',
@@ -518,10 +707,15 @@ export async function POST(req: NextRequest) {
               transactionId: '',
             }),
         },
-        ...Array.from(txIdsToVoid).filter(Boolean).map((txId) => ({
+        ...incomeTxIdsToDelete.map((txId) => ({
           label: `DataIuran (${txId})`,
           critical: false,
           run: () => deleteIncomeFromSheet(txId),
+        })),
+        ...Array.from(affectedBansosIds).map((bId) => ({
+          label: `RiwayatPelunasan (${bId})`,
+          critical: false,
+          run: () => deletePelunasanFromSheet(bId),
         })),
       ];
 
@@ -532,6 +726,7 @@ export async function POST(req: NextRequest) {
           const ps = prevIncStatuses.get(inc.id);
           if (ps) inc.status = ps as any;
         });
+        db.bansos = prevBansos;
         saveDb(db);
         return NextResponse.json(
           { success: false, error: writeRes.error || 'Gagal membatalkan status bukti di Google Sheet.' },
@@ -596,22 +791,37 @@ export async function DELETE(req: NextRequest) {
     } catch {}
 
     const txIdsToDelete = new Set<string>();
+    const bansosIdsToDelete = new Set<string>();
     if (proof.transactionId) {
-      proof.transactionId.split(',').forEach((t) => txIdsToDelete.add(t.trim()));
+      proof.transactionId.split(',').forEach((t) => {
+        const clean = t.trim();
+        if (!clean) return;
+        if (clean.startsWith('BANSOS-')) bansosIdsToDelete.add(clean);
+        else txIdsToDelete.add(clean);
+      });
     }
     (db.incomes || []).forEach((inc) => {
       if (inc.buktiId === proof.id || txIdsToDelete.has(inc.id)) {
         txIdsToDelete.add(inc.id);
       }
     });
+    (db.bansos || []).forEach((b) => {
+      if (bansosIdsToDelete.has(b.id) || (b.keterangan || '').includes(proof.id)) {
+        bansosIdsToDelete.add(b.id);
+      }
+    });
 
     if (!db.deletedIncomeIds) db.deletedIncomeIds = [];
     if (!db.deletedProofIds) db.deletedProofIds = [];
+    if (!db.deletedBansosIds) db.deletedBansosIds = [];
 
     if (!db.deletedIncomeIds.includes(proof.id)) db.deletedIncomeIds.push(proof.id);
     if (!db.deletedProofIds.includes(proof.id)) db.deletedProofIds.push(proof.id);
+    for (const bId of Array.from(bansosIdsToDelete)) {
+      if (!db.deletedBansosIds.includes(bId)) db.deletedBansosIds.push(bId);
+    }
 
-    // 2. Hapus paralel seluruh transaksi kas masuk terkait & baris BuktiTransfer + RiwayatPelunasan dengan retry + verifikasi
+    // 2. Hapus paralel seluruh transaksi kas masuk / bansos terkait & baris BuktiTransfer + RiwayatPelunasan dengan retry + verifikasi
     const deleteTasks = [
       { label: `BuktiTransfer (${id})`, critical: true, run: () => deleteProofFromSheet(id) },
       { label: `RiwayatPelunasan (VERIF-${id})`, critical: false, run: () => deletePelunasanFromSheet(`VERIF-${id}`) },
@@ -624,17 +834,25 @@ export async function DELETE(req: NextRequest) {
         { label: `RiwayatPelunasan (${txId})`, critical: false, run: () => deletePelunasanFromSheet(txId) }
       );
     }
+    for (const bId of Array.from(bansosIdsToDelete)) {
+      deleteTasks.push(
+        { label: `RiwayatPelunasan (${bId})`, critical: false, run: () => deletePelunasanFromSheet(bId) }
+      );
+    }
 
     const prevIncomes = [...(db.incomes || [])];
     const prevProofs = [...(db.proofs || [])];
+    const prevBansos = [...(db.bansos || [])];
     db.incomes = (db.incomes || []).filter((inc) => inc.buktiId !== proof.id && !txIdsToDelete.has(inc.id));
     db.proofs = (db.proofs || []).filter((p) => p.id !== id);
+    db.bansos = (db.bansos || []).filter((b) => !bansosIdsToDelete.has(b.id) && !(b.keterangan || '').includes(proof.id));
     saveDb(db);
 
     const writeRes = await executeSheetWritesWithRetry(deleteTasks);
     if (!writeRes.success) {
       db.incomes = prevIncomes;
       db.proofs = prevProofs;
+      db.bansos = prevBansos;
       saveDb(db);
       return NextResponse.json(
         { success: false, error: writeRes.error || 'Gagal menghapus data dari Google Sheet.' },

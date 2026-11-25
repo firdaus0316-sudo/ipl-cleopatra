@@ -267,6 +267,19 @@ export function isPemindahanBansosCategory(kategori?: string | null): boolean {
   return lower.includes('pemindahan dana bansos') || lower.includes('pemindahan bansos') || lower === 'transfer dana bansos';
 }
 
+export const BANSOS_PROOF_CATEGORY = 'Sumbangan Dana Bansos';
+
+export function isBansosProofCategory(kategori?: string | null): boolean {
+  const lower = (kategori || '').trim().toLowerCase();
+  return (
+    lower.includes('sumbangan dana bansos') ||
+    lower.includes('donasi bansos') ||
+    lower.includes('kas kecil bansos') ||
+    lower === 'dana bansos' ||
+    lower === 'bansos'
+  );
+}
+
 export interface ProofPeriodSlice<T = any> {
   proof: T;
   periodCode: string;

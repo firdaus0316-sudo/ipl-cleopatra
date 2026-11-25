@@ -59,6 +59,7 @@ import {
   normalizePeriodCode,
   isIncomeInPeriod,
   splitProofByPeriod,
+  isBansosProofCategory,
 } from '@/lib/format';
 import {
   ProofSubmission,
@@ -696,6 +697,24 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, activeTab]);
 
+  // Sinkronisasi real-time otomatis saat admin kembali ke tab atau setiap 30 detik (Google Sheets live)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const syncLive = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSlices(['proofs', 'dashboard', 'bansos']);
+      }
+    };
+    window.addEventListener('focus', syncLive);
+    document.addEventListener('visibilitychange', syncLive);
+    const liveTimer = window.setInterval(syncLive, 30000);
+    return () => {
+      window.removeEventListener('focus', syncLive);
+      document.removeEventListener('visibilitychange', syncLive);
+      window.clearInterval(liveTimer);
+    };
+  }, [isAuthenticated]);
+
   // Sync with Google Sheets
   const handleSyncGoogleSheet = async () => {
     setIsSyncingSheet(true);
@@ -756,7 +775,11 @@ export default function AdminPage() {
   // VERIFICATION ACTIONS
   const handleApproveProof = async (proof: ProofSubmission) => {
     if (isVerifying) return;
-    if (!confirm(`Konfirmasi setujui bukti transfer ${proof.id} sebesar ${formatRupiah(proof.nominal)}? Kas masuk akan otomatis bertambah.`)) {
+    const isBansosProof = isBansosProofCategory(proof.kategori);
+    const confirmMsg = isBansosProof
+      ? `Konfirmasi setujui sumbangan dana Bansos ${proof.id} sebesar ${formatRupiah(proof.nominal)}?\n\nDana akan langsung masuk ke Saldo Kas Kecil Bansos (TERPISAH dari Kas Utama RT).`
+      : `Konfirmasi setujui bukti transfer ${proof.id} sebesar ${formatRupiah(proof.nominal)}? Kas masuk akan otomatis bertambah.`;
+    if (!confirm(confirmMsg)) {
       return;
     }
     setIsVerifying(true);
@@ -771,8 +794,12 @@ export default function AdminPage() {
         const updatedProof = { ...proof, status: 'Terverifikasi' as const, verifiedAt: new Date().toISOString() };
         setProofs((prev) => prev.map((p) => (p.id === proof.id ? updatedProof : p)));
         setSelectedProof(updatedProof);
-        showToast(`✓ Bukti ${proof.id} disetujui & masuk kas!`);
-        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+        showToast(
+          isBansosProof
+            ? `✓ Sumbangan Bansos ${proof.id} masuk ke Saldo Kas Kecil Bansos!`
+            : `✓ Bukti ${proof.id} disetujui & masuk kas!`
+        );
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix', 'bansos']);
       } else {
         alert(data.error || 'Gagal memverifikasi.');
       }
@@ -800,7 +827,7 @@ export default function AdminPage() {
         setProofs((prev) => prev.map((p) => (p.id === proof.id ? { ...p, status: 'Ditolak', adminNote: reason } : p)));
         setSelectedProof(null);
         showToast(`Bukti ${proof.id} ditolak.`);
-        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix', 'bansos']);
       } else {
         alert(data.error || 'Gagal menolak bukti transfer di Google Sheet.');
       }
@@ -828,7 +855,7 @@ export default function AdminPage() {
         setProofs((prev) => prev.map((p) => (p.id === proof.id ? { ...p, status: 'Menunggu Verifikasi' } : p)));
         setSelectedProof(null);
         showToast(`Status bukti ${proof.id} dikembalikan ke antrean.`);
-        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix', 'bansos']);
       } else {
         alert(data.error || 'Gagal membatalkan status bukti transfer.');
       }
@@ -862,7 +889,7 @@ export default function AdminPage() {
           setSelectedProof(null);
         }
         showToast(`✓ Bukti ${proof.id} dihapus.`);
-        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix']);
+        refreshSlices(['proofs', 'incomes', 'dashboard', 'matrix', 'bansos']);
       } else {
         alert(data.error || 'Gagal menghapus bukti transfer.');
       }
@@ -3607,6 +3634,18 @@ export default function AdminPage() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="font-mono font-bold text-slate-800">{formatPeriodCode(slice.periodCode)}</div>
+                            {isBansosProofCategory(p.kategori) ? (
+                              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-extrabold">
+                                {p.kategori} → Kas Kecil Bansos
+                              </span>
+                            ) : (
+                              p.kategori &&
+                              p.kategori !== 'Iuran Bulanan' && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200/70 text-[10px] font-semibold">
+                                  {p.kategori}
+                                </span>
+                              )
+                            )}
                             {slice.totalSlices > 1 && (
                               <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/70 text-[10px] font-semibold">
                                 Periode {slice.sliceIndex + 1}/{slice.totalSlices} • Total {formatRupiah(p.nominal)}
@@ -6116,6 +6155,17 @@ export default function AdminPage() {
                 <span className="font-bold text-slate-900">{selectedProof.hp || '-'}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-slate-500">Kategori / Pos Tujuan:</span>
+                <span
+                  className={`font-bold ${
+                    isBansosProofCategory(selectedProof.kategori) ? 'text-rose-700' : 'text-slate-900'
+                  }`}
+                >
+                  {selectedProof.kategori || 'Iuran Bulanan'}
+                  {isBansosProofCategory(selectedProof.kategori) ? ' (Masuk Kas Kecil Bansos)' : ''}
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-500">Bulan yang Dibayar:</span>
                 <span className="font-bold text-slate-900">{selectedProof.bulan?.join(', ')}</span>
               </div>
@@ -6123,6 +6173,11 @@ export default function AdminPage() {
                 <span className="text-slate-500">Nominal Transfer:</span>
                 <span className="font-black text-emerald-700 text-sm">{formatRupiah(selectedProof.nominal)}</span>
               </div>
+              {isBansosProofCategory(selectedProof.kategori) && (
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-medium">
+                  <strong>Catatan Sistem:</strong> Menyetujui bukti ini akan memasukkan dana ke <strong>Saldo Kas Kecil Bansos</strong> di Google Sheets (<em>tidak masuk Kas Utama</em>).
+                </div>
+              )}
               {(() => {
                 const slices = splitProofByPeriod(selectedProof);
                 if (slices.length <= 1) return null;
@@ -6160,10 +6215,18 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleApproveProof(selectedProof)}
                     disabled={isVerifying}
-                    className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+                    className={`py-3 px-4 rounded-xl text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md ${
+                      isBansosProofCategory(selectedProof.kategori)
+                        ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                    }`}
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Setujui (Kas Masuk)</span>
+                    <span>
+                      {isBansosProofCategory(selectedProof.kategori)
+                        ? 'Setujui (Kas Kecil Bansos)'
+                        : 'Setujui (Kas Masuk)'}
+                    </span>
                   </button>
 
                   <button

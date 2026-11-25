@@ -379,6 +379,10 @@ export async function GET() {
       },
       recentExpenses,
       recentIncomes,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

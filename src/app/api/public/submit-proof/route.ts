@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, saveDb, addLog } from '@/lib/db';
 import { ProofSubmission } from '@/types';
 import { uploadToGoogleDrive } from '@/lib/driveUpload';
-import { isIuranBulananCategory } from '@/lib/format';
+import { isIuranBulananCategory, isBansosProofCategory } from '@/lib/format';
 import {
   normalizePeriodCode,
   appendProofToSheet,
@@ -184,9 +184,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isBansosDonation = isBansosProofCategory(newProof.kategori);
     addLog(
-      'Pengajuan Bukti Transfer',
-      `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti transfer ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')}`,
+      isBansosDonation ? 'Pengajuan Sumbangan Dana Bansos' : 'Pengajuan Bukti Transfer',
+      isBansosDonation
+        ? `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti sumbangan Bansos ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')} (tujuan: Kas Kecil Bansos)`
+        : `Warga ${newProof.residentName} (${newProof.blok}) mengupload bukti transfer ${proofId} sebesar Rp ${newProof.nominal.toLocaleString('id-ID')}`,
       'Warga'
     );
 
@@ -194,7 +197,9 @@ export async function POST(req: NextRequest) {
       success: true,
       data: newProof,
       sheetSynced: true,
-      message: 'Bukti pembayaran berhasil dikirim! Menunggu verifikasi dari bendahara/admin.',
+      message: isBansosDonation
+        ? 'Bukti Sumbangan Dana Bansos berhasil dikirim! Setelah diverifikasi Bendahara RT, dana otomatis masuk ke Pos Kas Kecil Bansos.'
+        : 'Bukti pembayaran berhasil dikirim! Menunggu verifikasi dari bendahara/admin.',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

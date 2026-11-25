@@ -45,7 +45,14 @@ import {
   HeartHandshake,
   ArrowRightLeft,
 } from 'lucide-react';
-import { formatRupiah, formatDateIndo, createWaLink, normalizePeriodCode } from '@/lib/format';
+import {
+  formatRupiah,
+  formatDateIndo,
+  createWaLink,
+  normalizePeriodCode,
+  BANSOS_PROOF_CATEGORY,
+  isBansosProofCategory,
+} from '@/lib/format';
 
 interface SafeSettings {
   namaRt: string;
@@ -110,6 +117,7 @@ const EXPENSE_COLORS: Record<string, string> = {
 
 const KATEGORI_INCOME_OPTIONS = [
   'Iuran Bulanan',
+  BANSOS_PROOF_CATEGORY,
   'THR (Tunjangan Hari Raya)',
   'Donasi / Dana Hibah',
   'Ramadhan',
@@ -121,6 +129,7 @@ const KATEGORI_INCOME_OPTIONS = [
 const INCOME_COLORS: Record<string, string> = {
   'Iuran Bulanan': '#10b981',
   'Iuran Bulanan (Reguler)': '#10b981',
+  [BANSOS_PROOF_CATEGORY]: '#e11d48',
   'THR (Tunjangan Hari Raya)': '#ec4899',
   'Iuran THR': '#ec4899',
   'Donasi / Dana Hibah': '#8b5cf6',
@@ -336,10 +345,28 @@ export default function PublicPage() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Sinkronisasi real-time otomatis saat kembali ke tab / fokus jendela & interval 30 detik
+    const handleFocusSync = () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    };
+    window.addEventListener('focus', handleFocusSync);
+    document.addEventListener('visibilitychange', handleFocusSync);
+    const liveInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    }, 30000);
+
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('focus', handleFocusSync);
+      document.removeEventListener('visibilitychange', handleFocusSync);
+      window.clearInterval(liveInterval);
     };
   }, []);
 
@@ -396,6 +423,7 @@ export default function PublicPage() {
   }, [blok, kategori, selectedMonths, currentResidentPaidSet, currentResidentPendingSet]);
 
   const isUntargetedKategori = (kat: string) =>
+    isBansosProofCategory(kat) ||
     kat === 'Donasi / Dana Hibah' ||
     kat === 'Lainnya' ||
     kat === 'Dana Hibah / Donasi' ||
@@ -415,6 +443,14 @@ export default function PublicPage() {
         setCustomNominal('');
       }
     }
+  };
+
+  const openBansosDonationForm = () => {
+    handleKategoriChange(BANSOS_PROOF_CATEGORY);
+    setSubmitSuccess(null);
+    setFormError('');
+    setTab('upload');
+    setIsMobileMenuOpen(false);
   };
 
   const handleSelectResident = (r: PublicResident) => {
@@ -645,6 +681,7 @@ export default function PublicPage() {
         setBuktiImage('');
         setBuktiImageSizeKb(0);
         setCatatanWarga('');
+        loadData();
       } else {
         setFormError(data?.error || `Gagal mengirim bukti (HTTP ${res.status}). Silakan klik Kirim Bukti Pembayaran sekali lagi.`);
       }
@@ -880,19 +917,43 @@ export default function PublicPage() {
             {/* 2. Form Setor Iuran */}
             <button
               onClick={() => {
+                if (isBansosProofCategory(kategori)) {
+                  handleKategoriChange('Iuran Bulanan');
+                }
                 setTab('upload');
                 setIsMobileMenuOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition text-left ${
-                tab === 'upload'
+                tab === 'upload' && !isBansosProofCategory(kategori)
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
               }`}
             >
-              <Upload className={`w-4 h-4 shrink-0 ${tab === 'upload' ? 'text-white' : 'text-emerald-400'}`} />
+              <Upload className={`w-4 h-4 shrink-0 ${tab === 'upload' && !isBansosProofCategory(kategori) ? 'text-white' : 'text-emerald-400'}`} />
               <div className="flex-1">
                 <div>Form Setor Iuran</div>
                 <div className="text-[10px] font-normal opacity-80">Kirim bukti transfer & rekening</div>
+              </div>
+            </button>
+
+            {/* 2b. Sumbang Dana Bansos (Kas Kecil Bansos) */}
+            <button
+              onClick={openBansosDonationForm}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition text-left ${
+                tab === 'upload' && isBansosProofCategory(kategori)
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40 ring-1 ring-rose-400/30'
+                  : 'text-slate-300 hover:text-white hover:bg-rose-950/50 border border-rose-500/20'
+              }`}
+            >
+              <HeartHandshake className={`w-4 h-4 shrink-0 ${tab === 'upload' && isBansosProofCategory(kategori) ? 'text-white' : 'text-rose-400'}`} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span>Sumbang Dana Bansos</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/20 text-rose-200">
+                    Kas Kecil
+                  </span>
+                </div>
+                <div className="text-[10px] font-normal opacity-80">Masuk ke Kas Bansos (terpisah)</div>
               </div>
             </button>
 
@@ -1186,6 +1247,94 @@ export default function PublicPage() {
               </div>
             </div>
 
+            {/* POS DANA KHUSUS DI DASHBOARD WARGA: KAS KECIL BANSOS (TERPISAH DARI KAS UTAMA) */}
+            <div className="bg-white border border-rose-200/90 rounded-2xl p-4 sm:p-5 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                    <HeartHandshake className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-black text-slate-900">
+                        Pos Dana Sosial: Kas Kecil Bansos
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                        Terpisah dari Kas Utama RT
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Transparansi dana Bantuan Sosial warga. Sumbangan warga lewat tombol Bansos langsung masuk ke pos ini setelah diverifikasi Bendahara RT.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={openBansosDonationForm}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition shadow-sm cursor-pointer active:scale-95"
+                  >
+                    <HeartHandshake className="w-3.5 h-3.5" />
+                    <span>Sumbang Dana Bansos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBansosDetailModal(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
+                  >
+                    <span>Lihat Mutasi</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+                <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-3.5 border border-rose-200/80">
+                  <div className="text-[11px] font-bold text-rose-700">Saldo Kas Bansos Tersedia</div>
+                  <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-rose-600/90 mt-1">
+                    Dana khusus Bantuan Sosial
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3 text-indigo-600" />
+                    <span>Pemindahan Kas Utama</span>
+                  </div>
+                  <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.bansos?.totalPemindahan ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.bansos?.countPemindahan ?? 0}x alokasi dari Kas Utama
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Sumbangan & Masuk Khusus</div>
+                  <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.bansos?.totalMasukKhusus ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.bansos?.countMasukKhusus ?? 0}x sumbangan warga / luar kas
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Sudah Disalurkan</div>
+                  <div className="text-lg sm:text-xl font-black text-amber-700 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.bansos?.totalPenyaluran ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.bansos?.countPenyaluran ?? 0}x penyaluran bantuan sosial
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* DUA GRAFIK BERDAMPINGAN: GRAFIK BAR (KIRI) DAN GRAFIK PIE PENGELUARAN (KANAN) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               {/* SISI KIRI: GRAFIK BAR ARUS KAS MASUK VS KELUAR BULANAN */}
@@ -1354,25 +1503,36 @@ export default function PublicPage() {
             </div>
 
             {/* 5. QUICK ACTION HERO BANNER */}
-            <div className="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-5 text-white shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
-                <h4 className="text-base font-extrabold">Sudah Melakukan Transfer Iuran Bulan Ini?</h4>
+                <h4 className="text-base font-extrabold">Sudah Transfer Iuran Bulanan atau Sumbangan Dana Bansos?</h4>
                 <p className="text-xs text-emerald-100 mt-1 max-w-xl">
-                  Lampirkan bukti transfer bank atau M-Banking Anda melalui formulir konfirmasi pembayaran agar tercatat otomatis oleh pengurus RT.
+                  Lampirkan bukti transfer melalui formulir konfirmasi. Khusus tombol <strong>Sumbang Dana Bansos</strong>, dana setelah diverifikasi langsung masuk ke <strong>Kas Kecil Bansos</strong> (bukan Kas Utama).
                 </p>
               </div>
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setTab('upload')}
-                  className="px-4 py-2.5 rounded-xl bg-white text-emerald-900 font-extrabold text-xs hover:bg-emerald-50 transition shadow-sm"
+                  onClick={() => {
+                    if (isBansosProofCategory(kategori)) handleKategoriChange('Iuran Bulanan');
+                    setTab('upload');
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white text-emerald-900 font-extrabold text-xs hover:bg-emerald-50 transition shadow-sm cursor-pointer"
                 >
                   Konfirmasi Setor Iuran
                 </button>
                 <button
                   type="button"
+                  onClick={openBansosDonationForm}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition shadow-sm border border-rose-400/40 cursor-pointer"
+                >
+                  <HeartHandshake className="w-3.5 h-3.5" />
+                  <span>Sumbang Dana Bansos</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setTab('status')}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-700/60 hover:bg-emerald-700 text-white font-bold text-xs transition border border-emerald-500/40"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-700/60 hover:bg-emerald-700 text-white font-bold text-xs transition border border-emerald-500/40 cursor-pointer"
                 >
                   Cek Status
                 </button>
@@ -1425,12 +1585,17 @@ export default function PublicPage() {
                 </div>
               </div>
 
-              <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-slate-600">
+              <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
                 <div>
                   Atas Nama : <strong className="text-slate-900">{settings?.atasNama || 'Triana Iswahyuni'}</strong>
                 </div>
-                <div>
-                  Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <div>
+                    Saldo Kas RT Saat Ini: <strong className="text-emerald-600">{formatRupiah(saldoKas)}</strong>
+                  </div>
+                  <div>
+                    Saldo Kas Kecil Bansos: <strong className="text-rose-600">{formatRupiah(transparencyData?.bansos?.saldoBansos ?? 0)}</strong>
+                  </div>
                 </div>
               </div>
 
@@ -1453,11 +1618,51 @@ export default function PublicPage() {
 
             {/* FORM CARD */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-7 shadow-sm">
-              <div className="border-b border-slate-100 pb-3.5 mb-5">
-                <h2 className="text-base font-black text-slate-900">Formulir Konfirmasi Pembayaran</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Isi data nama warga dan lampirkan foto bukti transfer untuk diverifikasi oleh bendahara RT.
-                </p>
+              <div className="border-b border-slate-100 pb-4 mb-5 space-y-3">
+                <div>
+                  <h2 className="text-base font-black text-slate-900">
+                    {isBansosProofCategory(kategori)
+                      ? 'Formulir Konfirmasi Sumbangan Dana Bansos'
+                      : 'Formulir Konfirmasi Pembayaran'}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {isBansosProofCategory(kategori)
+                      ? 'Dana sumbangan Anda akan diverifikasi Bendahara RT dan langsung masuk ke Pos Kas Kecil Bansos (bukan Kas Utama).'
+                      : 'Isi data nama warga dan lampirkan foto bukti transfer untuk diverifikasi oleh bendahara RT.'}
+                  </p>
+                </div>
+
+                {/* Tombol Pemilihan Tujuan Dana: Iuran/Kas Utama vs Sumbangan Dana Bansos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isBansosProofCategory(kategori)) {
+                        handleKategoriChange('Iuran Bulanan');
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
+                      !isBansosProofCategory(kategori)
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Wallet className="w-4 h-4 shrink-0" />
+                    <span>Setor Iuran / Kas Utama RT</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleKategoriChange(BANSOS_PROOF_CATEGORY)}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
+                      isBansosProofCategory(kategori)
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                        : 'bg-rose-50/70 text-rose-800 border-rose-200 hover:bg-rose-100'
+                    }`}
+                  >
+                    <HeartHandshake className="w-4 h-4 shrink-0" />
+                    <span>Sumbangan Dana Bansos (Kas Kecil)</span>
+                  </button>
+                </div>
               </div>
 
               {submitSuccess ? (
@@ -1476,6 +1681,13 @@ export default function PublicPage() {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Nama / Blok:</span>
                       <strong className="text-slate-900">{submitSuccess.residentName} ({submitSuccess.blok})</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Kategori / Tujuan:</span>
+                      <strong className={isBansosProofCategory(submitSuccess.kategori) ? 'text-rose-700' : 'text-slate-900'}>
+                        {submitSuccess.kategori || 'Iuran Bulanan'}
+                        {isBansosProofCategory(submitSuccess.kategori) ? ' → Pos Kas Kecil Bansos' : ''}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Bulan Dibayar:</span>
@@ -1505,6 +1717,16 @@ export default function PublicPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                  {isBansosProofCategory(kategori) && (
+                    <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-2.5">
+                      <HeartHandshake className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                      <div className="text-[11px] leading-relaxed">
+                        <strong className="block text-rose-950">Mode Sumbangan Dana Bansos Aktif</strong>
+                        Bukti transfer Anda tetap diverifikasi oleh Bendahara RT seperti biasa, namun setelah disetujui, dananya otomatis masuk ke <strong>Saldo Kas Kecil Bansos</strong> (pencatatan terpisah dari Kas Utama RT).
+                      </div>
+                    </div>
+                  )}
+
                   {formError && (
                     <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2.5">
                       <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -1634,7 +1856,10 @@ export default function PublicPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="block font-bold text-slate-800 mb-1">
-                        Total Nominal Kas Masuk (Rp) <span className="text-rose-500">*</span>
+                        {isBansosProofCategory(kategori)
+                          ? 'Nominal Sumbangan Dana Bansos (Rp)'
+                          : 'Total Nominal Kas Masuk (Rp)'}{' '}
+                        <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -1643,10 +1868,16 @@ export default function PublicPage() {
                         placeholder={isUntargetedKategori(kategori) ? 'Isi sesuai nominal transfer' : ''}
                         value={customNominal}
                         onChange={(e) => setCustomNominal(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black text-emerald-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-black text-sm focus:outline-none bg-white ${
+                          isBansosProofCategory(kategori)
+                            ? 'text-rose-700 focus:ring-2 focus:ring-rose-500'
+                            : 'text-emerald-700 focus:ring-2 focus:ring-emerald-500'
+                        }`}
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block font-medium">
-                        {kategori === 'Iuran Bulanan'
+                        {isBansosProofCategory(kategori)
+                          ? 'Masuk penuh ke Pos Kas Kecil Bansos setelah diverifikasi Bendahara RT (terpisah dari Kas Utama)'
+                          : kategori === 'Iuran Bulanan'
                           ? `Otomatis terkalkulasi (${selectedMonths.length} bulan x ${formatRupiah(currentResidentTarif)})`
                           : isUntargetedKategori(kategori)
                           ? 'Isi nominal transfer / donasi — dicatat penuh 1 periode saat ini (tidak dipecah)'
@@ -1750,7 +1981,11 @@ export default function PublicPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting || isCompressingImage}
-                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm"
+                    className={`w-full py-3.5 px-4 rounded-xl disabled:bg-slate-400 text-white font-black text-xs transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                      isBansosProofCategory(kategori)
+                        ? 'bg-rose-600 hover:bg-rose-700'
+                        : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                   >
                     {isSubmitting ? (
                       <>
@@ -1759,7 +1994,11 @@ export default function PublicPage() {
                       </>
                     ) : (
                       <>
-                        <span>Kirim Bukti Pembayaran</span>
+                        <span>
+                          {isBansosProofCategory(kategori)
+                            ? 'Kirim Bukti Sumbangan Dana Bansos'
+                            : 'Kirim Bukti Pembayaran'}
+                        </span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}

@@ -112,21 +112,28 @@ export async function GET() {
     const activeResidentsList = (db.residents || []).filter((r) => r && r.status === 'Aktif');
     const totalResidentsCount = (db.residents || []).length;
 
-    return NextResponse.json({
-      success: true,
-      settings: safeSettings,
-      residents: activeResidentsList,
-      residentCounts: {
-        total: totalResidentsCount,
-        aktif: activeResidentsList.length,
-        nonaktif: Math.max(0, totalResidentsCount - activeResidentsList.length),
+    return NextResponse.json(
+      {
+        success: true,
+        settings: safeSettings,
+        residents: activeResidentsList,
+        residentCounts: {
+          total: totalResidentsCount,
+          aktif: activeResidentsList.length,
+          nonaktif: Math.max(0, totalResidentsCount - activeResidentsList.length),
+        },
+        saldoKas,
+        paidPeriodsByBlok,
+        pendingPeriodsByBlok,
+        sheetStatus: `Tersinkron otomatis Google Sheets`,
+        isSheetLocked: false,
       },
-      saldoKas,
-      paidPeriodsByBlok,
-      pendingPeriodsByBlok,
-      sheetStatus: `Tersinkron otomatis Google Sheets`,
-      isSheetLocked: false,
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
