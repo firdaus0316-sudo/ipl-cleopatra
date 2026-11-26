@@ -221,10 +221,9 @@ export default function PublicPage() {
     }
   };
 
-  // Modals for Pos Piutang, Kasbon & Kas Kecil Dansos
+  // Modals for Pos Piutang & Kasbon
   const [showTunggakanDetailModal, setShowTunggakanDetailModal] = useState(false);
   const [showKasbonDetailModal, setShowKasbonDetailModal] = useState(false);
-  const [showDansosDetailModal, setShowDansosDetailModal] = useState(false);
 
   // Interactive Chart Slices hover
   const [hoveredExpenseCat, setHoveredExpenseCat] = useState<string | null>(null);
@@ -1278,14 +1277,6 @@ export default function PublicPage() {
                     <HeartHandshake className="w-3.5 h-3.5" />
                     <span>Sumbang Dana Dansos</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowDansosDetailModal(true)}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
-                  >
-                    <span>Lihat Mutasi</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
 
@@ -2307,11 +2298,11 @@ export default function PublicPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowDansosDetailModal(true)}
-                  className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer"
+                  onClick={openDansosDonationForm}
+                  className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 >
-                  <span>Lihat Rincian Mutasi Kas Dansos</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <HeartHandshake className="w-3.5 h-3.5" />
+                  <span>Sumbang Dana Dansos</span>
                 </button>
               </div>
 
@@ -2952,135 +2943,6 @@ export default function PublicPage() {
               <button
                 type="button"
                 onClick={() => setShowKasbonDetailModal(false)}
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL RINCIAN KAS KECIL DANSOS */}
-      {showDansosDetailModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
-            <button
-              onClick={() => setShowDansosDetailModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                <HeartHandshake className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-base">
-                  Rincian Mutasi Pos Kas Kecil Dana Dansos
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Pencatatan khusus Bantuan Sosial (terpisah dari saldo operasional Kas Utama RT)
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-4 text-xs">
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-                <div className="text-[10px] font-bold text-rose-700">Saldo Kas Dansos</div>
-                <div className="text-sm font-black text-rose-900 mt-0.5">
-                  {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
-                <div className="text-[10px] font-bold text-indigo-700">Pindah Kas Utama</div>
-                <div className="text-sm font-black text-indigo-900 mt-0.5">
-                  {formatRupiah(transparencyData?.dansos?.totalPemindahan ?? 0)}
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                <div className="text-[10px] font-bold text-emerald-700">Masuk Khusus</div>
-                <div className="text-sm font-black text-emerald-900 mt-0.5">
-                  {formatRupiah(transparencyData?.dansos?.totalMasukKhusus ?? 0)}
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-                <div className="text-[10px] font-bold text-amber-700">Disalurkan</div>
-                <div className="text-sm font-black text-amber-900 mt-0.5">
-                  {formatRupiah(transparencyData?.dansos?.totalPenyaluran ?? 0)}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-              {(transparencyData?.dansos?.list || []).length === 0 ? (
-                <div className="text-center py-10 text-xs text-slate-400">
-                  Belum ada mutasi transaksi di Pos Kas Kecil Dansos.
-                </div>
-              ) : (
-                (transparencyData?.dansos?.list || []).map((item: any) => {
-                  const isOut = item.jenis === 'penyaluran';
-                  const isTransfer = item.jenis === 'pemindahan';
-                  const proofHref = item.driveUrl || item.buktiUrl;
-                  return (
-                    <div
-                      key={item.id}
-                      className="p-3.5 rounded-xl border border-slate-200/90 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-[11px] font-semibold text-slate-500">
-                            {item.tanggal}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                              isTransfer
-                                ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
-                                : isOut
-                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
-                                  : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                            }`}
-                          >
-                            {isTransfer
-                              ? 'Pemindahan dari Kas Utama'
-                              : isOut
-                                ? 'Penyaluran Dansos'
-                                : 'Dana Masuk Khusus'}
-                          </span>
-                        </div>
-                        <div className="font-bold text-slate-900">{item.pihakTerkait}</div>
-                        <div className="text-[11px] text-slate-600">{item.keterangan}</div>
-                      </div>
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 shrink-0">
-                        <span
-                          className={`text-sm font-black ${
-                            isOut ? 'text-amber-700' : 'text-emerald-700'
-                          }`}
-                        >
-                          {isOut ? '-' : '+'}{formatRupiah(item.nominal)}
-                        </span>
-                        {proofHref && (
-                          <a
-                            href={proofHref}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] font-bold text-blue-600 hover:underline"
-                          >
-                            Lihat Bukti →
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="pt-3 mt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowDansosDetailModal(false)}
                 className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
               >
                 Tutup

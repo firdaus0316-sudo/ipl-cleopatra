@@ -325,15 +325,6 @@ export async function GET() {
       },
       dansos: {
         ...dansosSummary,
-        list: dansosList.map((b) => ({
-          id: b.id,
-          tanggal: b.tanggal,
-          jenis: b.jenis,
-          nominal: b.nominal,
-          pihakTerkait: b.pihakTerkait,
-          keterangan: b.keterangan,
-          buktiUrl: b.buktiUrl || null,
-        })),
       },
       expenseByCategory,
       incomeByCategory,
