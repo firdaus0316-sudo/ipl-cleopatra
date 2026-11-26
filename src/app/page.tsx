@@ -1286,8 +1286,8 @@ export default function PublicPage() {
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
                   </div>
-                  <div className="text-[10px] text-rose-600/90 mt-1">
-                    Dana khusus Bantuan Sosial
+                  <div className="text-[10px] text-rose-700/90 mt-1 font-medium">
+                    Saldo Awal: <strong>{formatRupiah(transparencyData?.dansos?.saldoAwalDansos ?? 0)}</strong>
                   </div>
                 </div>
 
@@ -2312,8 +2312,8 @@ export default function PublicPage() {
                   <div className="text-lg sm:text-xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(transparencyData?.dansos?.saldoDansos ?? 0)}
                   </div>
-                  <div className="text-[10px] text-rose-600/90 mt-1">
-                    Siap disalurkan untuk warga / sosial
+                  <div className="text-[10px] text-rose-700/90 mt-1 font-medium">
+                    Saldo Awal: <strong>{formatRupiah(transparencyData?.dansos?.saldoAwalDansos ?? 0)}</strong>
                   </div>
                 </div>
 

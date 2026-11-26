@@ -179,6 +179,8 @@ export default function AdminPage() {
   const [dansosList, setDansosList] = useState<DansosEntry[]>([]);
   const [dansosSummary, setDansosSummary] = useState<DansosSummary>({
     saldoDansos: 0,
+    saldoAwalDansos: 0,
+    countSaldoAwal: 0,
     totalPemindahan: 0,
     countPemindahan: 0,
     totalMasukKhusus: 0,
@@ -1776,11 +1778,15 @@ export default function AdminPage() {
     setDansosFormTanggal(new Date().toISOString().split('T')[0]);
     setDansosFormNominal('');
     setDansosFormPihak(
-      jenis === 'pemindahan'
-        ? 'Bendahara / Pos Kas Dansos RT 011'
-        : ''
+      jenis === 'saldo_awal'
+        ? 'Mutasi Saldo Bulan Sebelumnya'
+        : jenis === 'pemindahan'
+          ? 'Bendahara / Pos Kas Dansos RT 011'
+          : ''
     );
-    setDansosFormKet('');
+    setDansosFormKet(
+      jenis === 'saldo_awal' ? 'Saldo Awal Mutasi Bulan Sebelumnya Dana Dansos' : ''
+    );
     setDansosFormBukti('');
     setDansosFormBuktiName('');
     setShowDansosModal(true);
@@ -1850,11 +1856,13 @@ export default function AdminPage() {
 
   const handleDeleteDansos = async (item: DansosEntry) => {
     const labelJenis =
-      item.jenis === 'pemindahan'
-        ? 'Pemindahan dari Kas Utama'
-        : item.jenis === 'penyaluran'
-          ? 'Penyaluran Dansos'
-          : 'Dana Masuk Khusus Dansos';
+      item.jenis === 'saldo_awal'
+        ? 'Saldo Awal Dansos'
+        : item.jenis === 'pemindahan'
+          ? 'Pemindahan dari Kas Utama'
+          : item.jenis === 'penyaluran'
+            ? 'Penyaluran Dansos'
+            : 'Dana Masuk Khusus Dansos';
     if (
       !confirm(
         `Hapus catatan ${labelJenis} (${item.pihakTerkait} - ${formatRupiah(item.nominal)})?${
@@ -2929,6 +2937,14 @@ export default function AdminPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => handleOpenDansosModal('saldo_awal')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>+ Saldo Awal Dansos</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleOpenDansosModal('pemindahan')}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                   >
@@ -2968,8 +2984,8 @@ export default function AdminPage() {
                   <div className="text-2xl font-black text-rose-900 tracking-tight mt-1">
                     {formatRupiah(dashboardData.stats.saldoDansos ?? dansosSummary.saldoDansos)}
                   </div>
-                  <div className="text-[11px] text-rose-600 font-medium mt-1">
-                    Saldo siap disalurkan (kas kecil terpisah)
+                  <div className="text-[11px] text-rose-700 font-medium mt-1">
+                    Saldo Awal: <strong>{formatRupiah(dashboardData.stats.saldoAwalDansos ?? dansosSummary.saldoAwalDansos)}</strong>
                   </div>
                 </div>
 
@@ -5883,6 +5899,14 @@ export default function AdminPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => handleOpenDansosModal('saldo_awal')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span>+ Saldo Awal Dansos</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleOpenDansosModal('pemindahan')}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
                   >
@@ -5908,8 +5932,8 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 4 KPI Cards Kas Dansos */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 5 KPI Cards Kas Dansos (termasuk Saldo Awal Mutasi Bulan Sebelumnya) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="bg-gradient-to-br from-rose-50 via-white to-rose-50/40 rounded-2xl p-5 border border-rose-200 shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-rose-700">Saldo Kas Dansos</span>
@@ -5920,6 +5944,19 @@ export default function AdminPage() {
                   </div>
                   <div className="text-[11px] text-rose-700/80 mt-1">
                     Total Terkumpul {formatRupiah(dansosSummary.totalDanaTerkumpul)}
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-teal-50 via-white to-teal-50/30 rounded-2xl p-5 border border-teal-200 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-teal-700">Saldo Awal Dansos</span>
+                    <Wallet className="w-4 h-4 text-teal-600" />
+                  </div>
+                  <div className="text-2xl font-black text-teal-800 mt-1.5 tracking-tight">
+                    {formatRupiah(dansosSummary.saldoAwalDansos)}
+                  </div>
+                  <div className="text-[11px] text-teal-700/80 mt-1">
+                    {dansosSummary.countSaldoAwal}x mutasi bulan sebelumnya
                   </div>
                 </div>
 
@@ -5969,6 +6006,7 @@ export default function AdminPage() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     {[
                       { id: 'all', label: `Semua (${dansosList.length})` },
+                      { id: 'saldo_awal', label: `Saldo Awal (${dansosSummary.countSaldoAwal})` },
                       { id: 'pemindahan', label: `Pemindahan Kas Utama (${dansosSummary.countPemindahan})` },
                       { id: 'penyaluran', label: `Penyaluran (${dansosSummary.countPenyaluran})` },
                       { id: 'masuk_langsung', label: `Masuk Khusus (${dansosSummary.countMasukKhusus})` },
@@ -6017,11 +6055,12 @@ export default function AdminPage() {
                       {filteredDansos.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="py-12 text-center text-slate-400">
-                            Belum ada transaksi Kas Dansos yang sesuai filter. Gunakan tombol di atas untuk memindahkan dana dari Kas Utama atau mencatat penyaluran Dansos.
+                            Belum ada transaksi Kas Dansos yang sesuai filter. Gunakan tombol di atas untuk mencatat Saldo Awal, memindahkan dana dari Kas Utama, atau mencatat penyaluran Dansos.
                           </td>
                         </tr>
                       ) : (
                         filteredDansos.map((item) => {
+                          const isSaldoAwal = item.jenis === 'saldo_awal';
                           const isOut = item.jenis === 'penyaluran';
                           const isTransfer = item.jenis === 'pemindahan';
                           const receipt = item.driveUrl || item.buktiUrl;
@@ -6033,18 +6072,22 @@ export default function AdminPage() {
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span
                                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                                    isTransfer
-                                      ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                                      : isOut
-                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    isSaldoAwal
+                                      ? 'bg-teal-50 text-teal-800 border-teal-200'
+                                      : isTransfer
+                                        ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                        : isOut
+                                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                   }`}
                                 >
-                                  {isTransfer
-                                    ? 'Pemindahan dari Kas Utama'
-                                    : isOut
-                                      ? 'Penyaluran Dansos'
-                                      : 'Dana Masuk Khusus'}
+                                  {isSaldoAwal
+                                    ? 'Saldo Awal (Bulan Lalu)'
+                                    : isTransfer
+                                      ? 'Pemindahan dari Kas Utama'
+                                      : isOut
+                                        ? 'Penyaluran Dansos'
+                                        : 'Dana Masuk Khusus'}
                                 </span>
                               </td>
                               <td className="py-3 px-4 font-bold text-slate-900">
@@ -8431,13 +8474,34 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* 3 Jenis Transaksi Toggle */}
-            <div className="grid grid-cols-3 gap-2 my-4">
+            {/* 4 Jenis Transaksi Toggle */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setDansosFormJenis('saldo_awal');
+                  if (!dansosFormPihak || dansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011') {
+                    setDansosFormPihak('Mutasi Saldo Bulan Sebelumnya');
+                  }
+                  if (!dansosFormKet) {
+                    setDansosFormKet('Saldo Awal Mutasi Bulan Sebelumnya Dana Dansos');
+                  }
+                }}
+                className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
+                  dansosFormJenis === 'saldo_awal'
+                    ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Saldo Awal
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setDansosFormJenis('pemindahan');
-                  if (!dansosFormPihak) setDansosFormPihak('Bendahara / Pos Kas Dansos RT 011');
+                  if (!dansosFormPihak || dansosFormPihak === 'Mutasi Saldo Bulan Sebelumnya') {
+                    setDansosFormPihak('Bendahara / Pos Kas Dansos RT 011');
+                  }
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   dansosFormJenis === 'pemindahan'
@@ -8451,7 +8515,12 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setDansosFormJenis('penyaluran');
-                  if (dansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011') setDansosFormPihak('');
+                  if (
+                    dansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011' ||
+                    dansosFormPihak === 'Mutasi Saldo Bulan Sebelumnya'
+                  ) {
+                    setDansosFormPihak('');
+                  }
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   dansosFormJenis === 'penyaluran'
@@ -8465,7 +8534,12 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => {
                   setDansosFormJenis('masuk_langsung');
-                  if (dansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011') setDansosFormPihak('');
+                  if (
+                    dansosFormPihak === 'Bendahara / Pos Kas Dansos RT 011' ||
+                    dansosFormPihak === 'Mutasi Saldo Bulan Sebelumnya'
+                  ) {
+                    setDansosFormPihak('');
+                  }
                 }}
                 className={`p-2.5 rounded-xl border text-[11px] font-bold transition text-center cursor-pointer ${
                   dansosFormJenis === 'masuk_langsung'
@@ -8479,18 +8553,22 @@ export default function AdminPage() {
 
             <div
               className={`p-3 rounded-xl text-[11px] mb-4 border ${
-                dansosFormJenis === 'pemindahan'
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-900'
-                  : dansosFormJenis === 'penyaluran'
-                    ? 'bg-rose-50 border-rose-200 text-rose-900'
-                    : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                dansosFormJenis === 'saldo_awal'
+                  ? 'bg-teal-50 border-teal-200 text-teal-900'
+                  : dansosFormJenis === 'pemindahan'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-900'
+                    : dansosFormJenis === 'penyaluran'
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-900'
               }`}
             >
-              {dansosFormJenis === 'pemindahan'
-                ? 'Dana dipindahkan dari Kas Utama RT ke Kas Kecil Dansos: mengurangi saldo Kas Utama dan menambah saldo Kas Dansos.'
-                : dansosFormJenis === 'penyaluran'
-                  ? 'Penyaluran Bantuan Sosial hanya memotong saldo Kas Dansos dan TIDAK mengurangi Kas Utama RT.'
-                  : 'Penerimaan donasi/sumbangan khusus Dansos dari luar Kas Utama: langsung menambah saldo Kas Dansos tanpa memengaruhi Kas Utama.'}
+              {dansosFormJenis === 'saldo_awal'
+                ? 'Saldo Awal dari mutasi bulan/periode sebelumnya: disimpan langsung ke Google Sheet SaldoAwalDansos dan menambah Saldo Kas Dansos tanpa memengaruhi Kas Utama.'
+                : dansosFormJenis === 'pemindahan'
+                  ? 'Dana dipindahkan dari Kas Utama RT ke Kas Kecil Dansos: mengurangi saldo Kas Utama dan menambah saldo Kas Dansos.'
+                  : dansosFormJenis === 'penyaluran'
+                    ? 'Penyaluran Bantuan Sosial hanya memotong saldo Kas Dansos dan TIDAK mengurangi Kas Utama RT.'
+                    : 'Penerimaan donasi/sumbangan khusus Dansos dari luar Kas Utama: langsung menambah saldo Kas Dansos tanpa memengaruhi Kas Utama.'}
             </div>
 
             <form onSubmit={handleSaveDansos} className="space-y-3.5 text-xs">
@@ -8521,21 +8599,25 @@ export default function AdminPage() {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  {dansosFormJenis === 'pemindahan'
-                    ? 'Penanggung Jawab / Pos Tujuan'
-                    : dansosFormJenis === 'penyaluran'
-                      ? 'Nama Penerima Bantuan'
-                      : 'Nama Donatur / Sumber Dana'}
+                  {dansosFormJenis === 'saldo_awal'
+                    ? 'Sumber / Periode Mutasi Sebelumnya'
+                    : dansosFormJenis === 'pemindahan'
+                      ? 'Penanggung Jawab / Pos Tujuan'
+                      : dansosFormJenis === 'penyaluran'
+                        ? 'Nama Penerima Bantuan'
+                        : 'Nama Donatur / Sumber Dana'}
                 </label>
                 <input
                   type="text"
                   required
                   placeholder={
-                    dansosFormJenis === 'pemindahan'
-                      ? 'Contoh: Pos Kas Dansos RT 011'
-                      : dansosFormJenis === 'penyaluran'
-                        ? 'Contoh: Bpk. Ahmad / Keluarga Dhuafa Blok C'
-                        : 'Contoh: Hamba Allah / Sumbangan Warga'
+                    dansosFormJenis === 'saldo_awal'
+                      ? 'Contoh: Mutasi Saldo Bulan Oktober 2026'
+                      : dansosFormJenis === 'pemindahan'
+                        ? 'Contoh: Pos Kas Dansos RT 011'
+                        : dansosFormJenis === 'penyaluran'
+                          ? 'Contoh: Bpk. Ahmad / Keluarga Dhuafa Blok C'
+                          : 'Contoh: Hamba Allah / Sumbangan Warga'
                   }
                   value={dansosFormPihak}
                   onChange={(e) => setDansosFormPihak(e.target.value)}
@@ -8549,11 +8631,13 @@ export default function AdminPage() {
                   rows={2}
                   required
                   placeholder={
-                    dansosFormJenis === 'pemindahan'
-                      ? 'Contoh: Alokasi dana kas kecil Dansos bulan ini'
-                      : dansosFormJenis === 'penyaluran'
-                        ? 'Contoh: Santunan warga sakit / bantuan sembako'
-                        : 'Contoh: Titipan donasi khusus program Dansos'
+                    dansosFormJenis === 'saldo_awal'
+                      ? 'Contoh: Saldo awal mutasi dana dansos bulan sebelumnya'
+                      : dansosFormJenis === 'pemindahan'
+                        ? 'Contoh: Alokasi dana kas kecil Dansos bulan ini'
+                        : dansosFormJenis === 'penyaluran'
+                          ? 'Contoh: Santunan warga sakit / bantuan sembako'
+                          : 'Contoh: Titipan donasi khusus program Dansos'
                   }
                   value={dansosFormKet}
                   onChange={(e) => setDansosFormKet(e.target.value)}
@@ -8688,11 +8772,17 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-4 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 my-4 text-xs">
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
                 <div className="text-[10px] font-bold text-rose-700">Saldo Kas Dansos</div>
                 <div className="text-sm font-black text-rose-900 mt-0.5">
                   {formatRupiah(dashboardData?.stats?.saldoDansos ?? dansosSummary.saldoDansos)}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-teal-50 border border-teal-200">
+                <div className="text-[10px] font-bold text-teal-700">Saldo Awal</div>
+                <div className="text-sm font-black text-teal-900 mt-0.5">
+                  {formatRupiah(dashboardData?.stats?.saldoAwalDansos ?? dansosSummary.saldoAwalDansos)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
@@ -8722,6 +8812,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 dansosList.map((item) => {
+                  const isSaldoAwal = item.jenis === 'saldo_awal';
                   const isOut = item.jenis === 'penyaluran';
                   const isTransfer = item.jenis === 'pemindahan';
                   const proofHref = item.driveUrl || item.buktiUrl;
@@ -8737,18 +8828,22 @@ export default function AdminPage() {
                           </span>
                           <span
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                              isTransfer
-                                ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
-                                : isOut
-                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
-                                  : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              isSaldoAwal
+                                ? 'bg-teal-100 text-teal-800 border-teal-200'
+                                : isTransfer
+                                  ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                                  : isOut
+                                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                             }`}
                           >
-                            {isTransfer
-                              ? 'Pemindahan dari Kas Utama'
-                              : isOut
-                                ? 'Penyaluran Dansos'
-                                : 'Dana Masuk Khusus'}
+                            {isSaldoAwal
+                              ? 'Saldo Awal (Bulan Lalu)'
+                              : isTransfer
+                                ? 'Pemindahan dari Kas Utama'
+                                : isOut
+                                  ? 'Penyaluran Dansos'
+                                  : 'Dana Masuk Khusus'}
                           </span>
                         </div>
                         <div className="font-bold text-slate-900">{item.pihakTerkait}</div>

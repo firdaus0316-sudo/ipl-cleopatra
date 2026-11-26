@@ -17,6 +17,7 @@ export const SHEET_GIDS = {
   buktistruk: '762023314',
   buktitransfer: '4652474',
   kasdansos: '13680223',
+  saldoawaldansos: '641478446',
 };
 
 export const SHEET_GID = SHEET_GIDS.masterwarga;
@@ -2054,6 +2055,8 @@ export async function reconcileVerifiedProofsToIncomes(
  */
 export function computeDansosSummary(entries: DansosEntry[]): DansosSummary {
   const valid = (entries || []).filter((e) => e && e.status === 'Sah');
+  let saldoAwalDansos = 0;
+  let countSaldoAwal = 0;
   let totalPemindahan = 0;
   let countPemindahan = 0;
   let totalMasukKhusus = 0;
@@ -2064,7 +2067,10 @@ export function computeDansosSummary(entries: DansosEntry[]): DansosSummary {
   for (const e of valid) {
     const nom = Number(e.nominal) || 0;
     if (nom <= 0) continue;
-    if (e.jenis === 'pemindahan') {
+    if (e.jenis === 'saldo_awal') {
+      saldoAwalDansos += nom;
+      countSaldoAwal += 1;
+    } else if (e.jenis === 'pemindahan') {
       totalPemindahan += nom;
       countPemindahan += 1;
     } else if (e.jenis === 'masuk_langsung') {
@@ -2076,11 +2082,13 @@ export function computeDansosSummary(entries: DansosEntry[]): DansosSummary {
     }
   }
 
-  const totalDanaTerkumpul = totalPemindahan + totalMasukKhusus;
+  const totalDanaTerkumpul = saldoAwalDansos + totalPemindahan + totalMasukKhusus;
   const saldoDansos = totalDanaTerkumpul - totalPenyaluran;
 
   return {
     saldoDansos,
+    saldoAwalDansos,
+    countSaldoAwal,
     totalPemindahan,
     countPemindahan,
     totalMasukKhusus,
@@ -2091,6 +2099,24 @@ export function computeDansosSummary(entries: DansosEntry[]): DansosSummary {
   };
 }
 
+// 10.10a SaldoAwalDansos (Sheet Terpisah Khusus Saldo Awal Mutasi Bulan Sebelumnya Dana Dansos)
+export async function appendSaldoAwalDansosToSheet(
+  entry: DansosEntry
+): Promise<{ success: boolean; error?: string }> {
+  const row = [
+    escapeGsheetCell(entry.tanggal || new Date().toISOString().slice(0, 10)),
+    escapeGsheetCell(entry.keterangan || 'Saldo Awal Mutasi Bulan Sebelumnya'),
+    Number(entry.nominal) || 0,
+    escapeGsheetCell(entry.id),
+    escapeGsheetCell(entry.pihakTerkait || 'Mutasi Bulan Sebelumnya'),
+  ].join(',');
+  return appendRowsToSheet('SaldoAwalDansos', [row]);
+}
+
+export async function deleteSaldoAwalDansosFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('SaldoAwalDansos', 4, entryId, SHEET_GIDS.saldoawaldansos);
+}
+
 // 10.10 KasDansos (Sheet Terpisah Khusus Pos Kas Kecil Dana Dansos)
 export async function appendDansosToSheet(
   entry: DansosEntry,
@@ -2098,11 +2124,13 @@ export async function appendDansosToSheet(
   referensiId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const jenisLabel =
-    entry.jenis === 'pemindahan'
-      ? 'Pemindahan dari Kas Utama'
-      : entry.jenis === 'penyaluran'
-        ? 'Penyaluran Dana Dansos'
-        : 'Dana Masuk Dansos';
+    entry.jenis === 'saldo_awal'
+      ? 'Saldo Awal Dansos'
+      : entry.jenis === 'pemindahan'
+        ? 'Pemindahan dari Kas Utama'
+        : entry.jenis === 'penyaluran'
+          ? 'Penyaluran Dana Dansos'
+          : 'Dana Masuk Dansos';
   const danaMasuk = entry.jenis === 'penyaluran' ? 0 : Number(entry.nominal) || 0;
   const danaKeluar = entry.jenis === 'penyaluran' ? Number(entry.nominal) || 0 : 0;
 
@@ -2131,7 +2159,8 @@ export async function fetchDansosFromSheets(
   preloadedExpenses?: ExpenseTransaction[]
 ): Promise<{ success: boolean; entries: DansosEntry[]; summary: DansosSummary; error?: string }> {
   try {
-    const [kasDansosCsvText, expRes, pelCsvText, strukCsvText] = await Promise.all([
+    const [saldoAwalDansosCsvText, kasDansosCsvText, expRes, pelCsvText, strukCsvText] = await Promise.all([
+      fetchCsvByGid(SHEET_GIDS.saldoawaldansos).catch(() => ''),
       fetchCsvByGid(SHEET_GIDS.kasdansos).catch(() => ''),
       preloadedExpenses ? Promise.resolve({ success: true, expenses: preloadedExpenses }) : fetchExpensesFromSheet(),
       fetchCsvByGid(SHEET_GIDS.riwayatpelunasan).catch(() => ''),
@@ -2153,6 +2182,38 @@ export async function fetchDansosFromSheets(
 
     const entries: DansosEntry[] = [];
     const seenIds = new Set<string>();
+
+    // 0. Sumber Saldo Awal Dansos: Sheet khusus "SaldoAwalDansos" (mutasi bulan sebelumnya, terpisah dari Kas Utama)
+    if (saldoAwalDansosCsvText) {
+      const saLines = saldoAwalDansosCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < saLines.length; i++) {
+        const cols = parseCsvLine(saLines[i]);
+        if (cols.length < 3) continue;
+        const tglRaw = (cols[0] || '').trim();
+        const keterangan = (cols[1] || '').trim() || 'Saldo Awal Mutasi Bulan Sebelumnya';
+        const jumlahRaw = (cols[2] || '').replace(/[^0-9]/g, '');
+        const rowId = (cols[3] || '').trim() || `SA-DANSOS-${i}`;
+        const sumber = (cols[4] || '').trim() || 'Mutasi Bulan Sebelumnya';
+        const nominal = jumlahRaw ? parseInt(jumlahRaw, 10) : 0;
+
+        if (nominal <= 0 || seenIds.has(rowId)) continue;
+        seenIds.add(rowId);
+
+        const rawUrl = strukUrlByTxId.get(rowId) || '';
+        entries.push({
+          id: rowId,
+          tanggal: parseDateFlexible(tglRaw),
+          jenis: 'saldo_awal',
+          nominal,
+          pihakTerkait: sumber,
+          keterangan,
+          status: 'Sah',
+          buktiUrl: rawUrl ? getDirectGoogleDriveImageUrl(rawUrl) : undefined,
+          driveUrl: rawUrl || undefined,
+          createdAt: parseDateFlexible(tglRaw),
+        });
+      }
+    }
 
     // 1. Sumber Utama: Sheet khusus "KasDansos" (sinkronisasi 2-arah langsung dengan Google Sheet KasDansos)
     if (kasDansosCsvText) {
@@ -2177,7 +2238,9 @@ export async function fetchDansosFromSheets(
         const masuk = masukRaw ? parseInt(masukRaw, 10) : 0;
         const keluar = keluarRaw ? parseInt(keluarRaw, 10) : 0;
         let jenis: DansosEntry['jenis'] = 'masuk_langsung';
-        if (/pemindahan/i.test(jenisRaw) || rowId.startsWith('EXP-')) {
+        if (/saldo\s*awal/i.test(jenisRaw) || rowId.startsWith('SA-DANSOS-')) {
+          jenis = 'saldo_awal';
+        } else if (/pemindahan/i.test(jenisRaw) || rowId.startsWith('EXP-')) {
           jenis = 'pemindahan';
         } else if (
           /penyaluran|keluar/i.test(jenisRaw) ||

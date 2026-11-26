@@ -580,6 +580,8 @@ export async function GET(req: NextRequest) {
 
         // KAS KECIL DANA DANSOS (TERPISAH DARI KAS UTAMA)
         saldoDansos: dansosSummary.saldoDansos,
+        saldoAwalDansos: dansosSummary.saldoAwalDansos,
+        countSaldoAwalDansos: dansosSummary.countSaldoAwal,
         totalPemindahanDansos: dansosSummary.totalPemindahan,
         countPemindahanDansos: dansosSummary.countPemindahan,
         totalMasukKhususDansos: dansosSummary.totalMasukKhusus,

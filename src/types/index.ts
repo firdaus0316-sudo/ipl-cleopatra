@@ -127,7 +127,7 @@ export interface KasbonEntry {
   riwayatPembayaran?: PembayaranRecord[];
 }
 
-export type DansosTransactionType = 'pemindahan' | 'penyaluran' | 'masuk_langsung';
+export type DansosTransactionType = 'saldo_awal' | 'pemindahan' | 'penyaluran' | 'masuk_langsung';
 
 export interface DansosEntry {
   id: string;
@@ -145,6 +145,8 @@ export interface DansosEntry {
 
 export interface DansosSummary {
   saldoDansos: number;
+  saldoAwalDansos: number;
+  countSaldoAwal: number;
   totalPemindahan: number;
   countPemindahan: number;
   totalMasukKhusus: number;

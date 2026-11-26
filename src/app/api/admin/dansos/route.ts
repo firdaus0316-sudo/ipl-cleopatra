@@ -7,9 +7,11 @@ import {
   fetchDansosFromSheets,
   computeDansosSummary,
   appendDansosToSheet,
+  appendSaldoAwalDansosToSheet,
   appendExpenseToSheet,
   appendBuktiStrukToSheet,
   deleteDansosFromSheet,
+  deleteSaldoAwalDansosFromSheet,
   deleteExpenseFromSheet,
   deletePelunasanFromSheet,
   deleteRowFromSheet,
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
     };
 
     const parsedNominal = Number(nominal);
-    if (!tanggal || !jenis || !['pemindahan', 'penyaluran', 'masuk_langsung'].includes(jenis)) {
+    if (!tanggal || !jenis || !['saldo_awal', 'pemindahan', 'penyaluran', 'masuk_langsung'].includes(jenis)) {
       return NextResponse.json({ success: false, error: 'Jenis transaksi dan tanggal wajib diisi.' }, { status: 400 });
     }
     if (isNaN(parsedNominal) || parsedNominal <= 0) {
@@ -99,14 +101,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Saldo Kas Dansos (Rp ${currentDansosSummary.saldoDansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`,
+          error: `Saldo Kas Dansos (Rp ${currentDansosSummary.saldoDansos.toLocaleString('id-ID')}) tidak mencukupi untuk penyaluran Rp ${parsedNominal.toLocaleString('id-ID')}. Lakukan Pemindahan Dana dari Kas Utama atau catat Saldo Awal terlebih dahulu.`,
         },
         { status: 400 }
       );
     }
 
     const prefix =
-      jenis === 'pemindahan' ? 'EXP-DANSOS' : jenis === 'penyaluran' ? 'DANSOS-OUT' : 'DANSOS-IN';
+      jenis === 'saldo_awal'
+        ? 'SA-DANSOS'
+        : jenis === 'pemindahan'
+          ? 'EXP-DANSOS'
+          : jenis === 'penyaluran'
+            ? 'DANSOS-OUT'
+            : 'DANSOS-IN';
     const entryId = `${prefix}-${ts}`;
 
     let finalBuktiUrl = buktiUrl || '';
@@ -191,6 +199,65 @@ export async function POST(req: NextRequest) {
         message: `Pemindahan dana Rp ${parsedNominal.toLocaleString('id-ID')} ke Kas Dansos berhasil dicatat ke Google Sheet KasDansos (Kas Utama berkurang otomatis)!`,
         data: newEntry,
         expense: createdExpense,
+        summary: computeDansosSummary(db.dansos),
+      });
+    }
+
+    // 1b. Jika Saldo Awal Dansos (Mutasi Bulan Sebelumnya) -> Simpan khusus ke Google Sheet SaldoAwalDansos (tidak memengaruhi Kas Utama)
+    if (jenis === 'saldo_awal') {
+      saveDb(db);
+      const saWriteTasks = [
+        {
+          label: 'SaldoAwalDansos',
+          critical: true,
+          run: () => appendSaldoAwalDansosToSheet(newEntry),
+        },
+        ...(finalBuktiUrl || driveUrl
+          ? [
+              {
+                label: 'BuktiStruk (Saldo Awal Dansos)',
+                critical: false,
+                run: () =>
+                  appendBuktiStrukToSheet({
+                    id: entryId,
+                    tanggal: tgl,
+                    kategori: 'Saldo Awal Dansos',
+                    nominal: parsedNominal,
+                    penerima: cleanPihak,
+                    keterangan: cleanKet,
+                    buktiUrl: finalBuktiUrl,
+                    driveUrl,
+                    status: 'Sah',
+                    createdAt: new Date().toISOString(),
+                  }),
+              },
+            ]
+          : []),
+      ];
+
+      const writeRes = await executeSheetWritesWithRetry(saWriteTasks);
+      if (!writeRes.success) {
+        db.dansos = (db.dansos || []).filter((b) => b.id !== entryId);
+        saveDb(db);
+        return NextResponse.json(
+          {
+            success: false,
+            error: writeRes.error || 'Gagal menyimpan Saldo Awal Dansos ke Google Sheet SaldoAwalDansos.',
+          },
+          { status: 502 }
+        );
+      }
+
+      addLog(
+        'Saldo Awal Dana Dansos',
+        `Mencatat Saldo Awal Dansos Rp ${parsedNominal.toLocaleString('id-ID')} (${cleanPihak}: ${cleanKet}) ke Google Sheet SaldoAwalDansos (terpisah dari Kas Utama).`,
+        'Admin'
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: `Saldo Awal Dansos Rp ${parsedNominal.toLocaleString('id-ID')} berhasil disimpan ke Google Sheet SaldoAwalDansos!`,
+        data: newEntry,
         summary: computeDansosSummary(db.dansos),
       });
     }
@@ -294,6 +361,7 @@ export async function DELETE(req: NextRequest) {
     if (!db.deletedDansosIds) db.deletedDansosIds = [];
     if (!db.deletedDansosIds.includes(id)) db.deletedDansosIds.push(id);
 
+    const isSaldoAwal = target.jenis === 'saldo_awal' || id.startsWith('SA-DANSOS-');
     const isPemindahan = target.jenis === 'pemindahan' || id.startsWith('EXP-');
     if (isPemindahan) {
       if (!db.deletedExpenseIds) db.deletedExpenseIds = [];
@@ -303,20 +371,30 @@ export async function DELETE(req: NextRequest) {
     db.dansos = prevDansos.filter((b) => b.id !== id);
     saveDb(db);
 
-    const deleteTasks = isPemindahan
+    const deleteTasks = isSaldoAwal
       ? [
-          { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) },
+          { label: 'SaldoAwalDansos', critical: true, run: () => deleteSaldoAwalDansosFromSheet(id) },
           { label: 'KasDansos', critical: false, run: () => deleteDansosFromSheet(id) },
-        ]
-      : [
-          { label: 'KasDansos', critical: true, run: () => deleteDansosFromSheet(id) },
-          { label: 'RiwayatPelunasan', critical: false, run: () => deletePelunasanFromSheet(id) },
           {
             label: 'BuktiStruk',
             critical: false,
             run: () => deleteRowFromSheet('BuktiStruk', 7, id, SHEET_GIDS.buktistruk),
           },
-        ];
+        ]
+      : isPemindahan
+        ? [
+            { label: 'DataPengeluaran', critical: true, run: () => deleteExpenseFromSheet(id) },
+            { label: 'KasDansos', critical: false, run: () => deleteDansosFromSheet(id) },
+          ]
+        : [
+            { label: 'KasDansos', critical: true, run: () => deleteDansosFromSheet(id) },
+            { label: 'RiwayatPelunasan', critical: false, run: () => deletePelunasanFromSheet(id) },
+            {
+              label: 'BuktiStruk',
+              critical: false,
+              run: () => deleteRowFromSheet('BuktiStruk', 7, id, SHEET_GIDS.buktistruk),
+            },
+          ];
 
     const writeRes = await executeSheetWritesWithRetry(deleteTasks);
     if (!writeRes.success) {
