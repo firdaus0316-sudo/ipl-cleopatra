@@ -219,6 +219,9 @@ export default function AdminPage() {
   const [kasbonSearch, setKasbonSearch] = useState('');
   const [incomeSearch, setIncomeSearch] = useState('');
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<'all' | 'iuran' | 'tunggakan' | 'kasbon'>('all');
+  const [expenseSearch, setExpenseSearch] = useState('');
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<string>('all');
+  const [expensePeriodFilter, setExpensePeriodFilter] = useState<string>('all');
 
   // Tunggakan Modal States
   const [selectedTunggakan, setSelectedTunggakan] = useState<TunggakanLamaEntry | null>(null);
@@ -3756,7 +3759,58 @@ export default function AdminPage() {
         )}
 
         {/* TAB 3: KAS KELUAR (PENGELUARAN) */}
-        {activeTab === 'pengeluaran' && (
+        {activeTab === 'pengeluaran' && (() => {
+          const categoryOrder = ['Fixed', 'Variabel', 'Kasbon', 'Pemindahan Dana Dansos'];
+          const uniqueCategories = Array.from(
+            new Set(expenses.map((e) => (e.kategori || '').trim()).filter(Boolean))
+          ).sort((a, b) => {
+            const ia = categoryOrder.indexOf(a);
+            const ib = categoryOrder.indexOf(b);
+            if (ia !== -1 && ib !== -1) return ia - ib;
+            if (ia !== -1) return -1;
+            if (ib !== -1) return 1;
+            return a.localeCompare(b);
+          });
+
+          const uniquePeriods = Array.from(
+            new Set(
+              expenses
+                .map((e) => (e.tanggal || '').slice(0, 7))
+                .filter((p) => /^\d{4}-\d{2}$/.test(p))
+            )
+          ).sort((a, b) => b.localeCompare(a));
+
+          const qExp = expenseSearch.trim().toLowerCase();
+          const filteredExpenses = expenses.filter((exp) => {
+            if (expenseCategoryFilter !== 'all' && (exp.kategori || '').trim() !== expenseCategoryFilter) {
+              return false;
+            }
+            if (expensePeriodFilter !== 'all' && (exp.tanggal || '').slice(0, 7) !== expensePeriodFilter) {
+              return false;
+            }
+            if (!qExp) return true;
+            const dateLabel = formatDateIndo(exp.tanggal).toLowerCase();
+            return (
+              (exp.keterangan || '').toLowerCase().includes(qExp) ||
+              (exp.penerima || '').toLowerCase().includes(qExp) ||
+              (exp.kategori || '').toLowerCase().includes(qExp) ||
+              (exp.tanggal || '').toLowerCase().includes(qExp) ||
+              dateLabel.includes(qExp) ||
+              String(exp.nominal || '').includes(qExp.replace(/[^0-9]/g, '') || qExp)
+            );
+          });
+
+          const totalAllSah = expenses
+            .filter((e) => e.status === 'Sah')
+            .reduce((sum, e) => sum + e.nominal, 0);
+          const totalFilteredSah = filteredExpenses
+            .filter((e) => e.status === 'Sah')
+            .reduce((sum, e) => sum + e.nominal, 0);
+          const hasActiveExpenseFilter = Boolean(
+            qExp || expenseCategoryFilter !== 'all' || expensePeriodFilter !== 'all'
+          );
+
+          return (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -3780,18 +3834,92 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Total Expense Summary Card */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <span className="text-xs text-slate-500 font-medium">Total Akumulasi Pengeluaran Sah</span>
+            {/* Total Expense Summary & Filter Bar */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="shrink-0">
+                <span className="text-xs text-slate-500 font-medium">
+                  {hasActiveExpenseFilter ? 'Total Pengeluaran Terfilter (Sah)' : 'Total Akumulasi Pengeluaran Sah'}
+                </span>
                 <div className="text-2xl font-black text-rose-600">
-                  {formatRupiah(
-                    expenses.filter((e) => e.status === 'Sah').reduce((sum, e) => sum + e.nominal, 0)
+                  {formatRupiah(hasActiveExpenseFilter ? totalFilteredSah : totalAllSah)}
+                </div>
+                {hasActiveExpenseFilter && (
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Total keseluruhan: <strong className="text-slate-600">{formatRupiah(totalAllSah)}</strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Filter & Pencarian Kas Keluar */}
+              <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">
+                <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={expenseSearch}
+                    onChange={(e) => setExpenseSearch(e.target.value)}
+                    placeholder="Cari keterangan, penerima, nominal..."
+                    className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-slate-50/50 focus:bg-white transition"
+                  />
+                  {expenseSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setExpenseSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      title="Hapus pencarian"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
-              </div>
-              <div className="text-xs text-slate-500">
-                Menampilkan {expenses.length} catatan pengeluaran
+
+                <select
+                  value={expenseCategoryFilter}
+                  onChange={(e) => setExpenseCategoryFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer"
+                  aria-label="Filter kategori pengeluaran"
+                >
+                  <option value="all">Semua Kategori</option>
+                  {uniqueCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={expensePeriodFilter}
+                  onChange={(e) => setExpensePeriodFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer"
+                  aria-label="Filter bulan pengeluaran"
+                >
+                  <option value="all">Semua Bulan</option>
+                  {uniquePeriods.map((p) => (
+                    <option key={p} value={p}>
+                      {formatPeriodCode(p)}
+                    </option>
+                  ))}
+                </select>
+
+                {hasActiveExpenseFilter && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpenseSearch('');
+                      setExpenseCategoryFilter('all');
+                      setExpensePeriodFilter('all');
+                    }}
+                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+
+                <div className="text-xs text-slate-500 whitespace-nowrap pl-1">
+                  {hasActiveExpenseFilter
+                    ? `Menampilkan ${filteredExpenses.length} dari ${expenses.length} catatan`
+                    : `Menampilkan ${expenses.length} catatan pengeluaran`}
+                </div>
               </div>
             </div>
 
@@ -3812,7 +3940,29 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {expenses.map((exp) => (
+                    {filteredExpenses.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                          <div className="space-y-2">
+                            <p>Tidak ada catatan kas keluar yang cocok dengan filter pencarian.</p>
+                            {hasActiveExpenseFilter && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExpenseSearch('');
+                                  setExpenseCategoryFilter('all');
+                                  setExpensePeriodFilter('all');
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer"
+                              >
+                                Tampilkan Semua Pengeluaran
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                    filteredExpenses.map((exp) => (
                       <tr key={exp.id} className="hover:bg-slate-50/70 transition">
                         <td className="py-3 px-4 font-medium text-slate-600">{formatDateIndo(exp.tanggal)}</td>
                         <td className="py-3 px-4">
@@ -3880,13 +4030,15 @@ export default function AdminPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* TAB 4: IURAN & KAS MASUK */}
         {activeTab === 'pemasukan' && (() => {
