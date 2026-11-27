@@ -258,6 +258,7 @@ export default function AdminPage() {
   const [kasbonSearch, setKasbonSearch] = useState('');
   const [incomeSearch, setIncomeSearch] = useState('');
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>('all');
+  const [incomePeriodFilter, setIncomePeriodFilter] = useState<string>('all');
   const [expenseSearch, setExpenseSearch] = useState('');
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<string>('all');
   const [expensePeriodFilter, setExpensePeriodFilter] = useState<string>('all');
@@ -4404,16 +4405,33 @@ export default function AdminPage() {
             'Lainnya',
           ];
 
+          const getIncomePeriodCodes = (inc: IncomeTransaction): string[] => {
+            const rawMonths = Array.isArray(inc.bulan) ? inc.bulan : inc.bulan ? [String(inc.bulan)] : [];
+            const normalized = rawMonths
+              .map((m) => normalizePeriodCode(m))
+              .filter((p) => /^\d{4}-\d{2}$/.test(p));
+            if (normalized.length > 0) return Array.from(new Set(normalized));
+            const fallback = (inc.tanggal || '').slice(0, 7);
+            return /^\d{4}-\d{2}$/.test(fallback) ? [fallback] : [];
+          };
+
+          // Statistik kategori (ikut menyesuaikan filter bulan jika sedang dipilih)
           const categoryStatsMap = new Map<string, { name: string; count: number; countSah: number; totalNominal: number }>();
           for (const inc of incomes) {
             const catName = normalizeIncomeCategory(inc.kategori) || 'Lainnya';
-            const existing = categoryStatsMap.get(catName) || { name: catName, count: 0, countSah: 0, totalNominal: 0 };
+            if (!categoryStatsMap.has(catName)) {
+              categoryStatsMap.set(catName, { name: catName, count: 0, countSah: 0, totalNominal: 0 });
+            }
+            const periods = getIncomePeriodCodes(inc);
+            if (incomePeriodFilter !== 'all' && !periods.includes(incomePeriodFilter)) {
+              continue;
+            }
+            const existing = categoryStatsMap.get(catName)!;
             existing.count += 1;
             if (inc.status === 'Sah') {
               existing.countSah += 1;
               existing.totalNominal += Number(inc.nominal) || 0;
             }
-            categoryStatsMap.set(catName, existing);
           }
 
           const categoryStats = Array.from(categoryStatsMap.values()).sort((a, b) => {
@@ -4425,11 +4443,40 @@ export default function AdminPage() {
             return b.totalNominal - a.totalNominal || a.name.localeCompare(b.name);
           });
 
+          // Statistik bulan/keterangan (ikut menyesuaikan filter kategori jika sedang dipilih)
+          const periodStatsMap = new Map<string, { code: string; count: number; countSah: number; totalNominal: number }>();
+          for (const inc of incomes) {
+            const periods = getIncomePeriodCodes(inc);
+            const catName = normalizeIncomeCategory(inc.kategori) || 'Lainnya';
+            for (const pCode of periods) {
+              if (!periodStatsMap.has(pCode)) {
+                periodStatsMap.set(pCode, { code: pCode, count: 0, countSah: 0, totalNominal: 0 });
+              }
+              if (incomeCategoryFilter !== 'all' && catName !== incomeCategoryFilter) {
+                continue;
+              }
+              const existing = periodStatsMap.get(pCode)!;
+              existing.count += 1;
+              if (inc.status === 'Sah') {
+                existing.countSah += 1;
+                existing.totalNominal += Number(inc.nominal) || 0;
+              }
+            }
+          }
+
+          const periodStats = Array.from(periodStatsMap.values()).sort((a, b) => b.code.localeCompare(a.code));
+
           const qInc = incomeSearch.trim().toLowerCase();
           const filteredIncomes = incomes.filter((inc) => {
             const catName = normalizeIncomeCategory(inc.kategori) || 'Lainnya';
             if (incomeCategoryFilter !== 'all' && catName !== incomeCategoryFilter) {
               return false;
+            }
+            if (incomePeriodFilter !== 'all') {
+              const periods = getIncomePeriodCodes(inc);
+              if (!periods.includes(incomePeriodFilter)) {
+                return false;
+              }
             }
             if (qInc) {
               const dateLabel = formatDateIndo(inc.tanggal).toLowerCase();
@@ -4458,7 +4505,25 @@ export default function AdminPage() {
             .filter((i) => i.status === 'Sah')
             .reduce((sum, i) => sum + (Number(i.nominal) || 0), 0);
           const countFilteredIncomeSah = filteredIncomes.filter((i) => i.status === 'Sah').length;
-          const hasActiveIncomeFilter = Boolean(qInc || incomeCategoryFilter !== 'all');
+          const hasActiveIncomeFilter = Boolean(
+            qInc || incomeCategoryFilter !== 'all' || incomePeriodFilter !== 'all'
+          );
+
+          const incomeHeadlineLabel = (() => {
+            if (incomeCategoryFilter !== 'all' && incomePeriodFilter !== 'all') {
+              return `Total Pemasukan: ${incomeCategoryFilter} • ${formatPeriodCode(incomePeriodFilter)}`;
+            }
+            if (incomeCategoryFilter !== 'all') {
+              return `Total Pemasukan Kategori: ${incomeCategoryFilter}`;
+            }
+            if (incomePeriodFilter !== 'all') {
+              return `Total Pemasukan Bulan: ${formatPeriodCode(incomePeriodFilter)}`;
+            }
+            if (hasActiveIncomeFilter) {
+              return 'Total Pemasukan Terfilter (Sah)';
+            }
+            return 'Total Akumulasi Pemasukan Sah';
+          })();
 
           const getCategoryBadgeClass = (kat: string) => {
             const lower = (kat || '').toLowerCase();
@@ -4498,136 +4563,101 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Total Income Summary, Dropdown Filter & Per-Category Breakdown */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div className="shrink-0">
-                    <span className="text-xs text-slate-500 font-medium">
-                      {incomeCategoryFilter !== 'all'
-                        ? `Total Pemasukan Kategori: ${incomeCategoryFilter}`
-                        : hasActiveIncomeFilter
-                          ? 'Total Pemasukan Terfilter (Sah)'
-                          : 'Total Akumulasi Pemasukan Sah'}
+              {/* Total Income Summary & Dropdown Filter Bar */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="shrink-0">
+                  <span className="text-xs text-slate-500 font-medium">
+                    {incomeHeadlineLabel}
+                  </span>
+                  <div className="flex items-baseline gap-2.5 mt-0.5">
+                    <div className="text-2xl font-black text-emerald-600">
+                      {formatRupiah(hasActiveIncomeFilter ? totalFilteredIncomeSah : totalAllIncomeSah)}
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {hasActiveIncomeFilter ? countFilteredIncomeSah : countAllIncomeSah} transaksi
                     </span>
-                    <div className="flex items-baseline gap-2.5 mt-0.5">
-                      <div className="text-2xl font-black text-emerald-600">
-                        {formatRupiah(hasActiveIncomeFilter ? totalFilteredIncomeSah : totalAllIncomeSah)}
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {hasActiveIncomeFilter ? countFilteredIncomeSah : countAllIncomeSah} transaksi
-                      </span>
-                    </div>
-                    {hasActiveIncomeFilter && (
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Total keseluruhan: <strong className="text-slate-600">{formatRupiah(totalAllIncomeSah)}</strong> ({countAllIncomeSah} transaksi)
-                      </div>
-                    )}
                   </div>
-
-                  {/* Pencarian & Dropdown Semua Kategori */}
-                  <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">
-                    <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        type="text"
-                        placeholder="Cari warga, blok, kategori, bukti, nominal..."
-                        value={incomeSearch}
-                        onChange={(e) => setIncomeSearch(e.target.value)}
-                        className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 focus:bg-white transition"
-                      />
-                      {incomeSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setIncomeSearch('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                          title="Hapus pencarian"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                  {hasActiveIncomeFilter && (
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Total keseluruhan: <strong className="text-slate-600">{formatRupiah(totalAllIncomeSah)}</strong> ({countAllIncomeSah} transaksi)
                     </div>
-
-                    <select
-                      value={incomeCategoryFilter}
-                      onChange={(e) => setIncomeCategoryFilter(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer min-w-[210px]"
-                      aria-label="Filter kategori pemasukan"
-                    >
-                      <option value="all">Semua Kategori ({incomes.length})</option>
-                      {categoryStats.map((cat) => (
-                        <option key={cat.name} value={cat.name}>
-                          {cat.name} ({cat.count} • {formatRupiah(cat.totalNominal)})
-                        </option>
-                      ))}
-                    </select>
-
-                    {hasActiveIncomeFilter && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIncomeSearch('');
-                          setIncomeCategoryFilter('all');
-                        }}
-                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-                      >
-                        Reset
-                      </button>
-                    )}
-
-                    <div className="text-xs text-slate-500 whitespace-nowrap pl-1">
-                      Menampilkan <strong>{filteredIncomes.length}</strong>
-                      {hasActiveIncomeFilter ? ` dari ${incomes.length}` : ''} catatan
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Ringkasan Total Masuk per Kategori */}
-                {categoryStats.length > 0 && (
-                  <div className="pt-3.5 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Total Jumlah Masuk per Kategori ({categoryStats.length} Kategori)
-                      </span>
-                      {incomeCategoryFilter !== 'all' && (
-                        <button
-                          type="button"
-                          onClick={() => setIncomeCategoryFilter('all')}
-                          className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
-                        >
-                          Tampilkan Semua Kategori
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
-                      {categoryStats.map((cat) => {
-                        const isSelected = incomeCategoryFilter === cat.name;
-                        return (
-                          <button
-                            key={cat.name}
-                            type="button"
-                            onClick={() => setIncomeCategoryFilter(isSelected ? 'all' : cat.name)}
-                            className={`text-left rounded-xl p-3 border transition cursor-pointer ${
-                              isSelected
-                                ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
-                                : 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80 hover:border-slate-300'
-                            }`}
-                            title={`Klik untuk filter kategori ${cat.name}`}
-                          >
-                            <div className="text-[11px] font-bold text-slate-700 truncate" title={cat.name}>
-                              {cat.name}
-                            </div>
-                            <div className="text-sm font-black text-emerald-700 tracking-tight mt-0.5">
-                              {formatRupiah(cat.totalNominal)}
-                            </div>
-                            <div className="text-[10px] text-slate-500 mt-0.5">
-                              {cat.countSah} transaksi masuk
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                {/* Pencarian, Dropdown Kategori & Dropdown Bulan/Keterangan */}
+                <div className="flex flex-wrap items-center gap-2 flex-1 lg:justify-end">
+                  <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Cari warga, blok, kategori, bukti, nominal..."
+                      value={incomeSearch}
+                      onChange={(e) => setIncomeSearch(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 focus:bg-white transition"
+                    />
+                    {incomeSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setIncomeSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                        title="Hapus pencarian"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  <select
+                    value={incomeCategoryFilter}
+                    onChange={(e) => setIncomeCategoryFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer min-w-[200px]"
+                    aria-label="Filter kategori pemasukan"
+                  >
+                    <option value="all">
+                      Semua Kategori ({categoryStats.reduce((sum, c) => sum + c.count, 0)})
+                    </option>
+                    {categoryStats.map((cat) => (
+                      <option key={cat.name} value={cat.name}>
+                        {cat.name} ({cat.count} • {formatRupiah(cat.totalNominal)})
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={incomePeriodFilter}
+                    onChange={(e) => setIncomePeriodFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer min-w-[190px]"
+                    aria-label="Filter bulan pemasukan"
+                  >
+                    <option value="all">
+                      Semua Bulan ({periodStats.reduce((sum, p) => sum + p.count, 0)})
+                    </option>
+                    {periodStats.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {formatPeriodCode(p.code)} ({p.count} • {formatRupiah(p.totalNominal)})
+                      </option>
+                    ))}
+                  </select>
+
+                  {hasActiveIncomeFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIncomeSearch('');
+                        setIncomeCategoryFilter('all');
+                        setIncomePeriodFilter('all');
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+
+                  <div className="text-xs text-slate-500 whitespace-nowrap pl-1">
+                    Menampilkan <strong>{filteredIncomes.length}</strong>
+                    {hasActiveIncomeFilter ? ` dari ${incomes.length}` : ''} catatan
+                  </div>
+                </div>
               </div>
 
               {/* Incomes Table */}
