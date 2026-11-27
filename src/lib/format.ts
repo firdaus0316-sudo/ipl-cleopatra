@@ -271,6 +271,16 @@ export function isPemindahanDansosCategory(kategori?: string | null): boolean {
   );
 }
 
+export function isPemindahanBudgetingCategory(kategori?: string | null): boolean {
+  const lower = (kategori || '').trim().toLowerCase();
+  return (
+    lower.includes('pemindahan dana budgeting') ||
+    lower.includes('pemindahan dana anggaran') ||
+    lower.includes('pemindahan budgeting') ||
+    lower === 'alokasi budgeting'
+  );
+}
+
 export const DANSOS_PROOF_CATEGORY = 'Sumbangan Dana Dansos';
 
 export function isDansosProofCategory(kategori?: string | null): boolean {

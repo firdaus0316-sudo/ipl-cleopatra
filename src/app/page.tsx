@@ -1326,6 +1326,75 @@ export default function PublicPage() {
               </div>
             </div>
 
+            {/* POS ANGGARAN & BUDGETING BULAN DEPAN (DANA DICADANGKAN TERPISAH DARI KAS UTAMA) */}
+            <div className="bg-white border border-indigo-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                    <CalendarCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-black text-slate-900 text-sm sm:text-base">
+                        Pos Anggaran &amp; Budgeting Bulan Depan
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Dana Dicadangkan • Terpisah dari Kas Utama
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Dana yang dipindahkan dari Kas Utama untuk cadangan anggaran bulan depan. Pengeluaran baru tercatat keluar saat direalisasikan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-gradient-to-br from-indigo-50 via-white to-blue-50/40 rounded-xl p-3.5 border border-indigo-200">
+                  <div className="text-[11px] font-bold text-indigo-700">Saldo Dana Dicadangkan</div>
+                  <div className="text-xl sm:text-2xl font-black text-indigo-900 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.budgeting?.saldoBudgeting ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-indigo-700 font-medium mt-1">
+                    Siap direalisasikan bulan depan
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3 text-indigo-600" />
+                    <span>Pemindahan Kas Utama</span>
+                  </div>
+                  <div className="text-lg sm:text-xl font-black text-slate-900 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.budgeting?.totalPemindahan ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.budgeting?.countPemindahan ?? 0}x pencadangan dari Kas Utama
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Rencana Pos Anggaran</div>
+                  <div className="text-lg sm:text-xl font-black text-sky-700 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.budgeting?.totalRencana ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.budgeting?.countRencana ?? 0} pos anggaran direncanakan
+                  </div>
+                </div>
+
+                <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Sudah Direalisasikan</div>
+                  <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(transparencyData?.budgeting?.totalRealisasi ?? 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {transparencyData?.budgeting?.countRealisasi ?? 0}x realisasi pengeluaran
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* DUA GRAFIK BERDAMPINGAN: GRAFIK BAR (KIRI) DAN GRAFIK PIE PENGELUARAN (KANAN) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               {/* SISI KIRI: GRAFIK BAR ARUS KAS MASUK VS KELUAR BULANAN */}

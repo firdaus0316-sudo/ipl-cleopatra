@@ -73,6 +73,9 @@ import {
   DansosEntry,
   DansosSummary,
   DansosTransactionType,
+  BudgetingEntry,
+  BudgetingSummary,
+  BudgetingTransactionType,
 } from '@/types';
 import * as XLSX from 'xlsx';
 
@@ -162,7 +165,7 @@ export default function AdminPage() {
 
   // Active Menu Tab
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'verifikasi' | 'pengeluaran' | 'pemasukan' | 'matriks' | 'warga' | 'tunggakan' | 'kasbon' | 'dansos' | 'laporan' | 'pengaturan'
+    'dashboard' | 'verifikasi' | 'pengeluaran' | 'pemasukan' | 'matriks' | 'warga' | 'tunggakan' | 'kasbon' | 'dansos' | 'budgeting' | 'laporan' | 'pengaturan'
   >('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
@@ -203,6 +206,41 @@ export default function AdminPage() {
   const [isSubmittingDansos, setIsSubmittingDansos] = useState(false);
   const [selectedDansosReceipt, setSelectedDansosReceipt] = useState<DansosEntry | null>(null);
   const dansosFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Anggaran & Budgeting Bulan Depan States
+  const [budgetingList, setBudgetingList] = useState<BudgetingEntry[]>([]);
+  const [budgetingSummary, setBudgetingSummary] = useState<BudgetingSummary>({
+    saldoBudgeting: 0,
+    totalPemindahan: 0,
+    countPemindahan: 0,
+    totalRencana: 0,
+    countRencana: 0,
+    totalRencanaBelumRealisasi: 0,
+    countRencanaBelumRealisasi: 0,
+    totalRealisasi: 0,
+    countRealisasi: 0,
+    totalDikembalikan: 0,
+    countDikembalikan: 0,
+    selisihDanaVsRencana: 0,
+  });
+  const [budgetingSearch, setBudgetingSearch] = useState('');
+  const [budgetingTypeFilter, setBudgetingTypeFilter] = useState<'all' | BudgetingTransactionType>('all');
+  const [budgetingPeriodFilter, setBudgetingPeriodFilter] = useState<string>('all');
+  const [showBudgetingModal, setShowBudgetingModal] = useState(false);
+  const [budgetingFormJenis, setBudgetingFormJenis] = useState<BudgetingTransactionType>('pemindahan');
+  const [budgetingFormTanggal, setBudgetingFormTanggal] = useState(new Date().toISOString().slice(0, 10));
+  const [budgetingFormPeriodeTarget, setBudgetingFormPeriodeTarget] = useState('2026-12');
+  const [budgetingFormKategoriPos, setBudgetingFormKategoriPos] = useState('Cadangan Umum');
+  const [budgetingFormNominal, setBudgetingFormNominal] = useState('');
+  const [budgetingFormPihak, setBudgetingFormPihak] = useState('');
+  const [budgetingFormKet, setBudgetingFormKet] = useState('');
+  const [budgetingFormBukti, setBudgetingFormBukti] = useState('');
+  const [budgetingFormBuktiName, setBudgetingFormBuktiName] = useState('');
+  const [budgetingFormPlanId, setBudgetingFormPlanId] = useState<string>('');
+  const [isSubmittingBudgeting, setIsSubmittingBudgeting] = useState(false);
+  const [selectedBudgetingReceipt, setSelectedBudgetingReceipt] = useState<BudgetingEntry | null>(null);
+  const budgetingFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
   const [saldoAwalHistory, setSaldoAwalHistory] = useState<SaldoAwalEntry[]>([]);
 
   // Pindah Bulan / Rollover Modal States
@@ -470,7 +508,7 @@ export default function AdminPage() {
       const periodParam = overridePeriod || selectedTargetPeriod || '2026-11';
       const opts = { cache: 'no-store' as RequestCache };
 
-      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes, kasbonRes, tunggakanRes, dansosRes] = await Promise.all([
+      const [dashRes, proofsRes, expRes, incRes, resRes, matrixRes, settRes, kasbonRes, tunggakanRes, dansosRes, budgetingRes] = await Promise.all([
         fetch(`/api/admin/dashboard?targetPeriod=${periodParam}&year=${matrixYear}&_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/proofs?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/expenses?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
@@ -481,6 +519,7 @@ export default function AdminPage() {
         fetch(`/api/admin/kasbon?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/tunggakan?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
         fetch(`/api/admin/dansos?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
+        fetch(`/api/admin/budgeting?_t=${ts}`, opts).then((r) => r.json()).catch(() => null),
       ]);
 
       if (dashRes?.requireAuth || proofsRes?.requireAuth || settRes?.requireAuth) {
@@ -501,6 +540,13 @@ export default function AdminPage() {
       } else if (dashRes?.dansosList) {
         setDansosList(dashRes.dansosList);
         if (dashRes.dansosSummary) setDansosSummary(dashRes.dansosSummary);
+      }
+      if (budgetingRes?.success && Array.isArray(budgetingRes.data)) {
+        setBudgetingList(budgetingRes.data);
+        if (budgetingRes.summary) setBudgetingSummary(budgetingRes.summary);
+      } else if (dashRes?.budgetingList) {
+        setBudgetingList(dashRes.budgetingList);
+        if (dashRes.budgetingSummary) setBudgetingSummary(dashRes.budgetingSummary);
       }
       if (kasbonRes?.success && Array.isArray(kasbonRes.data)) {
         setKasbon(kasbonRes.data);
@@ -563,7 +609,7 @@ export default function AdminPage() {
 
   // Targeted lightweight refresh: hanya memperbarui tab/data terkait tanpa memblokir transisi UI
   const refreshSlices = async (
-    targets: Array<'dashboard' | 'proofs' | 'incomes' | 'expenses' | 'residents' | 'matrix' | 'kasbon' | 'tunggakan' | 'dansos'>
+    targets: Array<'dashboard' | 'proofs' | 'incomes' | 'expenses' | 'residents' | 'matrix' | 'kasbon' | 'tunggakan' | 'dansos' | 'budgeting'>
   ) => {
     if (!isAuthenticated) return;
     try {
@@ -654,6 +700,19 @@ export default function AdminPage() {
             .catch(() => {})
         );
       }
+      if (targets.includes('budgeting')) {
+        tasks.push(
+          fetch(`/api/admin/budgeting?_t=${ts}`, opts)
+            .then((r) => r.json())
+            .then((res) => {
+              if (res?.success && Array.isArray(res.data)) {
+                setBudgetingList(res.data);
+                if (res.summary) setBudgetingSummary(res.summary);
+              }
+            })
+            .catch(() => {})
+        );
+      }
 
       await Promise.all(tasks);
       setLastUpdated(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -708,7 +767,7 @@ export default function AdminPage() {
     if (!isAuthenticated) return;
     const syncLive = () => {
       if (document.visibilityState === 'visible') {
-        refreshSlices(['proofs', 'dashboard', 'dansos']);
+        refreshSlices(['proofs', 'dashboard', 'dansos', 'budgeting']);
       }
     };
     window.addEventListener('focus', syncLive);
@@ -1894,6 +1953,177 @@ export default function AdminPage() {
     }
   };
 
+  // === HANDLERS ANGGARAN & BUDGETING BULAN DEPAN (POS TERPISAH DARI KAS UTAMA) ===
+  const handleOpenBudgetingModal = (
+    jenis: BudgetingTransactionType = 'pemindahan',
+    presetPlan?: BudgetingEntry
+  ) => {
+    const defaultNextPeriod =
+      budgetingPeriodFilter !== 'all' && /^\d{4}-\d{2}$/.test(budgetingPeriodFilter)
+        ? budgetingPeriodFilter
+        : getNextPeriodHelper(selectedTargetPeriod === 'ALL' ? '2026-11' : selectedTargetPeriod);
+
+    if (presetPlan) {
+      setBudgetingFormJenis('realisasi');
+      setBudgetingFormTanggal(new Date().toISOString().split('T')[0]);
+      setBudgetingFormPeriodeTarget(presetPlan.periodeTarget || defaultNextPeriod);
+      setBudgetingFormKategoriPos(presetPlan.kategoriPos || 'Operasional');
+      setBudgetingFormNominal(String(presetPlan.nominal || ''));
+      setBudgetingFormPihak(presetPlan.pihakTerkait || '');
+      setBudgetingFormKet(presetPlan.keterangan || '');
+      setBudgetingFormPlanId(presetPlan.id);
+      setBudgetingFormBukti('');
+      setBudgetingFormBuktiName('');
+      setShowBudgetingModal(true);
+      return;
+    }
+
+    setBudgetingFormJenis(jenis);
+    setBudgetingFormTanggal(new Date().toISOString().split('T')[0]);
+    setBudgetingFormPeriodeTarget(defaultNextPeriod);
+    setBudgetingFormKategoriPos(
+      jenis === 'pemindahan'
+        ? 'Cadangan Anggaran'
+        : jenis === 'kembalikan'
+          ? 'Pengembalian Sisa'
+          : 'Gaji & Honor'
+    );
+    setBudgetingFormNominal('');
+    setBudgetingFormPihak(
+      jenis === 'pemindahan'
+        ? 'Bendahara / Pos Anggaran RT 011'
+        : jenis === 'kembalikan'
+          ? 'Kas Utama RT 011'
+          : ''
+    );
+    setBudgetingFormKet(
+      jenis === 'pemindahan'
+        ? `Pemindahan Dana Budgeting untuk ${getPeriodNameIndoHelper(defaultNextPeriod)}`
+        : jenis === 'kembalikan'
+          ? `Pengembalian Sisa Dana Budgeting ${getPeriodNameIndoHelper(defaultNextPeriod)} ke Kas Utama`
+          : ''
+    );
+    setBudgetingFormPlanId('');
+    setBudgetingFormBukti('');
+    setBudgetingFormBuktiName('');
+    setShowBudgetingModal(true);
+  };
+
+  const handleBudgetingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Ukuran file maksimal 4MB.');
+      return;
+    }
+    setBudgetingFormBuktiName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBudgetingFormBukti(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBudgeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const nominalVal = Number(budgetingFormNominal);
+    if (!nominalVal || nominalVal <= 0) {
+      alert('Nominal anggaran/budgeting harus lebih dari Rp 0.');
+      return;
+    }
+    if (!budgetingFormPeriodeTarget || !/^\d{4}-\d{2}$/.test(budgetingFormPeriodeTarget)) {
+      alert('Pilih periode target bulan anggaran (format YYYY-MM).');
+      return;
+    }
+    if (!budgetingFormPihak.trim() || !budgetingFormKet.trim()) {
+      alert('Pihak terkait / penerima dan keterangan wajib diisi.');
+      return;
+    }
+    if (
+      (budgetingFormJenis === 'realisasi' || budgetingFormJenis === 'kembalikan') &&
+      nominalVal > budgetingSummary.saldoBudgeting
+    ) {
+      alert(
+        `Saldo Dana Budgeting tersedia (${formatRupiah(budgetingSummary.saldoBudgeting)}) tidak mencukupi untuk ${
+          budgetingFormJenis === 'realisasi' ? 'realisasi pengeluaran' : 'pengembalian ke Kas Utama'
+        } sebesar ${formatRupiah(nominalVal)}. Lakukan Pemindahan Dana dari Kas Utama terlebih dahulu.`
+      );
+      return;
+    }
+
+    setIsSubmittingBudgeting(true);
+    try {
+      const res = await fetch('/api/admin/budgeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tanggal: budgetingFormTanggal,
+          periodeTarget: budgetingFormPeriodeTarget,
+          jenis: budgetingFormJenis,
+          kategoriPos: budgetingFormKategoriPos.trim() || 'Operasional',
+          nominal: nominalVal,
+          pihakTerkait: budgetingFormPihak.trim(),
+          keterangan: budgetingFormKet.trim(),
+          buktiUrl: budgetingFormBukti || undefined,
+          planId: budgetingFormPlanId || undefined,
+        }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setShowBudgetingModal(false);
+        showToast(`✓ ${d.message || 'Catatan Anggaran Budgeting berhasil disimpan!'}`);
+        await refreshAll();
+      } else {
+        alert(d.error || 'Gagal menyimpan catatan Anggaran Budgeting.');
+      }
+    } catch {
+      alert('Gagal menghubungi server saat mencatat Anggaran Budgeting.');
+    } finally {
+      setIsSubmittingBudgeting(false);
+    }
+  };
+
+  const handleDeleteBudgeting = async (item: BudgetingEntry) => {
+    const labelJenis =
+      item.jenis === 'pemindahan'
+        ? 'Pemindahan Dana Budgeting dari Kas Utama'
+        : item.jenis === 'rencana'
+          ? 'Rencana Pos Anggaran'
+          : item.jenis === 'realisasi'
+            ? 'Realisasi Pengeluaran Budgeting'
+            : 'Pengembalian Sisa Budgeting ke Kas Utama';
+
+    const extraNote =
+      item.jenis === 'pemindahan'
+        ? '\nCatatan: Menghapus pemindahan dana juga akan menghapus catatan pengeluarannya di Kas Utama.'
+        : item.jenis === 'kembalikan'
+          ? '\nCatatan: Menghapus pengembalian dana juga akan menghapus catatan pemasukan pengembaliannya di Kas Utama.'
+          : '';
+
+    if (
+      !confirm(
+        `Hapus catatan ${labelJenis} (${item.kategoriPos} - ${item.pihakTerkait} - ${formatRupiah(item.nominal)})?${extraNote}`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/admin/budgeting?id=${encodeURIComponent(item.id)}&jenis=${encodeURIComponent(item.jenis)}`,
+        { method: 'DELETE' }
+      );
+      const d = await res.json();
+      if (d.success) {
+        showToast(`✓ ${d.message || 'Catatan Anggaran Budgeting dihapus.'}`);
+        await refreshAll();
+      } else {
+        alert(d.error || 'Gagal menghapus catatan Anggaran Budgeting.');
+      }
+    } catch (err: any) {
+      alert('Terjadi kesalahan: ' + (err?.message || 'Unknown error'));
+    }
+  };
+
   // Helper normalisasi format periode (contoh: "2026-11", "November 2026", "2026-11-05")
   const normalizePeriodCodeHelper = (input: string): string => {
     if (!input) return '';
@@ -2408,6 +2638,25 @@ export default function AdminPage() {
             </div>
             {dansosSummary.saldoDansos > 0 && (
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Aktif
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('budgeting'); setIsMobileNavOpen(false); }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              activeTab === 'budgeting'
+                ? 'bg-slate-800 text-white border-l-2 border-indigo-400 shadow-xs font-bold'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <CalendarCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>Anggaran Budgeting</span>
+            </div>
+            {budgetingSummary.saldoBudgeting > 0 && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                 Aktif
               </span>
             )}
@@ -3022,6 +3271,102 @@ export default function AdminPage() {
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
                     {dashboardData.stats.countPenyaluranDansos ?? dansosSummary.countPenyaluran}x penyaluran bantuan sosial
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* POS DANA KHUSUS: ANGGARAN & BUDGETING BULAN DEPAN */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-indigo-200/90 space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-indigo-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                    <CalendarCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-extrabold text-slate-900 text-base">
+                        Pos Dana Khusus: Anggaran &amp; Budgeting Bulan Depan
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Dana Dicadangkan • Terpisah dari Kas Utama
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Pindahkan dana dari Kas Utama untuk cadangan bulan depan (belum terhitung pengeluaran). Pengeluaran baru tercatat saat <strong>Direalisasikan</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('pemindahan')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>+ Pemindahan Dana</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('realisasi')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>+ Realisasi Keluar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('budgeting')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold transition cursor-pointer"
+                  >
+                    <span>Kelola Budgeting</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="rounded-2xl p-4 bg-gradient-to-br from-indigo-50 via-white to-blue-50/40 border border-indigo-200">
+                  <div className="text-[11px] font-bold text-indigo-700">Saldo Dana Budgeting Tersedia</div>
+                  <div className="text-2xl font-black text-indigo-900 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.saldoBudgeting ?? budgetingSummary.saldoBudgeting)}
+                  </div>
+                  <div className="text-[11px] text-indigo-700 font-medium mt-1">
+                    Dicadangkan &amp; siap direalisasikan
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Pemindahan dari Kas Utama</span>
+                  </div>
+                  <div className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalPemindahanBudgeting ?? budgetingSummary.totalPemindahan)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {dashboardData.stats.countPemindahanBudgeting ?? budgetingSummary.countPemindahan}x pencadangan dari Kas Utama
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Rencana Pos Anggaran</div>
+                  <div className="text-xl font-black text-sky-700 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalRencanaBudgeting ?? budgetingSummary.totalRencana)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Belum direalisasi: <strong>{formatRupiah(dashboardData.stats.totalRencanaBelumRealisasiBudgeting ?? budgetingSummary.totalRencanaBelumRealisasi)}</strong>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 bg-slate-50/80 border border-slate-200/80">
+                  <div className="text-[11px] font-bold text-slate-600">Sudah Direalisasikan</div>
+                  <div className="text-xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(dashboardData.stats.totalRealisasiBudgeting ?? budgetingSummary.totalRealisasi)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {dashboardData.stats.countRealisasiBudgeting ?? budgetingSummary.countRealisasi}x realisasi pengeluaran
                   </div>
                 </div>
               </div>
@@ -6290,6 +6635,442 @@ export default function AdminPage() {
             </div>
           );
         })()}
+
+        {/* TAB 11: ANGGARAN & BUDGETING BULAN DEPAN */}
+        {activeTab === 'budgeting' && (() => {
+          const periodSet = new Set<string>();
+          const defaultNext = getNextPeriodHelper(selectedTargetPeriod === 'ALL' ? '2026-11' : selectedTargetPeriod);
+          periodSet.add(defaultNext);
+          budgetingList.forEach((item) => {
+            if (item.periodeTarget) periodSet.add(item.periodeTarget);
+          });
+          const availablePeriods = Array.from(periodSet).sort((a, b) => b.localeCompare(a));
+
+          const periodScopedList =
+            budgetingPeriodFilter === 'all'
+              ? budgetingList
+              : budgetingList.filter((item) => item.periodeTarget === budgetingPeriodFilter);
+
+          // Compute summary for currently selected target period (or cumulative if 'all')
+          const scopedSummary = (() => {
+            let totalPemindahan = 0;
+            let countPemindahan = 0;
+            let totalRencana = 0;
+            let countRencana = 0;
+            let totalRencanaBelumRealisasi = 0;
+            let totalRealisasi = 0;
+            let countRealisasi = 0;
+            let totalDikembalikan = 0;
+            let countDikembalikan = 0;
+
+            for (const item of periodScopedList) {
+              const nom = Number(item.nominal) || 0;
+              if (item.jenis === 'pemindahan') {
+                totalPemindahan += nom;
+                countPemindahan += 1;
+              } else if (item.jenis === 'rencana') {
+                totalRencana += nom;
+                countRencana += 1;
+                if (item.status !== 'Terealisasi') {
+                  totalRencanaBelumRealisasi += nom;
+                }
+              } else if (item.jenis === 'realisasi') {
+                totalRealisasi += nom;
+                countRealisasi += 1;
+              } else if (item.jenis === 'kembalikan') {
+                totalDikembalikan += nom;
+                countDikembalikan += 1;
+              }
+            }
+
+            const saldoBudgeting = totalPemindahan - totalRealisasi - totalDikembalikan;
+            const selisihDanaVsRencana = saldoBudgeting - totalRencanaBelumRealisasi;
+            return {
+              saldoBudgeting,
+              totalPemindahan,
+              countPemindahan,
+              totalRencana,
+              countRencana,
+              totalRencanaBelumRealisasi,
+              totalRealisasi,
+              countRealisasi,
+              totalDikembalikan,
+              countDikembalikan,
+              selisihDanaVsRencana,
+            };
+          })();
+
+          const q = budgetingSearch.trim().toLowerCase();
+          const filteredBudgeting = periodScopedList.filter((item) => {
+            if (budgetingTypeFilter !== 'all' && item.jenis !== budgetingTypeFilter) return false;
+            if (!q) return true;
+            return (
+              (item.kategoriPos || '').toLowerCase().includes(q) ||
+              (item.pihakTerkait || '').toLowerCase().includes(q) ||
+              (item.keterangan || '').toLowerCase().includes(q) ||
+              (item.tanggal || '').toLowerCase().includes(q) ||
+              (item.periodeTarget || '').toLowerCase().includes(q) ||
+              formatPeriodCode(item.periodeTarget || '').toLowerCase().includes(q)
+            );
+          });
+
+          const realizationBase = scopedSummary.totalRencana > 0 ? scopedSummary.totalRencana : scopedSummary.totalPemindahan;
+          const realizationPct =
+            realizationBase > 0 ? Math.min(100, Math.round((scopedSummary.totalRealisasi / realizationBase) * 100)) : 0;
+
+          return (
+            <div className="space-y-6">
+              {/* Header & Action Buttons */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <CalendarCheck className="w-6 h-6 text-indigo-600" />
+                      <span>Anggaran &amp; Budgeting Bulan Depan</span>
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      Sheet: AnggaranBudgeting
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Pindahkan saldo dari Kas Utama sebagai dana cadangan bulan depan (belum keluar sebagai pengeluaran). Saat bulan depan tiba, klik <strong>Realisasikan</strong> agar dana baru keluar dari Pos Budgeting tanpa memotong Kas Utama 2x.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('pemindahan')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    <span>+ Pemindahan dari Kas Utama</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('rencana')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Rencana Pos Anggaran</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('realisasi')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>+ Realisasi Pengeluaran</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBudgetingModal('kembalikan')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-teal-50 text-teal-800 border border-teal-300 text-xs font-bold shadow-xs transition cursor-pointer active:scale-95"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Kembalikan Sisa ke Kas</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Info Banner Accounting Rule */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="leading-relaxed">
+                  <strong>Alur Akuntansi Anti Dobel Potong:</strong> (1) <strong>Pemindahan</strong> memotong Saldo Kas Utama sekarang &rarr; masuk ke <strong>Saldo Dana Budgeting</strong>. (2) <strong>Rencana Pos</strong> hanya mencatat daftar anggaran (tidak potong kas). (3) <strong>Realisasi</strong> memotong <strong>Saldo Dana Budgeting</strong> saja (tidak memotong Kas Utama lagi). (4) Sisa yang tidak terpakai bisa <strong>Dikembalikan</strong> ke Kas Utama.
+                </div>
+                {budgetingPeriodFilter !== 'all' && (
+                  <span className="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-800 font-bold text-[11px]">
+                    Periode: {formatPeriodCode(budgetingPeriodFilter)}
+                  </span>
+                )}
+              </div>
+
+              {/* 4 KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-indigo-50 via-white to-blue-50/50 rounded-2xl p-4 border border-indigo-200 shadow-xs">
+                  <div className="text-[11px] font-bold text-indigo-700">
+                    Saldo Dana Dicadangkan {budgetingPeriodFilter !== 'all' ? `(${formatPeriodCode(budgetingPeriodFilter)})` : '(Total)'}
+                  </div>
+                  <div className="text-2xl font-black text-indigo-900 tracking-tight mt-1">
+                    {formatRupiah(scopedSummary.saldoBudgeting)}
+                  </div>
+                  <div className="text-[11px] text-indigo-700 font-medium mt-1">
+                    {scopedSummary.totalDikembalikan > 0
+                      ? `Dikembalikan ke Kas: ${formatRupiah(scopedSummary.totalDikembalikan)}`
+                      : 'Siap direalisasikan bulan depan'}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+                  <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Pemindahan dari Kas Utama</span>
+                  </div>
+                  <div className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                    {formatRupiah(scopedSummary.totalPemindahan)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {scopedSummary.countPemindahan}x pencadangan dari Saldo Utama
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+                  <div className="text-[11px] font-bold text-slate-600">Rencana Pos Anggaran</div>
+                  <div className="text-xl font-black text-sky-700 tracking-tight mt-1">
+                    {formatRupiah(scopedSummary.totalRencana)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Belum realisasi: <strong className="text-slate-800">{formatRupiah(scopedSummary.totalRencanaBelumRealisasi)}</strong> ({scopedSummary.countRencana} pos)
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+                  <div className="text-[11px] font-bold text-slate-600">Sudah Direalisasikan</div>
+                  <div className="text-xl font-black text-emerald-700 tracking-tight mt-1">
+                    {formatRupiah(scopedSummary.totalRealisasi)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {scopedSummary.countRealisasi}x realisasi ({realizationPct}% serapan)
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Serapan & Kecukupan Dana */}
+              {(scopedSummary.totalPemindahan > 0 || scopedSummary.totalRencana > 0) && (
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="font-bold text-slate-800">
+                      Progres Realisasi Anggaran {budgetingPeriodFilter !== 'all' ? formatPeriodCode(budgetingPeriodFilter) : 'Keseluruhan'}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-slate-600">
+                        Terealisasi: <strong className="text-emerald-700">{formatRupiah(scopedSummary.totalRealisasi)}</strong> ({realizationPct}%)
+                      </span>
+                      {scopedSummary.totalRencanaBelumRealisasi > 0 && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                            scopedSummary.selisihDanaVsRencana >= 0
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {scopedSummary.selisihDanaVsRencana >= 0
+                            ? `Dana Cukup (Surplus ${formatRupiah(scopedSummary.selisihDanaVsRencana)})`
+                            : `Kurang Dana ${formatRupiah(Math.abs(scopedSummary.selisihDanaVsRencana))} vs Rencana`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-emerald-500 transition-all duration-300"
+                      style={{ width: `${realizationPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Filter & Table Container */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={budgetingPeriodFilter}
+                      onChange={(e) => setBudgetingPeriodFilter(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800 cursor-pointer"
+                    >
+                      <option value="all">Semua Periode Target</option>
+                      {availablePeriods.map((p) => (
+                        <option key={p} value={p}>
+                          Target: {formatPeriodCode(p)} ({p})
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(
+                        [
+                          ['all', 'Semua'],
+                          ['pemindahan', 'Pemindahan Kas'],
+                          ['rencana', 'Rencana Pos'],
+                          ['realisasi', 'Realisasi Keluar'],
+                          ['kembalikan', 'Kembalikan Sisa'],
+                        ] as const
+                      ).map(([val, label]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setBudgetingTypeFilter(val)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            budgetingTypeFilter === val
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="relative w-full lg:w-72">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={budgetingSearch}
+                      onChange={(e) => setBudgetingSearch(e.target.value)}
+                      placeholder="Cari pos anggaran / penerima / ket..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                      <tr>
+                        <th className="py-3 px-4">Tanggal</th>
+                        <th className="py-3 px-4">Periode Target</th>
+                        <th className="py-3 px-4">Jenis</th>
+                        <th className="py-3 px-4">Kategori Pos</th>
+                        <th className="py-3 px-4">Pihak Terkait / Penerima</th>
+                        <th className="py-3 px-4">Keterangan</th>
+                        <th className="py-3 px-4 text-right">Nominal</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-center">Bukti</th>
+                        <th className="py-3 px-4 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredBudgeting.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="py-12 px-4 text-center text-slate-400">
+                            Belum ada data anggaran/budgeting untuk filter ini. Mulai dengan klik <strong>+ Pemindahan dari Kas Utama</strong> atau <strong>+ Rencana Pos Anggaran</strong>.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredBudgeting.map((item) => {
+                          const isPemindahan = item.jenis === 'pemindahan';
+                          const isRencana = item.jenis === 'rencana';
+                          const isRealisasi = item.jenis === 'realisasi';
+                          const isKembalikan = item.jenis === 'kembalikan';
+                          const receipt = (item.buktiUrl || '').trim();
+                          const isAlreadyRealized = isRencana && item.status === 'Terealisasi';
+
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">
+                                {item.tanggal}
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
+                                  {formatPeriodCode(item.periodeTarget)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                    isPemindahan
+                                      ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                      : isRencana
+                                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                        : isRealisasi
+                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                          : 'bg-teal-50 text-teal-800 border-teal-200'
+                                  }`}
+                                >
+                                  {isPemindahan
+                                    ? 'Pemindahan Kas Utama'
+                                    : isRencana
+                                      ? 'Rencana Pos'
+                                      : isRealisasi
+                                        ? 'Realisasi Keluar'
+                                        : 'Kembalikan ke Kas'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-semibold text-slate-700 whitespace-nowrap">
+                                {item.kategoriPos || '-'}
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-900">
+                                {item.pihakTerkait}
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 max-w-xs">
+                                {item.keterangan}
+                              </td>
+                              <td
+                                className={`py-3 px-4 text-right font-black whitespace-nowrap ${
+                                  isPemindahan
+                                    ? 'text-indigo-700'
+                                    : isRencana
+                                      ? 'text-sky-700'
+                                      : isRealisasi
+                                        ? 'text-emerald-700'
+                                        : 'text-teal-700'
+                                }`}
+                              >
+                                {isPemindahan ? '+' : isRencana ? '' : '-'}{formatRupiah(item.nominal)}
+                              </td>
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    item.status === 'Terealisasi'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : item.status === 'Direncanakan'
+                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}
+                                >
+                                  {item.status || (isRencana ? 'Direncanakan' : 'Sah')}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                {receipt ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedBudgetingReceipt(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 transition cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>Bukti</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-center whitespace-nowrap">
+                                <div className="inline-flex items-center gap-1.5">
+                                  {isRencana && !isAlreadyRealized && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenBudgetingModal('realisasi', item)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-xs cursor-pointer"
+                                      title="Realisasikan pos anggaran ini dari Saldo Dana Budgeting"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Realisasikan</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteBudgeting(item)}
+                                    className="inline-flex items-center justify-center p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition cursor-pointer"
+                                    title="Hapus Catatan Anggaran Budgeting"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       {/* MODAL VERIFIKASI BUKTI DETAIL */}
@@ -6551,6 +7332,7 @@ export default function AdminPage() {
                     <option value="Variabel">Variabel</option>
                     <option value="Kasbon">Kasbon</option>
                     <option value="Pemindahan Dana Dansos">Pemindahan Dana Dansos</option>
+                    <option value="Pemindahan Dana Budgeting">Pemindahan Dana Budgeting</option>
                   </select>
                 </div>
               </div>
@@ -9040,6 +9822,329 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setShowDansosDetailModal(false)}
                 className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CATAT ANGGARAN & BUDGETING BULAN DEPAN */}
+      {showBudgetingModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowBudgetingModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                <CalendarCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">
+                  {budgetingFormJenis === 'pemindahan'
+                    ? 'Pemindahan Dana Budgeting dari Kas Utama'
+                    : budgetingFormJenis === 'rencana'
+                      ? 'Tambah Rencana Pos Anggaran'
+                      : budgetingFormJenis === 'realisasi'
+                        ? 'Catat Realisasi Pengeluaran Budgeting'
+                        : 'Kembalikan Sisa Budgeting ke Kas Utama'}
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Saldo Dana Budgeting tersedia saat ini: <strong className="text-indigo-700">{formatRupiah(budgetingSummary.saldoBudgeting)}</strong>
+                </p>
+              </div>
+            </div>
+
+            {budgetingFormPlanId && (
+              <div className="mb-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center justify-between gap-2">
+                <span>
+                  Merealisasikan Rencana Pos <strong>{budgetingFormKategoriPos}</strong> (status rencana otomatis menjadi <strong>Terealisasi</strong>).
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBudgetingFormPlanId('')}
+                  className="text-emerald-700 underline font-bold shrink-0 cursor-pointer"
+                >
+                  Lepas
+                </button>
+              </div>
+            )}
+
+            {/* Mode Switcher */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-xl mb-4">
+              {(
+                [
+                  ['pemindahan', 'Pemindahan'],
+                  ['rencana', 'Rencana Pos'],
+                  ['realisasi', 'Realisasi'],
+                  ['kembalikan', 'Kembalikan'],
+                ] as const
+              ).map(([jenis, label]) => (
+                <button
+                  key={jenis}
+                  type="button"
+                  onClick={() => {
+                    setBudgetingFormJenis(jenis);
+                    setBudgetingFormPlanId('');
+                    if (jenis === 'pemindahan') {
+                      setBudgetingFormKategoriPos('Cadangan Anggaran');
+                      if (!budgetingFormPihak) setBudgetingFormPihak('Bendahara / Pos Anggaran RT 011');
+                    } else if (jenis === 'kembalikan') {
+                      setBudgetingFormKategoriPos('Pengembalian Sisa');
+                      setBudgetingFormPihak('Kas Utama RT 011');
+                    } else if (budgetingFormKategoriPos === 'Cadangan Anggaran' || budgetingFormKategoriPos === 'Pengembalian Sisa') {
+                      setBudgetingFormKategoriPos('Gaji & Honor');
+                    }
+                  }}
+                  className={`py-2 px-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    budgetingFormJenis === jenis
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-white/80'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Contextual Cash Impact Note */}
+            <div
+              className={`mb-4 p-3 rounded-xl text-[11px] border leading-relaxed ${
+                budgetingFormJenis === 'pemindahan'
+                  ? 'bg-indigo-50/70 border-indigo-200 text-indigo-900'
+                  : budgetingFormJenis === 'rencana'
+                    ? 'bg-sky-50/70 border-sky-200 text-sky-900'
+                    : budgetingFormJenis === 'realisasi'
+                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                      : 'bg-teal-50/70 border-teal-200 text-teal-900'
+              }`}
+            >
+              {budgetingFormJenis === 'pemindahan' && (
+                <>
+                  <strong>Pemindahan Saldo:</strong> Dana dipindahkan dari <strong>Saldo Kas Utama</strong> ke <strong>Pos Dana Budgeting</strong> (dicadangkan untuk bulan depan, belum terhitung realisasi keluar).
+                </>
+              )}
+              {budgetingFormJenis === 'rencana' && (
+                <>
+                  <strong>Rencana Pos Anggaran:</strong> Hanya mencatat daftar pos anggaran yang direncanakan untuk bulan depan. <strong>Tidak memotong</strong> Kas Utama maupun Saldo Budgeting sampai direalisasikan.
+                </>
+              )}
+              {budgetingFormJenis === 'realisasi' && (
+                <>
+                  <strong>Realisasi Pengeluaran:</strong> Pengeluaran aktual bulan depan. Hanya memotong <strong>Saldo Dana Budgeting</strong> — <strong>tidak memotong Kas Utama lagi</strong> (bebas dobel potong).
+                </>
+              )}
+              {budgetingFormJenis === 'kembalikan' && (
+                <>
+                  <strong>Kembalikan Sisa:</strong> Mengembalikan sisa saldo Budgeting yang tidak terpakai kembali masuk ke <strong>Saldo Kas Utama RT</strong>.
+                </>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveBudgeting} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Tanggal Transaksi</label>
+                  <input
+                    type="date"
+                    required
+                    value={budgetingFormTanggal}
+                    onChange={(e) => setBudgetingFormTanggal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Periode Target Bulan</label>
+                  <input
+                    type="month"
+                    required
+                    value={budgetingFormPeriodeTarget}
+                    onChange={(e) => setBudgetingFormPeriodeTarget(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-indigo-800"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Kategori Pos Anggaran</label>
+                  <select
+                    value={budgetingFormKategoriPos}
+                    onChange={(e) => setBudgetingFormKategoriPos(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold text-slate-800"
+                  >
+                    <option value="Cadangan Anggaran">Cadangan Anggaran</option>
+                    <option value="Gaji & Honor">Gaji &amp; Honor</option>
+                    <option value="Keamanan & Kebersihan">Keamanan &amp; Kebersihan</option>
+                    <option value="Listrik & Air">Listrik &amp; Air</option>
+                    <option value="Perbaikan & Pemeliharaan">Perbaikan &amp; Pemeliharaan</option>
+                    <option value="Operasional">Operasional</option>
+                    <option value="Acara / Sosial">Acara / Sosial</option>
+                    <option value="Pengembalian Sisa">Pengembalian Sisa</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nominal (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    placeholder="Contoh: 5000000"
+                    value={budgetingFormNominal}
+                    onChange={(e) => setBudgetingFormNominal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-black text-indigo-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  {budgetingFormJenis === 'pemindahan'
+                    ? 'Penanggung Jawab / Tujuan Pos'
+                    : budgetingFormJenis === 'kembalikan'
+                      ? 'Tujuan Pengembalian'
+                      : 'Pihak Terkait / Penerima'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={
+                    budgetingFormJenis === 'pemindahan'
+                      ? 'Contoh: Bendahara / Pos Anggaran RT 011'
+                      : 'Contoh: Tim Security / Petugas Sampah / PLN Pos'
+                  }
+                  value={budgetingFormPihak}
+                  onChange={(e) => setBudgetingFormPihak(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Keterangan / Rincian</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder={
+                    budgetingFormJenis === 'pemindahan'
+                      ? 'Contoh: Pemindahan dana untuk cadangan gaji & operasional Desember 2026'
+                      : budgetingFormJenis === 'rencana'
+                        ? 'Contoh: Rencana Gaji 4 Security bulan Desember 2026'
+                        : 'Contoh: Pembayaran gaji security Desember 2026 dari dana budgeting'
+                  }
+                  value={budgetingFormKet}
+                  onChange={(e) => setBudgetingFormKet(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Lampiran Bukti / Nota (Opsional, maks 4MB)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={budgetingFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleBudgetingFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => budgetingFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 transition cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{budgetingFormBuktiName ? 'Ganti File' : 'Pilih Bukti'}</span>
+                  </button>
+                  {budgetingFormBuktiName && (
+                    <span className="text-[11px] text-emerald-700 font-semibold truncate max-w-[220px]">
+                      ✓ {budgetingFormBuktiName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowBudgetingModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBudgeting}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold shadow-sm transition cursor-pointer"
+                >
+                  {isSubmittingBudgeting
+                    ? 'Menyimpan ke Google Sheet...'
+                    : budgetingFormJenis === 'pemindahan'
+                      ? 'Simpan Pemindahan Dana'
+                      : budgetingFormJenis === 'rencana'
+                        ? 'Simpan Rencana Pos'
+                        : budgetingFormJenis === 'realisasi'
+                          ? 'Simpan Realisasi Keluar'
+                          : 'Kembalikan ke Kas Utama'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PREVIEW BUKTI BUDGETING */}
+      {selectedBudgetingReceipt && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-sm">
+                  Bukti Transaksi Budgeting
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  {selectedBudgetingReceipt.tanggal} • {formatPeriodCode(selectedBudgetingReceipt.periodeTarget)} • {selectedBudgetingReceipt.pihakTerkait}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetingReceipt(null)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center min-h-[200px]">
+              <img
+                src={selectedBudgetingReceipt.buktiUrl}
+                alt="Bukti Budgeting"
+                className="max-h-[60vh] w-auto object-contain"
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs pt-1">
+              <a
+                href={selectedBudgetingReceipt.buktiUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Buka di Tab Baru</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetingReceipt(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold cursor-pointer"
               >
                 Tutup
               </button>

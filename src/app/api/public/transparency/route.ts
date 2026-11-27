@@ -15,6 +15,8 @@ import {
   reconcileVerifiedProofsToIncomes,
   fetchDansosFromSheets,
   computeDansosSummary,
+  fetchBudgetingFromSheets,
+  computeBudgetingSummary,
   syncAllDbNamesWithMaster,
 } from '@/lib/googleSheet';
 
@@ -306,12 +308,22 @@ export async function GET() {
 
     let dansosList = db.dansos || [];
     let dansosSummary = computeDansosSummary(dansosList);
+    let budgetingList = db.budgeting || [];
+    let budgetingSummary = computeBudgetingSummary(budgetingList);
     try {
-      const dansosRes = await fetchDansosFromSheets(db.expenses);
+      const [dansosRes, budgetingRes] = await Promise.all([
+        fetchDansosFromSheets(db.expenses).catch(() => ({ success: false, entries: [] as any[] })),
+        fetchBudgetingFromSheets(db.expenses).catch(() => ({ success: false, entries: [] as any[] })),
+      ]);
       if (dansosRes.success) {
         const deletedDansosSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
         dansosList = dansosRes.entries.filter((b) => !deletedDansosSet.has(b.id));
         dansosSummary = computeDansosSummary(dansosList);
+      }
+      if (budgetingRes.success) {
+        const deletedBdgSet = new Set([...(db.deletedBudgetingIds || []), ...(db.deletedExpenseIds || [])]);
+        budgetingList = budgetingRes.entries.filter((b) => !deletedBdgSet.has(b.id));
+        budgetingSummary = computeBudgetingSummary(budgetingList);
       }
     } catch {}
 
@@ -325,6 +337,9 @@ export async function GET() {
       },
       dansos: {
         ...dansosSummary,
+      },
+      budgeting: {
+        ...budgetingSummary,
       },
       expenseByCategory,
       incomeByCategory,

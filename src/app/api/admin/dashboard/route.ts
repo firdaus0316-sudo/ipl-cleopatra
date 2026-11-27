@@ -16,6 +16,8 @@ import {
   reconcileVerifiedProofsToIncomes,
   fetchDansosFromSheets,
   computeDansosSummary,
+  fetchBudgetingFromSheets,
+  computeBudgetingSummary,
 } from '@/lib/googleSheet';
 
 export const dynamic = 'force-dynamic';
@@ -188,13 +190,24 @@ export async function GET(req: NextRequest) {
     // Sinkronkan buku khusus Kas Kecil Dana Dansos (terpisah dari Kas Utama)
     let dansosList = db.dansos || [];
     let dansosSummary = computeDansosSummary(dansosList);
+    let budgetingList = db.budgeting || [];
+    let budgetingSummary = computeBudgetingSummary(budgetingList);
     try {
-      const dansosRes = await fetchDansosFromSheets(db.expenses);
+      const [dansosRes, budgetingRes] = await Promise.all([
+        fetchDansosFromSheets(db.expenses).catch(() => ({ success: false, entries: [] as any[] })),
+        fetchBudgetingFromSheets(db.expenses).catch(() => ({ success: false, entries: [] as any[] })),
+      ]);
       if (dansosRes.success) {
         const deletedDansosSet = new Set([...(db.deletedDansosIds || []), ...(db.deletedExpenseIds || [])]);
         dansosList = dansosRes.entries.filter((b) => !deletedDansosSet.has(b.id));
         db.dansos = dansosList;
         dansosSummary = computeDansosSummary(dansosList);
+      }
+      if (budgetingRes.success) {
+        const deletedBdgSet = new Set([...(db.deletedBudgetingIds || []), ...(db.deletedExpenseIds || [])]);
+        budgetingList = budgetingRes.entries.filter((b) => !deletedBdgSet.has(b.id));
+        db.budgeting = budgetingList;
+        budgetingSummary = computeBudgetingSummary(budgetingList);
       }
     } catch {}
 
@@ -587,6 +600,18 @@ export async function GET(req: NextRequest) {
         totalMasukKhususDansos: dansosSummary.totalMasukKhusus,
         totalPenyaluranDansos: dansosSummary.totalPenyaluran,
         countPenyaluranDansos: dansosSummary.countPenyaluran,
+
+        // POS ANGGARAN & BUDGETING BULAN DEPAN (TERPISAH DARI KAS UTAMA)
+        saldoBudgeting: budgetingSummary.saldoBudgeting,
+        totalPemindahanBudgeting: budgetingSummary.totalPemindahan,
+        countPemindahanBudgeting: budgetingSummary.countPemindahan,
+        totalRencanaBudgeting: budgetingSummary.totalRencana,
+        countRencanaBudgeting: budgetingSummary.countRencana,
+        totalRencanaBelumRealisasiBudgeting: budgetingSummary.totalRencanaBelumRealisasi,
+        totalRealisasiBudgeting: budgetingSummary.totalRealisasi,
+        countRealisasiBudgeting: budgetingSummary.countRealisasi,
+        totalDikembalikanBudgeting: budgetingSummary.totalDikembalikan,
+        selisihDanaVsRencanaBudgeting: budgetingSummary.selisihDanaVsRencana,
       },
       pendingProofs,
       recentTransactions: combinedTransactions,
@@ -595,6 +620,8 @@ export async function GET(req: NextRequest) {
       kasbon: kasbonList,
       dansosSummary,
       dansosList,
+      budgetingSummary,
+      budgetingList,
       saldoAwalHistory,
       targetRealisasiIuran,
       cashFlowChart,

@@ -156,6 +156,39 @@ export interface DansosSummary {
   countPenyaluran: number;
 }
 
+export type BudgetingTransactionType = 'pemindahan' | 'rencana' | 'realisasi' | 'kembalikan';
+
+export interface BudgetingEntry {
+  id: string;
+  tanggal: string; // YYYY-MM-DD (tanggal transaksi / realisasi)
+  periodeTarget: string; // YYYY-MM (bulan target anggaran, mis. 2026-12)
+  jenis: BudgetingTransactionType;
+  kategoriPos: string; // Mis. Fixed, Variabel, Operasional, Gaji, Listrik, Perbaikan
+  pihakTerkait: string; // Pos tujuan / Penerima belanja / Sumber
+  keterangan: string;
+  nominal: number;
+  status: 'Sah' | 'Direncanakan' | 'Terealisasi' | 'Dibatalkan';
+  buktiUrl?: string;
+  driveUrl?: string;
+  referensiId?: string; // ID rencana yang direalisasikan atau EXP-BDG-...
+  createdAt: string;
+}
+
+export interface BudgetingSummary {
+  saldoBudgeting: number; // totalPemindahan - totalRealisasi - totalDikembalikan
+  totalPemindahan: number;
+  countPemindahan: number;
+  totalRencana: number;
+  countRencana: number;
+  totalRencanaBelumRealisasi: number;
+  countRencanaBelumRealisasi: number;
+  totalRealisasi: number;
+  countRealisasi: number;
+  totalDikembalikan: number;
+  countDikembalikan: number;
+  selisihDanaVsRencana: number; // totalPemindahan - totalRencana
+}
+
 export interface ActivityLog {
   id: string;
   timestamp: string;
@@ -179,6 +212,8 @@ export interface DatabaseSchema {
   deletedProofIds?: string[];
   dansos?: DansosEntry[];
   deletedDansosIds?: string[];
+  budgeting?: BudgetingEntry[];
+  deletedBudgetingIds?: string[];
   pelunasanHistory?: Array<{
     id: string;
     wargaId?: string;

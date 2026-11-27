@@ -1,5 +1,5 @@
-import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, DansosEntry, DansosSummary } from '@/types';
-import { normalizeBlokCode, isIuranBulananCategory, isPemindahanDansosCategory, isDansosProofCategory } from '@/lib/format';
+import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, DansosEntry, DansosSummary, BudgetingEntry, BudgetingSummary } from '@/types';
+import { normalizeBlokCode, isIuranBulananCategory, isPemindahanDansosCategory, isPemindahanBudgetingCategory, isDansosProofCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -18,6 +18,7 @@ export const SHEET_GIDS = {
   buktitransfer: '4652474',
   kasdansos: '13680223',
   saldoawaldansos: '641478446',
+  budgeting: '2048618687',
 };
 
 export const SHEET_GID = SHEET_GIDS.masterwarga;
@@ -2349,6 +2350,257 @@ export async function fetchDansosFromSheets(
       success: false,
       entries: [],
       summary: computeDansosSummary([]),
+      error: err.message,
+    };
+  }
+}
+
+/**
+ * 14. Pos Anggaran & Budgeting Bulan Depan (Sheet: AnggaranBudgeting, GID 2048618687)
+ * - Pemindahan dana saldo dari Kas Utama (DataPengeluaran kategori 'Pemindahan Dana Budgeting')
+ *   langsung masuk ke Saldo Budgeting (belum menjadi realisasi pengeluaran).
+ * - Rencana pos anggaran mencatat target belanja bulan target tanpa memotong kas.
+ * - Realisasi pengeluaran bulan depan memotong Saldo Budgeting (tidak dobel potong Kas Utama).
+ * - Pengembalian sisa dana (opsional) mengembalikan sisa dana budgeting ke Kas Utama (DataIuran).
+ */
+export function computeBudgetingSummary(entries: BudgetingEntry[], periodeFilter?: string): BudgetingSummary {
+  const valid = (entries || []).filter((e) => {
+    if (!e || e.status === 'Dibatalkan') return false;
+    if (periodeFilter && periodeFilter !== 'all' && e.periodeTarget !== periodeFilter) return false;
+    return true;
+  });
+
+  let totalPemindahan = 0;
+  let countPemindahan = 0;
+  let totalRencana = 0;
+  let countRencana = 0;
+  let totalRencanaBelumRealisasi = 0;
+  let countRencanaBelumRealisasi = 0;
+  let totalRealisasi = 0;
+  let countRealisasi = 0;
+  let totalDikembalikan = 0;
+  let countDikembalikan = 0;
+
+  for (const e of valid) {
+    const nom = Number(e.nominal) || 0;
+    if (nom <= 0) continue;
+    if (e.jenis === 'pemindahan') {
+      totalPemindahan += nom;
+      countPemindahan += 1;
+    } else if (e.jenis === 'rencana') {
+      totalRencana += nom;
+      countRencana += 1;
+      if (e.status !== 'Terealisasi') {
+        totalRencanaBelumRealisasi += nom;
+        countRencanaBelumRealisasi += 1;
+      }
+    } else if (e.jenis === 'realisasi') {
+      totalRealisasi += nom;
+      countRealisasi += 1;
+    } else if (e.jenis === 'kembalikan') {
+      totalDikembalikan += nom;
+      countDikembalikan += 1;
+    }
+  }
+
+  const saldoBudgeting = totalPemindahan - totalRealisasi - totalDikembalikan;
+  const selisihDanaVsRencana = totalPemindahan - totalRencana;
+
+  return {
+    saldoBudgeting,
+    totalPemindahan,
+    countPemindahan,
+    totalRencana,
+    countRencana,
+    totalRencanaBelumRealisasi,
+    countRencanaBelumRealisasi,
+    totalRealisasi,
+    countRealisasi,
+    totalDikembalikan,
+    countDikembalikan,
+    selisihDanaVsRencana,
+  };
+}
+
+export async function appendBudgetingToSheet(
+  entry: BudgetingEntry,
+  saldoAfter: number
+): Promise<{ success: boolean; error?: string }> {
+  const jenisLabel =
+    entry.jenis === 'pemindahan'
+      ? 'Pemindahan Dana Budgeting'
+      : entry.jenis === 'rencana'
+        ? 'Rencana Anggaran'
+        : entry.jenis === 'realisasi'
+          ? 'Realisasi Pengeluaran'
+          : 'Pengembalian Sisa ke Kas Utama';
+
+  const danaMasuk = entry.jenis === 'pemindahan' ? Number(entry.nominal) || 0 : 0;
+  const realisasiKeluar =
+    entry.jenis === 'realisasi' || entry.jenis === 'kembalikan' ? Number(entry.nominal) || 0 : 0;
+  // Untuk jenis 'rencana', nominal target disimpan di kolom Dana Masuk (kol 8) dengan Jenis = 'Rencana Anggaran'
+  const colMasuk = entry.jenis === 'rencana' ? Number(entry.nominal) || 0 : danaMasuk;
+
+  const row = [
+    escapeGsheetCell(entry.id),
+    escapeGsheetCell(entry.tanggal || new Date().toISOString().slice(0, 10)),
+    escapeGsheetCell(entry.periodeTarget || new Date().toISOString().slice(0, 7)),
+    escapeGsheetCell(jenisLabel),
+    escapeGsheetCell(entry.kategoriPos || 'Operasional'),
+    escapeGsheetCell(entry.pihakTerkait || 'Pos Budgeting RT 011'),
+    escapeGsheetCell(entry.keterangan || ''),
+    colMasuk,
+    realisasiKeluar,
+    Math.max(0, Number(saldoAfter) || 0),
+    escapeGsheetCell(entry.status || (entry.jenis === 'rencana' ? 'Direncanakan' : 'Sah')),
+    escapeGsheetCell(entry.driveUrl || entry.buktiUrl || ''),
+    escapeGsheetCell(entry.referensiId || entry.id),
+  ].join(',');
+
+  return appendRowsToSheet('AnggaranBudgeting', [row]);
+}
+
+export async function updateBudgetingStatusInSheet(
+  entryId: string,
+  status: string,
+  referensiId?: string
+): Promise<{ success: boolean; error?: string }> {
+  const updates: Record<number, any> = { 11: status };
+  if (referensiId) updates[13] = referensiId;
+  return updateRowInSheet('AnggaranBudgeting', 1, entryId, updates);
+}
+
+export async function deleteBudgetingFromSheet(entryId: string): Promise<{ success: boolean; error?: string }> {
+  return deleteRowFromSheet('AnggaranBudgeting', 1, entryId, SHEET_GIDS.budgeting);
+}
+
+export async function fetchBudgetingFromSheets(
+  preloadedExpenses?: ExpenseTransaction[]
+): Promise<{ success: boolean; entries: BudgetingEntry[]; summary: BudgetingSummary; error?: string }> {
+  try {
+    const [bdgCsvText, expRes, strukCsvText] = await Promise.all([
+      fetchCsvByGid(SHEET_GIDS.budgeting).catch(() => ''),
+      preloadedExpenses ? Promise.resolve({ success: true, expenses: preloadedExpenses }) : fetchExpensesFromSheet(),
+      fetchCsvByGid(SHEET_GIDS.buktistruk).catch(() => ''),
+    ]);
+
+    const strukUrlByTxId = new Map<string, string>();
+    if (strukCsvText) {
+      const strukLines = strukCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < strukLines.length; i++) {
+        const sCols = parseCsvLine(strukLines[i]);
+        const sTxId = (sCols[6] || '').trim();
+        const sUrl = (sCols[5] || '').trim();
+        if (sTxId && sUrl) strukUrlByTxId.set(sTxId, sUrl);
+      }
+    }
+
+    const entries: BudgetingEntry[] = [];
+    const seenIds = new Set<string>();
+
+    // 1. Sumber Utama: Sheet khusus "AnggaranBudgeting"
+    if (bdgCsvText) {
+      const lines = bdgCsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length < 8) continue;
+        const rowId = (cols[0] || '').trim();
+        const tglRaw = (cols[1] || '').trim();
+        const periodeRaw = (cols[2] || '').trim();
+        const jenisRaw = (cols[3] || '').trim();
+        const kategoriPos = (cols[4] || '').trim() || 'Operasional';
+        const pihakTerkait = (cols[5] || '').trim() || 'Pos Budgeting RT 011';
+        const keterangan = (cols[6] || '').trim() || jenisRaw || 'Transaksi Budgeting';
+        const masukRaw = (cols[7] || '').replace(/[^0-9]/g, '');
+        const keluarRaw = (cols[8] || '').replace(/[^0-9]/g, '');
+        const statusCol = (cols[10] || 'Sah').trim();
+        const linkCol = (cols[11] || '').trim();
+        const refCol = (cols[12] || '').trim();
+
+        if (!rowId || /dibatalkan|batal|hapus/i.test(statusCol)) continue;
+        if (seenIds.has(rowId)) continue;
+
+        const masuk = masukRaw ? parseInt(masukRaw, 10) : 0;
+        const keluar = keluarRaw ? parseInt(keluarRaw, 10) : 0;
+
+        let jenis: BudgetingEntry['jenis'] = 'pemindahan';
+        if (/rencana/i.test(jenisRaw) || rowId.startsWith('BDG-PLAN-')) {
+          jenis = 'rencana';
+        } else if (/kembali/i.test(jenisRaw) || rowId.startsWith('BDG-RET-')) {
+          jenis = 'kembalikan';
+        } else if (/realisasi/i.test(jenisRaw) || rowId.startsWith('BDG-OUT-') || (keluar > 0 && masuk === 0)) {
+          jenis = 'realisasi';
+        }
+
+        const nominal =
+          jenis === 'realisasi' || jenis === 'kembalikan' ? keluar || masuk : masuk || keluar;
+        if (nominal <= 0) continue;
+        seenIds.add(rowId);
+
+        const parsedDate = parseDateFlexible(tglRaw);
+        const periodeTarget = normalizePeriodCode(periodeRaw) || parsedDate.slice(0, 7);
+        const normalizedStatus: BudgetingEntry['status'] = /terealisasi/i.test(statusCol)
+          ? 'Terealisasi'
+          : /direncanakan|rencana/i.test(statusCol)
+            ? 'Direncanakan'
+            : jenis === 'rencana'
+              ? 'Direncanakan'
+              : 'Sah';
+
+        const rawUrl = linkCol || strukUrlByTxId.get(rowId) || strukUrlByTxId.get(refCol) || '';
+        entries.push({
+          id: rowId,
+          tanggal: parsedDate,
+          periodeTarget,
+          jenis,
+          kategoriPos,
+          pihakTerkait,
+          keterangan,
+          nominal,
+          status: normalizedStatus,
+          buktiUrl: rawUrl ? getDirectGoogleDriveImageUrl(rawUrl) : undefined,
+          driveUrl: rawUrl || undefined,
+          referensiId: refCol || undefined,
+          createdAt: parsedDate,
+        });
+      }
+    }
+
+    // 2. Cross-check DataPengeluaran kategori 'Pemindahan Dana Budgeting' jika ada yg belum masuk sheet AnggaranBudgeting
+    for (const exp of expRes.expenses || []) {
+      if (!exp || exp.status !== 'Sah' || !isPemindahanBudgetingCategory(exp.kategori)) continue;
+      if (seenIds.has(exp.id)) continue;
+      seenIds.add(exp.id);
+      const tgl = exp.tanggal || new Date().toISOString().slice(0, 10);
+      entries.push({
+        id: exp.id,
+        tanggal: tgl,
+        periodeTarget: tgl.slice(0, 7),
+        jenis: 'pemindahan',
+        kategoriPos: 'Alokasi Saldo',
+        pihakTerkait: exp.penerima || 'Pos Budgeting RT 011',
+        keterangan: exp.keterangan || 'Pemindahan Dana Budgeting dari Kas Utama',
+        nominal: Number(exp.nominal) || 0,
+        status: 'Sah',
+        buktiUrl: exp.buktiUrl,
+        driveUrl: exp.driveUrl,
+        referensiId: exp.id,
+        createdAt: exp.createdAt || tgl,
+      });
+    }
+
+    entries.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+
+    return {
+      success: true,
+      entries,
+      summary: computeBudgetingSummary(entries),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      entries: [],
+      summary: computeBudgetingSummary([]),
       error: err.message,
     };
   }
