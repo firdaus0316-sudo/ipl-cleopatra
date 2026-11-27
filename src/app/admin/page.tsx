@@ -60,6 +60,7 @@ import {
   isIncomeInPeriod,
   splitProofByPeriod,
   isDansosProofCategory,
+  normalizeIncomeCategory,
 } from '@/lib/format';
 import {
   ProofSubmission,
@@ -4405,7 +4406,7 @@ export default function AdminPage() {
 
           const categoryStatsMap = new Map<string, { name: string; count: number; countSah: number; totalNominal: number }>();
           for (const inc of incomes) {
-            const catName = (inc.kategori || '').trim() || 'Lainnya';
+            const catName = normalizeIncomeCategory(inc.kategori) || 'Lainnya';
             const existing = categoryStatsMap.get(catName) || { name: catName, count: 0, countSah: 0, totalNominal: 0 };
             existing.count += 1;
             if (inc.status === 'Sah') {
@@ -4426,7 +4427,7 @@ export default function AdminPage() {
 
           const qInc = incomeSearch.trim().toLowerCase();
           const filteredIncomes = incomes.filter((inc) => {
-            const catName = (inc.kategori || '').trim() || 'Lainnya';
+            const catName = normalizeIncomeCategory(inc.kategori) || 'Lainnya';
             if (incomeCategoryFilter !== 'all' && catName !== incomeCategoryFilter) {
               return false;
             }
@@ -4658,8 +4659,8 @@ export default function AdminPage() {
                             <td className="py-3 px-4 font-medium text-slate-600">{formatDateIndo(inc.tanggal)}</td>
                             <td className="py-3 px-4 font-bold text-slate-900">{inc.sumber}</td>
                             <td className="py-3 px-4">
-                              <span className={`px-2.5 py-1 rounded-md text-[11px] ${getCategoryBadgeClass(inc.kategori)}`}>
-                                {inc.kategori}
+                              <span className={`px-2.5 py-1 rounded-md text-[11px] ${getCategoryBadgeClass(normalizeIncomeCategory(inc.kategori))}`}>
+                                {normalizeIncomeCategory(inc.kategori)}
                               </span>
                             </td>
                             <td className="py-3 px-4">

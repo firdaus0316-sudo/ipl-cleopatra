@@ -1,5 +1,5 @@
 import { Resident, IncomeTransaction, ExpenseTransaction, SaldoAwalEntry, TunggakanLamaEntry, KasbonEntry, ProofSubmission, DatabaseSchema, PembayaranRecord, DansosEntry, DansosSummary, BudgetingEntry, BudgetingSummary } from '@/types';
-import { normalizeBlokCode, isIuranBulananCategory, isPemindahanDansosCategory, isPemindahanBudgetingCategory, isDansosProofCategory } from '@/lib/format';
+import { normalizeBlokCode, normalizeIncomeCategory, isIuranBulananCategory, isPemindahanDansosCategory, isPemindahanBudgetingCategory, isDansosProofCategory } from '@/lib/format';
 import { spawn } from 'child_process';
 
 export const SHEET_ID = '1CzNnjH8-j8XR6UkQcP2qtFAY2jX28IVJoVWGeXJkxIw';
@@ -364,7 +364,8 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
         }
       }
 
-      const isRegularIuranRow = isIuranBulananCategory(kategori);
+      const normalizedKategori = normalizeIncomeCategory(kategori);
+      const isRegularIuranRow = isIuranBulananCategory(normalizedKategori);
 
       if (isRegularIuranRow && bulanList.length > 1) {
         const numMonths = bulanList.length;
@@ -378,7 +379,7 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
             tanggal,
             sumber: blok ? `${nama} (${blok})` : nama,
             residentId: residentId ? residentId.trim() : undefined,
-            kategori,
+            kategori: normalizedKategori,
             bulan: [mCode],
             nominal: subNominal,
             buktiId,
@@ -394,7 +395,7 @@ export async function fetchIncomesFromSheet(): Promise<{ success: boolean; incom
           tanggal,
           sumber: blok ? `${nama} (${blok})` : nama,
           residentId: residentId ? residentId.trim() : undefined,
-          kategori,
+          kategori: normalizedKategori,
           bulan: [singlePeriod],
           nominal,
           buktiId,
@@ -858,10 +859,12 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
         }
       }
 
+      const normalizedProofKategori = normalizeIncomeCategory(kategori);
+
       if (parsedBulan.length === 0) {
         const fallbackPeriod = bulanAwal ? normalizePeriodCode(bulanAwal) : '';
         parsedBulan.push(fallbackPeriod || '2026-11');
-      } else if (!isIuranBulananCategory(kategori) && parsedBulan.length > 1) {
+      } else if (!isIuranBulananCategory(normalizedProofKategori) && parsedBulan.length > 1) {
         parsedBulan.splice(1);
       }
 
@@ -878,7 +881,7 @@ export async function fetchProofsFromSheet(): Promise<{ success: boolean; proofs
         residentName: namaWarga,
         blok: blok || '',
         hp: '',
-        kategori,
+        kategori: normalizedProofKategori,
         bulan: parsedBulan,
         nominal,
         buktiUrl: driveUrl || '',
@@ -1008,7 +1011,7 @@ export async function appendIncomesToSheet(
       const bulan = item.bulanIuran || '2026-11';
       const jumlah = item.jumlah || 0;
       const status = item.status || 'Lunas';
-      const kategori = item.kategori || 'Iuran Bulanan';
+      const kategori = normalizeIncomeCategory(item.kategori);
       const tarif = item.tarif || item.jumlah || 150000;
       const txId = item.transaksiId;
       const wargaId = item.wargaId || '';
@@ -1319,7 +1322,7 @@ export async function updateIncomeInSheet(
       4: bulanStr,
       5: inc.nominal,
       6: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Lunas',
-      7: inc.kategori || 'Iuran Bulanan',
+      7: normalizeIncomeCategory(inc.kategori),
       10: inc.residentId || '',
     });
 
@@ -1333,7 +1336,7 @@ export async function updateIncomeInSheet(
         bulanIuran: bulanStr,
         jumlah: inc.nominal,
         status: inc.status === 'Dibatalkan' ? 'Dibatalkan' : 'Lunas',
-        kategori: inc.kategori || 'Iuran Bulanan',
+        kategori: normalizeIncomeCategory(inc.kategori),
         tarif: inc.nominal,
         transaksiId: inc.id,
         wargaId: inc.residentId || '',
@@ -1715,7 +1718,7 @@ export async function appendProofToSheet(p: ProofSubmission) {
     p.nominal || 0,
     escapeGsheetCell(p.catatanWarga || ''),
     escapeGsheetCell(p.driveUrl || p.buktiUrl || ''),
-    escapeGsheetCell(p.kategori || 'Iuran Bulanan'),
+    escapeGsheetCell(normalizeIncomeCategory(p.kategori)),
     escapeGsheetCell(p.bulan?.join('; ') || '2026-11'),
     escapeGsheetCell(p.status || 'Menunggu Verifikasi'),
     escapeGsheetCell(p.id),
@@ -1961,7 +1964,7 @@ export async function reconcileVerifiedProofsToIncomes(
     if (txIds.length === 0) continue;
     if (txIds.some((id) => blockedSet.has(id) || existingTxIds.has(id))) continue;
 
-    const proofKategori = proof.kategori || 'Iuran Bulanan';
+    const proofKategori = normalizeIncomeCategory(proof.kategori);
     const isRegularIuran = isIuranBulananCategory(proofKategori);
     const monthsList = (Array.isArray(proof.bulan) ? proof.bulan : proof.bulan ? [proof.bulan] : [])
       .map(normalizePeriodCode)

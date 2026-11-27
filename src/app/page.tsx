@@ -128,7 +128,6 @@ const KATEGORI_INCOME_OPTIONS = [
 
 const INCOME_COLORS: Record<string, string> = {
   'Iuran Bulanan': '#10b981',
-  'Iuran Bulanan (Reguler)': '#10b981',
   [DANSOS_PROOF_CATEGORY]: '#e11d48',
   'THR (Tunjangan Hari Raya)': '#ec4899',
   'Iuran THR': '#ec4899',

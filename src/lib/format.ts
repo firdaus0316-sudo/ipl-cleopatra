@@ -222,7 +222,25 @@ export function matchProofToResident(proof: any, resident: any): boolean {
 }
 
 /**
- * Mengembalikan true HANYA untuk kategori Iuran Bulanan (Reguler).
+ * Menormalkan nama kategori pemasukan lama agar konsisten dan tidak terpecah
+ * menjadi dua kategori (contoh: "Iuran Bulanan (Reguler)" -> "Iuran Bulanan").
+ */
+export function normalizeIncomeCategory(kategori?: string | null): string {
+  const raw = (kategori || '').trim();
+  if (!raw) return 'Iuran Bulanan';
+  const lower = raw.toLowerCase().replace(/\s+/g, ' ');
+  if (
+    lower === 'iuran bulanan (reguler)' ||
+    lower === 'iuran bulanan reguler' ||
+    lower === 'iuran bulanan'
+  ) {
+    return 'Iuran Bulanan';
+  }
+  return raw;
+}
+
+/**
+ * Mengembalikan true HANYA untuk kategori Iuran Bulanan.
  * Kategori lain (Donasi / Dana Hibah, THR, Ramadhan, Agustusan, Selokan, Lainnya,
  * Pelunasan Tunggakan, Pengembalian Kasbon) tidak boleh dipecah ke multi-bulan
  * dan dicatat utuh pada satu periode saat transaksi tersebut terjadi.
